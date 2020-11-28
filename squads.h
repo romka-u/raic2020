@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include "world.h"
+#include "game_status.h"
 
 struct SquadInfo {
     int unitsAssigned;
@@ -116,7 +117,7 @@ tuple<Cell, bool, bool> moreOrLessTogether(const vector<Cell>& cells) {
     return {center, conn0, conn1};
 }
 
-void calcSquadsTactic(int myId, const World& world) {
+void calcSquadsTactic(int myId, const World& world, const GameStatus& st) {
     if (squadInfo.empty()) {
         squadInfo.push_back(createNewSquadInfo(world));
     }
@@ -158,7 +159,7 @@ void calcSquadsTactic(int myId, const World& world) {
                             closestEnemy[cbs.first] = {ou.position, cld};
                         }
                     }
-                    for (int oi : world.builders[p]) {
+                    for (int oi : world.workers[p]) {
                         const auto& ou = world.entityMap.at(oi);
                         int cd = dist(c, ou.position);
                         if (cd < cld) {
@@ -177,6 +178,22 @@ void calcSquadsTactic(int myId, const World& world) {
             si.target = cell;
             cerr << ">> Squad " << cce.first << " is close to enemy\n   distance " << d << ", target " << cell << endl;
         } else {
+            if (st.underAttack) {
+                for (int p = 1; p <= 4; p++) {
+                    if (p == myId) continue;
+                    for (int wi : world.warriors[p]) {
+                        const auto& w = world.entityMap.at(wi);
+                        for (int bi : world.buildings[myId]) {
+                            if (dist(w.position, world.entityMap.at(bi), world.P(bi).size) <= props.at(w.entityType).attack->attackRange) {
+                                si.target = w.position;
+                                goto out;
+                            }
+                        }
+                    }
+                }
+                out: continue;
+            }
+
             if (si.unitsAssigned == 5) {
                 auto [weightMass, conn0, conn1] = moreOrLessTogether(cellsBySquad[cce.first]);
                 if (!si.together) {

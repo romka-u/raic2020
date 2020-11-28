@@ -3,6 +3,7 @@
 #include "world.h"
 #include "common.h"
 #include "squads.h"
+#include "game_status.h"
 
 struct Score {
     int main;
@@ -48,7 +49,7 @@ bool operator<(const MyAction& a, const MyAction& b) {
     return a.score < b.score;
 }
 
-void addGatherActions(int myId, const World& world, vector<MyAction>& actions) {
+void addGatherActions(int myId, const World& world, vector<MyAction>& actions, const GameStatus& st) {
     vector<int> available;
     for (int ri : world.resources) {
         const auto& res = world.entityMap.at(ri);
@@ -64,13 +65,38 @@ void addGatherActions(int myId, const World& world, vector<MyAction>& actions) {
         available.push_back(ri);
     }
 
-    for (int ri : available) {
-        const auto& res = world.entityMap.at(ri);
-        for (int bi : world.builders[myId]) {
-            const auto& bu = world.entityMap.at(bi);
-            int cd = dist(res, 1, bu, 1);
-            actions.emplace_back(bi, A_GATHER, res.position, ri, Score(100 - cd, 0));
-        }        
+    for (int bi : world.workers[myId]) {
+        const auto& bu = world.entityMap.at(bi);
+
+        bool underAttack = false;
+        Cell threatPos;
+        for (int p = 1; p <= 4 && !underAttack; p++) {
+            if (p == myId) continue;
+            for (int wi : world.warriors[p]) {
+                const auto& w = world.entityMap.at(wi);
+                if (dist(w.position, bu.position) <= props.at(w.entityType).attack->attackRange + 3) {
+                    underAttack = true;
+                    threatPos = w.position;
+                    break;
+                }
+            }
+        }
+
+        if (underAttack) {
+            Cell hideTarget{bu.position.x * 2 - threatPos.x, bu.position.y * 2 - threatPos.y};
+            if (hideTarget.x < 0) hideTarget.x = 0;
+            if (hideTarget.y < 0) hideTarget.y = 0;
+            if (hideTarget.y >= 80) hideTarget.y = 79;
+            if (hideTarget.x >= 80) hideTarget.x = 79;
+
+            actions.emplace_back(bi, A_MOVE, hideTarget, -1, Score(300, 0));
+        } else {
+            for (int ri : available) {
+                const auto& res = world.entityMap.at(ri);
+                int cd = dist(res, 1, bu, 1);
+                actions.emplace_back(bi, A_GATHER, res.position, ri, Score(100 - cd, 0));
+            }
+        } 
     }
 
     cerr << "After add gather: " << actions.size() << " actions.\n";
@@ -93,19 +119,19 @@ bool canBuild(const World& world, const Cell& c, int sz) {
     return true;
 }
 
-void addBuildActions(const PlayerView& playerView, const World& world, vector<MyAction>& actions) {
+void addBuildActions(const PlayerView& playerView, const World& world, vector<MyAction>& actions, const GameStatus& st) {
     int myId = playerView.myId;
     int food_used = 0, food_limit = 0;
     for (int bi : world.buildings[myId])
         food_limit += world.P(bi).populationProvide;
-    for (int bi : world.builders[myId])
+    for (int bi : world.workers[myId])
         food_used += world.P(bi).populationUse;
     for (int bi : world.warriors[myId])
         food_used += world.P(bi).populationUse;
 
     Score buildScore{150 - (food_limit - food_used) * 10, 0};
 
-    for (int bi : world.builders[myId]) {
+    for (int bi : world.workers[myId]) {
         const auto& bu = world.entityMap.at(bi);
 
         // houses
@@ -122,10 +148,10 @@ void addBuildActions(const PlayerView& playerView, const World& world, vector<My
     cerr << "After add build: " << actions.size() << " actions.\n";
 }
 
-void addTrainActions(int myId, const World& world, vector<MyAction>& actions) {
+void addTrainActions(int myId, const World& world, vector<MyAction>& actions, const GameStatus& st) {
     for (int bi : world.buildings[myId]) {
         const auto& bu = world.entityMap.at(bi);
-        if (bu.entityType == EntityType::BUILDER_BASE) {
+        if (bu.entityType == EntityType::BUILDER_BASE && !st.underAttack && world.workers[myId].size() < 88) {
             for (Cell bornPlace : nearCells(bu.position, props.at(bu.entityType).size)) {
                 if (world.isEmpty(bornPlace)) {
                     actions.emplace_back(bi, A_TRAIN, bornPlace, EntityType::BUILDER_UNIT, Score{50, bornPlace.x + bornPlace.y});
@@ -145,12 +171,12 @@ void addTrainActions(int myId, const World& world, vector<MyAction>& actions) {
     cerr << "After add train: " << actions.size() << " actions.\n";
 }
 
-void addRepairActions(int myId, const World& world, vector<MyAction>& actions) {
+void addRepairActions(int myId, const World& world, vector<MyAction>& actions, const GameStatus& st) {
     for (int bi : world.buildings[myId]) {
         const auto& bu = world.entityMap.at(bi);
         const int bsz = props.at(bu.entityType).size;
         if (bu.health < props.at(bu.entityType).maxHealth) {
-            for (int ui : world.builders[myId]) {
+            for (int ui : world.workers[myId]) {
                 const auto& unit = world.entityMap.at(ui);
                 int cd = dist(unit, 1, bu, bsz);
                 if (cd == 1) {
@@ -164,7 +190,7 @@ void addRepairActions(int myId, const World& world, vector<MyAction>& actions) {
     cerr << "After add repair: " << actions.size() << " actions.\n";
 }
 
-void addWarActions(int myId, const World& world, vector<MyAction>& actions) {
+void addWarActions(int myId, const World& world, vector<MyAction>& actions, const GameStatus& st) {
     for (int bi : world.warriors[myId]) {
         const auto& bu = world.entityMap.at(bi);
 
@@ -187,7 +213,7 @@ void addWarActions(int myId, const World& world, vector<MyAction>& actions) {
                     if (dist(bu.position, ou, props.at(ou.entityType).size) <= attackDist)
                         actions.emplace_back(bi, A_ATTACK, ou.position, ou.id, Score(ou.entityType == EntityType::TURRET ? 200 : 150, -ou.health));
                 }
-                for (int oi : world.builders[p]) {
+                for (int oi : world.workers[p]) {
                     const auto& ou = world.entityMap.at(oi);
                     if (dist(bu.position, ou.position) <= attackDist)
                         actions.emplace_back(bi, A_ATTACK, ou.position, ou.id, Score(190, -ou.health));

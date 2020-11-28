@@ -17,7 +17,7 @@ Cell NOWHERE{-1, -1};
 
 struct World {
     unordered_map<int, Entity> entityMap;
-    vector<int> builders[5];
+    vector<int> workers[5];
     vector<int> warriors[5];
     vector<int> buildings[5];
     vector<int> resources;
@@ -38,7 +38,7 @@ struct World {
     void update(const PlayerView& playerView) {
         const auto& ent = playerView.entities;
         forn(p, 5) {
-            builders[p].clear();
+            workers[p].clear();
             warriors[p].clear();
             buildings[p].clear();
         }
@@ -57,7 +57,7 @@ struct World {
                 assert(1 <= pid && pid <= 4);
                 entityMap[eid] = e;
                 if (e.entityType == EntityType::BUILDER_UNIT)
-                    builders[pid].push_back(eid);
+                    workers[pid].push_back(eid);
                 else if (e.entityType == EntityType::RANGED_UNIT || e.entityType == EntityType::MELEE_UNIT)
                     warriors[pid].push_back(eid);
                 else if (e.entityType == EntityType::BUILDER_BASE

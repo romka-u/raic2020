@@ -5,6 +5,7 @@
 #include "actions.h"
 
 World world;
+GameStatus gameStatus;
 
 MyStrategy::MyStrategy() {}
 
@@ -18,13 +19,16 @@ Action MyStrategy::getAction(const PlayerView& playerView, DebugInterface* debug
     int myId = playerView.myId;
     std::unordered_map<int, EntityAction> moves;
 
-    calcSquadsTactic(myId, world);
+    gameStatus.update(playerView, world);
+
+    calcSquadsTactic(myId, world, gameStatus);
+
     vector<MyAction> actions;
-    addBuildActions(playerView, world, actions);
-    addTrainActions(myId, world, actions);
-    addRepairActions(myId, world, actions);
-    addWarActions(myId, world, actions);
-    addGatherActions(myId, world, actions);
+    addBuildActions(playerView, world, actions, gameStatus);
+    addTrainActions(myId, world, actions, gameStatus);
+    addRepairActions(myId, world, actions, gameStatus);
+    addWarActions(myId, world, actions, gameStatus);
+    addGatherActions(myId, world, actions, gameStatus);
 
     sort(actions.begin(), actions.end());
 
