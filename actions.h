@@ -1,0 +1,198 @@
+#pragma once
+
+#include "world.h"
+#include "common.h"
+#include "squads.h"
+
+struct Score {
+    int main;
+    double aux;
+
+    Score() {}
+    Score(int m): main(m), aux(0) {}
+    Score(int m, int a): main(m), aux(a) {}
+    Score(int m, double a): main(m), aux(a) {}
+};
+
+bool operator<(const Score& a, const Score& b) {
+    if (a.main != b.main) return a.main > b.main;
+    return a.aux > b.aux;
+}
+
+const int A_BUILD = 1;
+const int A_ATTACK = 2;
+const int A_MOVE = 3;
+const int A_REPAIR = 4;
+const int A_REPAIR_MOVE = 5;
+const int A_TRAIN = 6;
+const int A_GATHER = 7;
+
+struct MyAction {
+    int unitId;
+    int actionType;
+    Cell pos;
+    int oid;
+    Score score;
+
+    MyAction() {}
+    MyAction(int u, int a, Cell p, int o, Score s) {
+        unitId = u;
+        actionType = a;
+        pos = p;
+        oid = o;
+        score = s;
+    }
+};
+
+bool operator<(const MyAction& a, const MyAction& b) {
+    return a.score < b.score;
+}
+
+void addGatherActions(int myId, const World& world, vector<MyAction>& actions) {
+    vector<int> available;
+    for (int ri : world.resources) {
+        const auto& res = world.entityMap.at(ri);
+        bool side = false;
+        forn(q, 4) {
+            Cell c = res.position ^ q;
+            if (!c.inside()) continue;
+            if (world.hasNonMovable(c)) continue;
+            side = true;
+            break;
+        }
+        if (!side) continue;
+        available.push_back(ri);
+    }
+
+    for (int ri : available) {
+        const auto& res = world.entityMap.at(ri);
+        for (int bi : world.builders[myId]) {
+            const auto& bu = world.entityMap.at(bi);
+            int cd = dist(res, 1, bu, 1);
+            actions.emplace_back(bi, A_GATHER, res.position, ri, Score(100 - cd, 0));
+        }        
+    }
+
+    cerr << "After add gather: " << actions.size() << " actions.\n";
+}
+/*
+bool intersects(const Cell& c1, int s1, const Cell& c2, int s2) {
+    if (min(c1.x + s1 - 1, c2.x + s2 - 1) < max(c1.x, c2.x)) return false;
+    if (min(c1.y + s1 - 1, c2.y + s2 - 1) < max(c1.y, c2.y)) return false;
+    return true;
+}
+*/
+bool canBuild(const World& world, const Cell& c, int sz) {
+    if (!c.inside()) return false;
+    Cell cc = c + Cell(sz - 1, sz - 1);
+    if (!cc.inside()) return false;
+    forn(dx, sz) forn(dy, sz) {
+        if (!world.isEmpty(c + Cell(dx, dy)))
+            return false;
+    }
+    return true;
+}
+
+void addBuildActions(const PlayerView& playerView, const World& world, vector<MyAction>& actions) {
+    int myId = playerView.myId;
+    int food_used = 0, food_limit = 0;
+    for (int bi : world.buildings[myId])
+        food_limit += world.P(bi).populationProvide;
+    for (int bi : world.builders[myId])
+        food_used += world.P(bi).populationUse;
+    for (int bi : world.warriors[myId])
+        food_used += world.P(bi).populationUse;
+
+    Score buildScore{150 - (food_limit - food_used) * 10, 0};
+
+    for (int bi : world.builders[myId]) {
+        const auto& bu = world.entityMap.at(bi);
+
+        // houses
+        int sz = props.at(EntityType::HOUSE).size;
+        for (Cell newPos : nearCells(bu.position - Cell(sz - 1, sz - 1), sz)) {
+            if (canBuild(world, newPos, sz) && (newPos.x % (sz + 2) == 1) && (newPos.y % (sz + 2) == 1)) {
+                buildScore.aux = (newPos.x % (sz + 1) == 1) * 10;
+                buildScore.aux += (newPos.y % (sz + 1) == 1) * 10;
+                actions.emplace_back(bi, A_BUILD, newPos, EntityType::HOUSE, buildScore);
+            }
+        }
+    }
+
+    cerr << "After add build: " << actions.size() << " actions.\n";
+}
+
+void addTrainActions(int myId, const World& world, vector<MyAction>& actions) {
+    for (int bi : world.buildings[myId]) {
+        const auto& bu = world.entityMap.at(bi);
+        if (bu.entityType == EntityType::BUILDER_BASE) {
+            for (Cell bornPlace : nearCells(bu.position, props.at(bu.entityType).size)) {
+                if (world.isEmpty(bornPlace)) {
+                    actions.emplace_back(bi, A_TRAIN, bornPlace, EntityType::BUILDER_UNIT, Score{50, bornPlace.x + bornPlace.y});
+                    break;
+                }
+            }
+        }
+        if (bu.entityType == EntityType::RANGED_BASE) {
+            for (Cell bornPlace : nearCells(bu.position, props.at(bu.entityType).size)) {
+                if (world.isEmpty(bornPlace)) {
+                    actions.emplace_back(bi, A_TRAIN, bornPlace, EntityType::RANGED_UNIT, Score{30, bornPlace.x + bornPlace.y});
+                    break;
+                }
+            }
+        }
+    }
+    cerr << "After add train: " << actions.size() << " actions.\n";
+}
+
+void addRepairActions(int myId, const World& world, vector<MyAction>& actions) {
+    for (int bi : world.buildings[myId]) {
+        const auto& bu = world.entityMap.at(bi);
+        const int bsz = props.at(bu.entityType).size;
+        if (bu.health < props.at(bu.entityType).maxHealth) {
+            for (int ui : world.builders[myId]) {
+                const auto& unit = world.entityMap.at(ui);
+                int cd = dist(unit, 1, bu, bsz);
+                if (cd == 1) {
+                    actions.emplace_back(ui, A_REPAIR, NOWHERE, bi, Score(200 - cd, 0));
+                } else {
+                    actions.emplace_back(ui, A_REPAIR_MOVE, bu.position, -1, Score(200 - cd, 0));
+                }
+            }
+        }
+    }
+    cerr << "After add repair: " << actions.size() << " actions.\n";
+}
+
+void addWarActions(int myId, const World& world, vector<MyAction>& actions) {
+    for (int bi : world.warriors[myId]) {
+        const auto& bu = world.entityMap.at(bi);
+
+        Cell target = squadInfo[squadId[bi]].target;
+        actions.emplace_back(bi, A_MOVE, target, -1, Score(100, 0));
+
+        const int attackDist = props.at(bu.entityType).attack->attackRange;
+        for (int p = 1; p <= 4; p++)
+            if (p != myId) {
+                for (int oi : world.warriors[p]) {
+                    const auto& ou = world.entityMap.at(oi);
+                    if (dist(bu.position, ou.position) <= attackDist) {
+                        int score = 200;
+                        if (ou.entityType == EntityType::MELEE_UNIT && dist(bu.position, ou.position) > 1) score = 195;
+                        actions.emplace_back(bi, A_ATTACK, ou.position, ou.id, Score(score, -ou.health));
+                    }
+                }
+                for (int oi : world.buildings[p]) {
+                    const auto& ou = world.entityMap.at(oi);
+                    if (dist(bu.position, ou, props.at(ou.entityType).size) <= attackDist)
+                        actions.emplace_back(bi, A_ATTACK, ou.position, ou.id, Score(ou.entityType == EntityType::TURRET ? 200 : 150, -ou.health));
+                }
+                for (int oi : world.builders[p]) {
+                    const auto& ou = world.entityMap.at(oi);
+                    if (dist(bu.position, ou.position) <= attackDist)
+                        actions.emplace_back(bi, A_ATTACK, ou.position, ou.id, Score(190, -ou.health));
+                }
+            }
+    }
+    cerr << "After add repair: " << actions.size() << " actions.\n";
+}
