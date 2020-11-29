@@ -6,6 +6,7 @@
 struct GameStatus {
     bool underAttack;
     vector<int> resToGather;
+    int foodUsed, foodLimit;
 
     void update(const PlayerView& playerView, const World& world) {
         int myId = playerView.myId;
@@ -37,5 +38,15 @@ struct GameStatus {
             // if (!side) continue;
             resToGather.push_back(ri);
         }
+
+        foodUsed = 0;
+        foodLimit = 0;
+        for (int bi : world.buildings[myId])
+            if (world.entityMap.at(bi).active)
+                foodLimit += world.P(bi).populationProvide;
+        for (int bi : world.workers[myId])
+            foodUsed += world.P(bi).populationUse;
+        for (int bi : world.warriors[myId])
+            foodUsed += world.P(bi).populationUse;
     }
 };

@@ -113,15 +113,8 @@ bool goodForHouse(const Cell& c, int sz) {
 
 void addBuildActions(const PlayerView& playerView, const World& world, vector<MyAction>& actions, const GameStatus& st) {
     int myId = playerView.myId;
-    int food_used = 0, food_limit = 0;
-    for (int bi : world.buildings[myId])
-        food_limit += world.P(bi).populationProvide;
-    for (int bi : world.workers[myId])
-        food_used += world.P(bi).populationUse;
-    for (int bi : world.warriors[myId])
-        food_used += world.P(bi).populationUse;
 
-    Score buildScore{180 - (food_limit - food_used) * 10, 0};
+    Score buildScore{180 - (st.foodLimit - st.foodUsed) * 10, 0};
 
     for (int bi : world.workers[myId]) {
         const auto& bu = world.entityMap.at(bi);
@@ -140,6 +133,7 @@ void addBuildActions(const PlayerView& playerView, const World& world, vector<My
 }
 
 void addTrainActions(int myId, const World& world, vector<MyAction>& actions, const GameStatus& st) {
+    if (st.foodUsed == st.foodLimit) return;
     for (int bi : world.buildings[myId]) {
         const auto& bu = world.entityMap.at(bi);
         if (bu.entityType == EntityType::BUILDER_BASE && !st.underAttack && world.workers[myId].size() < min(77, int(st.resToGather.size() * 0.91))) {

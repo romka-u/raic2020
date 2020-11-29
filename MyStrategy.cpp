@@ -3,6 +3,7 @@
 
 #include "world.h"
 #include "actions.h"
+#include "astar.h"
 
 World world;
 GameStatus gameStatus;
@@ -18,6 +19,7 @@ Action MyStrategy::getAction(const PlayerView& playerView, DebugInterface* debug
     cerr << "my resources: " << resourcesLeft << endl;
     int myId = playerView.myId;
     std::unordered_map<int, EntityAction> moves;
+    memset(busyForAStar, 0, sizeof(busyForAStar));
 
     gameStatus.update(playerView, world);
 
@@ -35,6 +37,12 @@ Action MyStrategy::getAction(const PlayerView& playerView, DebugInterface* debug
     unordered_set<int> usedUnits, usedResources;
     int bestRepairScore = -1;
 
+    auto setMove = [&moves](int unitId, const Cell& from, const Cell& to) {
+        // Cell nc = getNextCellTo(world, from, to);
+        // if (world.eMap[nc.x][nc.y] != 0) nc = to;
+        moves[unitId].moveAction = std::make_shared<MoveAction>(to, true, false);
+    };
+
     for (const MyAction& action : actions) {
         auto [unitId, actionType, pos, oid, score] = action;
         const auto& upos = world.entityMap[unitId].position;
@@ -51,18 +59,18 @@ Action MyStrategy::getAction(const PlayerView& playerView, DebugInterface* debug
                 if (usedResources.insert(oid).second) {
                     if (dist(upos, pos) == 1) {
                         moves[unitId].attackAction = std::make_shared<AttackAction>(std::make_shared<int>(oid), nullptr);
-                        // cerr << unitId << " at " << upos << " gathers at " << world.entityMap[oid].position << endl;
+                        cerr << unitId << " at " << upos << " gathers at " << world.entityMap[oid].position << endl;
                     } else {
-                        moves[unitId].moveAction = std::make_shared<MoveAction>(pos, true, false);
-                        // cerr << unitId << " at " << upos << " moves to gather at " << pos << endl;
+                        setMove(unitId, upos, pos);
+                        cerr << unitId << " at " << upos << " moves to gather at " << pos  << ", result by astar is " << moves[unitId].moveAction->target << endl;
                     }
                 } else {
                     continue;
                 }
                 break;
             case A_MOVE:
-                moves[unitId].moveAction = std::make_shared<MoveAction>(pos, true, false);
-                // cerr << unitId << " at " << upos << " wants to move to " << pos << endl;
+                setMove(unitId, upos, pos);
+                cerr << unitId << " at " << upos << " wants to move to " << pos << ", result by astar is " << moves[unitId].moveAction->target << endl;
                 break;
             case A_BUILD:
             case A_TRAIN:
@@ -80,7 +88,7 @@ Action MyStrategy::getAction(const PlayerView& playerView, DebugInterface* debug
                 break;
             case A_REPAIR_MOVE:
                 if (bestRepairScore == -1 || score.main == 199) {
-                    moves[unitId].moveAction = std::make_shared<MoveAction>(pos, true, false);
+                    setMove(unitId, upos, pos);
                     bestRepairScore = score.main;
                     cerr << unitId << " at " << upos << " wants to repair_move to " << pos << "( score.main = " << score.main << ")" << endl;
                 } else {
@@ -92,6 +100,12 @@ Action MyStrategy::getAction(const PlayerView& playerView, DebugInterface* debug
         }
 
         usedUnits.insert(unitId);
+        Cell t = upos;
+        busyForAStar[t.x][t.y] = true;
+        if (moves[unitId].moveAction) {
+            t = moves[unitId].moveAction->target;
+            busyForAStar[t.x][t.y] = true;
+        }
     }   
 
     return Action(moves);
