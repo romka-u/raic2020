@@ -23,6 +23,7 @@ struct World {
     vector<int> resources;
     vector<Entity> oppEntities;
     int eMap[88][88];
+    int infMap[88][88];
 
     bool isEmpty(const Cell& c) const {
         return eMap[c.x][c.y] == 0;
@@ -34,6 +35,31 @@ struct World {
 
     EntityProperties& P(int unitId) const {
         return props.at(entityMap.at(unitId).entityType);
+    }
+
+    void calcInfMap(const PlayerView& playerView) {
+        memset(infMap, 0, sizeof(infMap));
+
+        vector<pair<Cell, int>> q;
+        size_t qb = 0;
+
+        for (const auto& e : playerView.entities)
+            if (e.entityType == EntityType::RANGED_UNIT || e.entityType == EntityType::MELEE_UNIT) {
+                q.emplace_back(e.position, *e.playerId);
+                infMap[e.position.x][e.position.y] = *e.playerId;
+            }
+
+        while (qb < q.size()) {
+            const auto [pos, val] = q[qb++];
+            forn(w, 4) {
+                const Cell np = pos ^ w;
+                if (np.inside() && infMap[np.x][np.y] == 0) {
+                    infMap[np.x][np.y] = val;
+                    if (eMap[np.x][np.y] >= 0)
+                        q.emplace_back(np, val);
+                }
+            }
+        }
     }
 
     void update(const PlayerView& playerView) {
@@ -76,6 +102,8 @@ struct World {
                 resources.push_back(e.id);
             }
         }
+
+        calcInfMap(playerView);
     }
 };
 

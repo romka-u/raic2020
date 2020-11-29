@@ -50,21 +50,6 @@ bool operator<(const MyAction& a, const MyAction& b) {
 }
 
 void addGatherActions(int myId, const World& world, vector<MyAction>& actions, const GameStatus& st) {
-    vector<int> available;
-    for (int ri : world.resources) {
-        const auto& res = world.entityMap.at(ri);
-        bool side = false;
-        forn(q, 4) {
-            Cell c = res.position ^ q;
-            if (!c.inside()) continue;
-            if (world.hasNonMovable(c)) continue;
-            side = true;
-            break;
-        }
-        if (!side) continue;
-        available.push_back(ri);
-    }
-
     for (int bi : world.workers[myId]) {
         const auto& bu = world.entityMap.at(bi);
 
@@ -91,7 +76,7 @@ void addGatherActions(int myId, const World& world, vector<MyAction>& actions, c
 
             actions.emplace_back(bi, A_MOVE, hideTarget, -1, Score(300, 0));
         } else {
-            for (int ri : available) {
+            for (int ri : st.resToGather) {
                 const auto& res = world.entityMap.at(ri);
                 int cd = dist(res, 1, bu, 1);
                 actions.emplace_back(bi, A_GATHER, res.position, ri, Score(100 - cd, 0));
@@ -158,7 +143,7 @@ void addBuildActions(const PlayerView& playerView, const World& world, vector<My
 void addTrainActions(int myId, const World& world, vector<MyAction>& actions, const GameStatus& st) {
     for (int bi : world.buildings[myId]) {
         const auto& bu = world.entityMap.at(bi);
-        if (bu.entityType == EntityType::BUILDER_BASE && !st.underAttack && world.workers[myId].size() < 88) {
+        if (bu.entityType == EntityType::BUILDER_BASE && !st.underAttack && world.workers[myId].size() < min(77, int(st.resToGather.size() * 0.91))) {
             for (Cell bornPlace : nearCells(bu.position, props.at(bu.entityType).size)) {
                 if (world.isEmpty(bornPlace)) {
                     actions.emplace_back(bi, A_TRAIN, bornPlace, EntityType::BUILDER_UNIT, Score{50, bornPlace.x + bornPlace.y});
@@ -206,7 +191,7 @@ void addWarActions(int myId, const World& world, vector<MyAction>& actions, cons
 
         const int attackDist = props.at(bu.entityType).attack->attackRange;
         for (const auto& ou : world.oppEntities) {
-            const int movableBonus = ou.entityType == EntityType::RANGED_UNIT || ou.entityType == EntityType::MELEE_UNIT;
+            const int movableBonus = 0; // ou.entityType == EntityType::RANGED_UNIT || ou.entityType == EntityType::MELEE_UNIT;
             if (dist(bu.position, ou, props.at(ou.entityType).size) <= attackDist + movableBonus) {
                 int score = 200;
                 if (ou.entityType == EntityType::MELEE_UNIT && dist(bu.position, ou.position) > 1) score = 195;

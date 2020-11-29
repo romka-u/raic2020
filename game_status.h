@@ -5,6 +5,7 @@
 
 struct GameStatus {
     bool underAttack;
+    vector<int> resToGather;
 
     void update(const PlayerView& playerView, const World& world) {
         int myId = playerView.myId;
@@ -19,6 +20,22 @@ struct GameStatus {
                         underAttack = true;
                 }
             }
+        }
+
+        resToGather.clear();
+        for (int ri : world.resources) {
+            const auto& res = world.entityMap.at(ri);
+            if (world.infMap[res.position.x][res.position.y] != myId) continue;
+            // bool side = false;
+            // forn(q, 4) {
+            //     Cell c = res.position ^ q;
+            //     if (!c.inside()) continue;
+            //     if (world.hasNonMovable(c)) continue;
+            //     side = true;
+            //     break;
+            // }
+            // if (!side) continue;
+            resToGather.push_back(ri);
         }
     }
 };
