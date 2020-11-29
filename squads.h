@@ -140,36 +140,16 @@ void calcSquadsTactic(int myId, const World& world, const GameStatus& st) {
         for (const auto& c : cbs.second) cerr << " " << c;
         cerr << endl;
         int cld = inf;
-        for (int p = 1; p <= 4; p++)
-            if (p != myId) {
-                for (const Cell& c : cbs.second) {
-                    for (int oi : world.warriors[p]) {
-                        const auto& ou = world.entityMap.at(oi);
-                        int cd = dist(c, ou.position);
-                        if (cd < cld) {
-                            cld = cd;
-                            closestEnemy[cbs.first] = {ou.position, cld};
-                        }
-                    }
-                    for (int oi : world.buildings[p]) {
-                        const auto& ou = world.entityMap.at(oi);
-                        int cd = dist(c, ou, props.at(ou.entityType).size);
-                        if (cd < cld) {
-                            cld = cd;
-                            closestEnemy[cbs.first] = {ou.position, cld};
-                        }
-                    }
-                    for (int oi : world.workers[p]) {
-                        const auto& ou = world.entityMap.at(oi);
-                        int cd = dist(c, ou.position);
-                        if (cd < cld) {
-                            cld = cd;
-                            closestEnemy[cbs.first] = {ou.position, cld};
-                        }
-                    }
+        for (const Cell& c : cbs.second) {
+            for (const auto& ou : world.oppEntities) {
+                int cd = dist(c, ou.position);
+                if (cd < cld) {
+                    cld = cd;
+                    closestEnemy[cbs.first] = {ou.position, cld};
                 }
             }
         }
+    }
     
     for (const auto& cce : closestEnemy) {
         auto [cell, d] = cce.second;

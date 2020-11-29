@@ -74,7 +74,7 @@ void addGatherActions(int myId, const World& world, vector<MyAction>& actions, c
             if (p == myId) continue;
             for (int wi : world.warriors[p]) {
                 const auto& w = world.entityMap.at(wi);
-                if (dist(w.position, bu.position) <= props.at(w.entityType).attack->attackRange + 3) {
+                if (dist(w.position, bu.position) <= props.at(w.entityType).attack->attackRange + 5) {
                     underAttack = true;
                     threatPos = w.position;
                     break;
@@ -129,7 +129,7 @@ void addBuildActions(const PlayerView& playerView, const World& world, vector<My
     for (int bi : world.warriors[myId])
         food_used += world.P(bi).populationUse;
 
-    Score buildScore{150 - (food_limit - food_used) * 10, 0};
+    Score buildScore{180 - (food_limit - food_used) * 10, 0};
 
     for (int bi : world.workers[myId]) {
         const auto& bu = world.entityMap.at(bi);
@@ -198,27 +198,29 @@ void addWarActions(int myId, const World& world, vector<MyAction>& actions, cons
         actions.emplace_back(bi, A_MOVE, target, -1, Score(100, 0));
 
         const int attackDist = props.at(bu.entityType).attack->attackRange;
-        for (int p = 1; p <= 4; p++)
-            if (p != myId) {
-                for (int oi : world.warriors[p]) {
-                    const auto& ou = world.entityMap.at(oi);
-                    if (dist(bu.position, ou.position) <= attackDist) {
-                        int score = 200;
-                        if (ou.entityType == EntityType::MELEE_UNIT && dist(bu.position, ou.position) > 1) score = 195;
-                        actions.emplace_back(bi, A_ATTACK, ou.position, ou.id, Score(score, -ou.health));
-                    }
-                }
-                for (int oi : world.buildings[p]) {
-                    const auto& ou = world.entityMap.at(oi);
-                    if (dist(bu.position, ou, props.at(ou.entityType).size) <= attackDist)
-                        actions.emplace_back(bi, A_ATTACK, ou.position, ou.id, Score(ou.entityType == EntityType::TURRET ? 200 : 150, -ou.health));
-                }
-                for (int oi : world.workers[p]) {
-                    const auto& ou = world.entityMap.at(oi);
-                    if (dist(bu.position, ou.position) <= attackDist)
-                        actions.emplace_back(bi, A_ATTACK, ou.position, ou.id, Score(190, -ou.health));
-                }
+        for (const auto& ou : world.oppEntities)
+            if (dist(bu.position, ou, props.at(ou.entityType).size) <= attackDist) {
+                int score = 200;
+                if (ou.entityType == EntityType::MELEE_UNIT && dist(bu.position, ou.position) > 1) score = 195;
+                if (ou.entityType == EntityType::BUILDER_UNIT) score = 160;
+                if (ou.entityType == EntityType::RANGED_BASE || ou.entityType == EntityType::MELEE_BASE || ou.entityType == EntityType::BUILDER_BASE) score = 150;
+                actions.emplace_back(bi, A_ATTACK, ou.position, ou.id, Score(score, -ou.health * 1e6 + ou.id));
             }
     }
-    cerr << "After add repair: " << actions.size() << " actions.\n";
+
+    for (int bi : world.buildings[myId]) {
+        const auto& bu = world.entityMap.at(bi);
+        if (bu.entityType != EntityType::TURRET) continue;
+
+        const int attackDist = props.at(bu.entityType).attack->attackRange;
+        for (const auto& ou : world.oppEntities)
+            if (dist(bu.position, ou, props.at(ou.entityType).size) <= attackDist) {
+                int score = 200;
+                if (ou.entityType == EntityType::MELEE_UNIT && dist(bu.position, ou.position) > 1) score = 195;
+                if (ou.entityType == EntityType::BUILDER_UNIT) score = 160;
+                if (ou.entityType == EntityType::RANGED_BASE || ou.entityType == EntityType::MELEE_BASE || ou.entityType == EntityType::BUILDER_BASE) score = 150;
+                actions.emplace_back(bi, A_ATTACK, ou.position, ou.id, Score(score, -ou.health * 1e6 + ou.id));
+            }
+    }
+    cerr << "After add war: " << actions.size() << " actions.\n";
 }

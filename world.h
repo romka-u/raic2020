@@ -21,6 +21,7 @@ struct World {
     vector<int> warriors[5];
     vector<int> buildings[5];
     vector<int> resources;
+    vector<Entity> oppEntities;
     int eMap[88][88];
 
     bool isEmpty(const Cell& c) const {
@@ -43,6 +44,7 @@ struct World {
             buildings[p].clear();
         }
         resources.clear();
+        oppEntities.clear();
         memset(eMap, 0, sizeof(eMap));
 
         for (const auto& e : ent) {
@@ -54,7 +56,7 @@ struct World {
             if (e.playerId) {
                 int pid = *e.playerId;
                 int eid = e.id;
-                assert(1 <= pid && pid <= 4);
+                if (pid != playerView.myId) oppEntities.push_back(e);
                 entityMap[eid] = e;
                 if (e.entityType == EntityType::BUILDER_UNIT)
                     workers[pid].push_back(eid);

@@ -15,7 +15,7 @@ struct GameStatus {
             for (int wi : world.warriors[p]) {
                 const auto& w = world.entityMap.at(wi);
                 for (int bi : world.buildings[myId]) {
-                    if (dist(w.position, world.entityMap.at(bi), world.P(bi).size) <= props.at(w.entityType).attack->attackRange)
+                    if (dist(w.position, world.entityMap.at(bi), world.P(bi).size) <= props.at(w.entityType).attack->attackRange + 10)
                         underAttack = true;
                 }
             }
