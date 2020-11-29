@@ -156,8 +156,9 @@ void addTrainActions(int myId, const World& world, vector<MyAction>& actions, co
         if (bu.entityType == EntityType::BUILDER_BASE && !st.underAttack && world.workers[myId].size() < min(77, int(st.resToGather.size() * 0.91))) {
             for (Cell bornPlace : nearCells(bu.position, props.at(bu.entityType).size)) {
                 if (world.isEmpty(bornPlace)) {
-                    actions.emplace_back(bi, A_TRAIN, bornPlace, EntityType::BUILDER_UNIT, Score{50, bornPlace.x + bornPlace.y});
-                    break;
+                    int aux = bornPlace.x + bornPlace.y;
+                    if (world.tick < 70) aux = -aux;
+                    actions.emplace_back(bi, A_TRAIN, bornPlace, EntityType::BUILDER_UNIT, Score{50, aux});
                 }
             }
         }
@@ -165,7 +166,6 @@ void addTrainActions(int myId, const World& world, vector<MyAction>& actions, co
             for (Cell bornPlace : nearCells(bu.position, props.at(bu.entityType).size)) {
                 if (world.isEmpty(bornPlace)) {
                     actions.emplace_back(bi, A_TRAIN, bornPlace, EntityType::RANGED_UNIT, Score{30, bornPlace.x + bornPlace.y});
-                    break;
                 }
             }
         }

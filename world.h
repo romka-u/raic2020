@@ -24,7 +24,7 @@ struct World {
     vector<Entity> oppEntities;
     int eMap[88][88];
     int infMap[88][88];
-    int myId;
+    int myId, tick;
 
     bool isEmpty(const Cell& c) const {
         return eMap[c.x][c.y] == 0;
@@ -66,6 +66,7 @@ struct World {
     void update(const PlayerView& playerView) {
         const auto& ent = playerView.entities;
         myId = playerView.myId;
+        tick = playerView.currentTick;
         forn(p, 5) {
             workers[p].clear();
             warriors[p].clear();
