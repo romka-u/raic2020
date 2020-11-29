@@ -53,16 +53,22 @@ void addGatherActions(int myId, const World& world, vector<MyAction>& actions, c
     for (int bi : world.workers[myId]) {
         const auto& bu = world.entityMap.at(bi);
 
-        bool underAttack = false;
+        int underAttack = 0;
         Cell threatPos;
         for (int p = 1; p <= 4 && !underAttack; p++) {
             if (p == myId) continue;
             for (int wi : world.warriors[p]) {
                 const auto& w = world.entityMap.at(wi);
                 if (dist(w.position, bu.position) <= props.at(w.entityType).attack->attackRange + 5) {
-                    underAttack = true;
-                    threatPos = w.position;
-                    break;
+                    if (underAttack < 1) {
+                        underAttack = 1;
+                        threatPos = w.position;
+                    }
+                    if (dist(w.position, bu.position) <= props.at(w.entityType).attack->attackRange + 1) {
+                        underAttack = 2;
+                        threatPos = w.position;              
+                        break;
+                    }
                 }
             }
         }
@@ -74,12 +80,12 @@ void addGatherActions(int myId, const World& world, vector<MyAction>& actions, c
             if (hideTarget.y >= 80) hideTarget.y = 79;
             if (hideTarget.x >= 80) hideTarget.x = 79;
 
-            actions.emplace_back(bi, A_MOVE, hideTarget, -1, Score(300, 0));
+            actions.emplace_back(bi, A_MOVE, hideTarget, -1, Score(/*underAttack * 120*/ 120, 0));
         } else {
             for (int ri : st.resToGather) {
                 const auto& res = world.entityMap.at(ri);
                 int cd = dist(res, 1, bu, 1);
-                actions.emplace_back(bi, A_GATHER, res.position, ri, Score(100 - cd, 0));
+                actions.emplace_back(bi, A_GATHER, res.position, ri, Score(100 - cd, -bi));
             }
         } 
     }
@@ -114,17 +120,28 @@ bool goodForHouse(const Cell& c, int sz) {
 void addBuildActions(const PlayerView& playerView, const World& world, vector<MyAction>& actions, const GameStatus& st) {
     int myId = playerView.myId;
 
-    Score buildScore{180 - (st.foodLimit - st.foodUsed) * 10, 0};
+    Score buildScore{1800 - (st.foodLimit - st.foodUsed) * 10, 0};
 
     for (int bi : world.workers[myId]) {
         const auto& bu = world.entityMap.at(bi);
 
-        // houses
-        int sz = props.at(EntityType::HOUSE).size;
-        for (Cell newPos : nearCells(bu.position - Cell(sz - 1, sz - 1), sz)) {
-            if (canBuild(world, newPos, sz) && goodForHouse(newPos, sz)) {
-                buildScore.aux = (newPos.x == 0) * 1000 + (newPos.y == 0) * 1000 - newPos.x - newPos.y;
-                actions.emplace_back(bi, A_BUILD, newPos, EntityType::HOUSE, buildScore);
+        if (st.foodLimit < st.foodUsed + 15) {
+            // houses
+            int sz = props.at(EntityType::HOUSE).size;
+            for (Cell newPos : nearCells(bu.position - Cell(sz - 1, sz - 1), sz)) {
+                if (canBuild(world, newPos, sz) && goodForHouse(newPos, sz)) {
+                    buildScore.aux = (newPos.x == 0) * 1000 + (newPos.y == 0) * 1000 - newPos.x - newPos.y;
+                    actions.emplace_back(bi, A_BUILD, newPos, EntityType::HOUSE, buildScore);
+                }
+            }
+        } else {
+            // ranged
+            int sz = props.at(EntityType::RANGED_BASE).size;
+            for (Cell newPos : nearCells(bu.position - Cell(sz - 1, sz - 1), sz)) {
+                if (canBuild(world, newPos, sz)) {
+                    buildScore.aux = - newPos.x - newPos.y;
+                    actions.emplace_back(bi, A_BUILD, newPos, EntityType::RANGED_BASE, buildScore);
+                }
             }
         }
     }
@@ -175,17 +192,43 @@ void addRepairActions(int myId, const World& world, vector<MyAction>& actions, c
     cerr << "After add repair: " << actions.size() << " actions.\n";
 }
 
-void addWarActions(int myId, const World& world, vector<MyAction>& actions, const GameStatus& st) {
-    for (int bi : world.warriors[myId]) {
+bool hasEnemyInRange(const Entity& e, const vector<Entity>& allEntities) {
+    const int attackRange = props.at(e.entityType).attack->attackRange;
+    for (const auto& other : allEntities)
+        if (other.playerId && *other.playerId != *e.playerId)
+            if (dist(e.position, other, props.at(other.entityType).size) <= attackRange)
+                return true;
+
+    return false;
+}
+
+void addWarActions(const PlayerView& playerView, const World& world, vector<MyAction>& actions, const GameStatus& st) {
+    for (int bi : world.warriors[world.myId]) {
         const auto& bu = world.entityMap.at(bi);
 
         Cell target = squadInfo[squadId[bi]].target;
+        if (st.underAttack) {
+            int cld = inf;
+            for (const auto& oe : world.oppEntities)
+                if (oe.entityType == EntityType::RANGED_UNIT || oe.entityType == EntityType::MELEE_UNIT) {
+                    int cd = dist(bu.position, oe.position);
+                    if (cd < cld) {
+                        cld = cd;
+                        target = oe.position;
+                    }
+                }
+        }
         actions.emplace_back(bi, A_MOVE, target, -1, Score(100, 0));
 
         const int attackDist = props.at(bu.entityType).attack->attackRange;
         for (const auto& ou : world.oppEntities) {
-            const int movableBonus = 0; // ou.entityType == EntityType::RANGED_UNIT || ou.entityType == EntityType::MELEE_UNIT;
-            if (dist(bu.position, ou, props.at(ou.entityType).size) <= attackDist + movableBonus) {
+            int movableBonus = ou.entityType == EntityType::RANGED_UNIT || ou.entityType == EntityType::MELEE_UNIT;
+            int cd = dist(bu.position, ou, props.at(ou.entityType).size);
+            if (cd <= attackDist + movableBonus) {
+                if (movableBonus && hasEnemyInRange(ou, playerView.entities)) {
+                    movableBonus = 0;
+                    if (cd > attackDist) continue;
+                }
                 int score = 200;
                 if (ou.entityType == EntityType::MELEE_UNIT && dist(bu.position, ou.position) > 1) score = 195;
                 if (ou.entityType == EntityType::BUILDER_UNIT) score = 160;
@@ -195,7 +238,7 @@ void addWarActions(int myId, const World& world, vector<MyAction>& actions, cons
         }
     }
 
-    for (int bi : world.buildings[myId]) {
+    for (int bi : world.buildings[world.myId]) {
         const auto& bu = world.entityMap.at(bi);
         if (bu.entityType != EntityType::TURRET) continue;
 

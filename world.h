@@ -24,6 +24,7 @@ struct World {
     vector<Entity> oppEntities;
     int eMap[88][88];
     int infMap[88][88];
+    int myId;
 
     bool isEmpty(const Cell& c) const {
         return eMap[c.x][c.y] == 0;
@@ -44,7 +45,7 @@ struct World {
         size_t qb = 0;
 
         for (const auto& e : playerView.entities)
-            if (e.entityType == EntityType::RANGED_UNIT || e.entityType == EntityType::MELEE_UNIT) {
+            if (e.entityType == EntityType::RANGED_UNIT || e.entityType == EntityType::MELEE_UNIT || e.entityType == EntityType::BUILDER_UNIT) {
                 q.emplace_back(e.position, *e.playerId);
                 infMap[e.position.x][e.position.y] = *e.playerId;
             }
@@ -64,6 +65,7 @@ struct World {
 
     void update(const PlayerView& playerView) {
         const auto& ent = playerView.entities;
+        myId = playerView.myId;
         forn(p, 5) {
             workers[p].clear();
             warriors[p].clear();

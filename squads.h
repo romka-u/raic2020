@@ -20,31 +20,58 @@ Cell INITIAL{15, 19};
 unordered_set<Cell> groupPoints;
 
 Cell getInitialPoint(const World& world) {
-    for (int s = 24; s <= 160; s++)
-        forn(xx, s + 1) {
-            const int x = (xx + s / 2) % (s + 1);
-            const Cell nc(x, s - x);
-            bool ok = true;
-
-            for (const auto& gp : groupPoints)
-                if (dist(gp, nc) <= 5) {
-                    ok = false;
-                    break;
-                }
-
-            if (ok) {
-                forn(dx, 3) forn(dy, 3) {
-                    Cell qc = nc + Cell(dx, dy);
-                    if (!qc.inside()) ok = false;
-                    if (world.hasNonMovable(qc)) ok = false;
-                }
-            }
-
-            if (ok) {
-                groupPoints.insert(nc);
-                return nc;
+    vector<int> hx(80);
+    int py = 0;
+    for (int x = 79; x >= 0; x--) {
+        int my = 0;
+        for (int y = 0; y < 79; y++) {
+            const int id = world.eMap[x][y];
+            if (id < 0) {
+                const Entity& e = world.entityMap.at(-id);
+                if (e.playerId && *e.playerId == world.myId)
+                    my = y;
             }
         }
+        if (my < py) my = py;
+        if (my > py) py = my;
+        hx[x] = my;
+    }
+
+    vector<Cell> candidates;
+    int ly = hx[0] + 1;
+    forn(x, 80) {
+        while (ly > hx[x] + 1) {
+            candidates.emplace_back(x, ly);
+            ly--;
+        }
+        candidates.emplace_back(x, ly);
+        if (hx[x] == 0) break;
+    }
+
+    sort(candidates.begin(), candidates.end(), [](const Cell& a, const Cell& b) { return abs(a.x - a.y) < abs(b.x - b.y); });
+
+    for (const Cell& nc : candidates) {
+        bool ok = true;
+
+        for (const auto& gp : groupPoints)
+            if (dist(gp, nc) <= 8) {
+                ok = false;
+                break;
+            }
+
+        if (ok) {
+            forn(dx, 3) forn(dy, 3) {
+                Cell qc = nc + Cell(dx, dy);
+                if (!qc.inside()) ok = false;
+                if (world.hasNonMovable(qc)) ok = false;
+            }
+        }
+
+        if (ok) {
+            groupPoints.insert(nc);
+            return nc;
+        }
+    }
 
     return INITIAL;
 }
