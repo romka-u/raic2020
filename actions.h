@@ -119,6 +119,13 @@ bool canBuild(const World& world, const Cell& c, int sz) {
     return true;
 }
 
+bool goodForHouse(const Cell& c, int sz) {
+    if (c.x == 0) return c.y % sz == 0;
+    if (c.y == 0) return c.x % sz == 0;
+    if (c.x < sz || c.y < sz) return false;
+    return c.x % (sz + 2) == 1 && c.y % (sz + 2) == 1;
+}
+
 void addBuildActions(const PlayerView& playerView, const World& world, vector<MyAction>& actions, const GameStatus& st) {
     int myId = playerView.myId;
     int food_used = 0, food_limit = 0;
@@ -137,9 +144,9 @@ void addBuildActions(const PlayerView& playerView, const World& world, vector<My
         // houses
         int sz = props.at(EntityType::HOUSE).size;
         for (Cell newPos : nearCells(bu.position - Cell(sz - 1, sz - 1), sz)) {
-            if (canBuild(world, newPos, sz) && (newPos.x % (sz + 2) == 1) && (newPos.y % (sz + 2) == 1)) {
-                buildScore.aux = (newPos.x % (sz + 1) == 1) * 10;
-                buildScore.aux += (newPos.y % (sz + 1) == 1) * 10;
+            if (canBuild(world, newPos, sz) && goodForHouse(newPos, sz)) {
+                // buildScore.aux = (newPos.x % (sz + 1) == 1) * 10;
+                // buildScore.aux += (newPos.y % (sz + 1) == 1) * 10;
                 actions.emplace_back(bi, A_BUILD, newPos, EntityType::HOUSE, buildScore);
             }
         }
@@ -198,14 +205,16 @@ void addWarActions(int myId, const World& world, vector<MyAction>& actions, cons
         actions.emplace_back(bi, A_MOVE, target, -1, Score(100, 0));
 
         const int attackDist = props.at(bu.entityType).attack->attackRange;
-        for (const auto& ou : world.oppEntities)
-            if (dist(bu.position, ou, props.at(ou.entityType).size) <= attackDist) {
+        for (const auto& ou : world.oppEntities) {
+            const int movableBonus = ou.entityType == EntityType::RANGED_UNIT || ou.entityType == EntityType::MELEE_UNIT;
+            if (dist(bu.position, ou, props.at(ou.entityType).size) <= attackDist + movableBonus) {
                 int score = 200;
                 if (ou.entityType == EntityType::MELEE_UNIT && dist(bu.position, ou.position) > 1) score = 195;
                 if (ou.entityType == EntityType::BUILDER_UNIT) score = 160;
                 if (ou.entityType == EntityType::RANGED_BASE || ou.entityType == EntityType::MELEE_BASE || ou.entityType == EntityType::BUILDER_BASE) score = 150;
-                actions.emplace_back(bi, A_ATTACK, ou.position, ou.id, Score(score, -ou.health * 1e6 + ou.id));
+                actions.emplace_back(bi, A_ATTACK, ou.position, ou.id, Score(score - movableBonus * 30, -ou.health * 1e6 + ou.id));
             }
+        }
     }
 
     for (int bi : world.buildings[myId]) {
@@ -213,14 +222,16 @@ void addWarActions(int myId, const World& world, vector<MyAction>& actions, cons
         if (bu.entityType != EntityType::TURRET) continue;
 
         const int attackDist = props.at(bu.entityType).attack->attackRange;
-        for (const auto& ou : world.oppEntities)
-            if (dist(bu.position, ou, props.at(ou.entityType).size) <= attackDist) {
+        for (const auto& ou : world.oppEntities) {
+            const int movableBonus = ou.entityType == EntityType::RANGED_UNIT || ou.entityType == EntityType::MELEE_UNIT;
+            if (dist(ou.position, bu, props.at(bu.entityType).size) <= attackDist + movableBonus) {
                 int score = 200;
                 if (ou.entityType == EntityType::MELEE_UNIT && dist(bu.position, ou.position) > 1) score = 195;
                 if (ou.entityType == EntityType::BUILDER_UNIT) score = 160;
                 if (ou.entityType == EntityType::RANGED_BASE || ou.entityType == EntityType::MELEE_BASE || ou.entityType == EntityType::BUILDER_BASE) score = 150;
-                actions.emplace_back(bi, A_ATTACK, ou.position, ou.id, Score(score, -ou.health * 1e6 + ou.id));
+                actions.emplace_back(bi, A_ATTACK, ou.position, ou.id, Score(score - movableBonus * 30, -ou.health * 1e6 + ou.id));
             }
+        }
     }
     cerr << "After add war: " << actions.size() << " actions.\n";
 }
