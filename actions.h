@@ -130,8 +130,7 @@ void addBuildActions(const PlayerView& playerView, const World& world, vector<My
         int sz = props.at(EntityType::HOUSE).size;
         for (Cell newPos : nearCells(bu.position - Cell(sz - 1, sz - 1), sz)) {
             if (canBuild(world, newPos, sz) && goodForHouse(newPos, sz)) {
-                // buildScore.aux = (newPos.x % (sz + 1) == 1) * 10;
-                // buildScore.aux += (newPos.y % (sz + 1) == 1) * 10;
+                buildScore.aux = (newPos.x == 0) * 1000 + (newPos.y == 0) * 1000 - newPos.x - newPos.y;
                 actions.emplace_back(bi, A_BUILD, newPos, EntityType::HOUSE, buildScore);
             }
         }
