@@ -111,8 +111,8 @@ bool canBuild(const World& world, const Cell& c, int sz) {
 }
 
 bool goodForHouse(const Cell& c, int sz) {
-    if (c.x == 0) return c.y % sz == 0;
-    if (c.y == 0) return c.x % sz == 0;
+    if (c.x == 0) return c.y % sz == 1;
+    if (c.y == 0) return c.x % sz == 1;
     if (c.x < sz || c.y < sz) return false;
     return c.x % (sz + 2) == 1 && c.y % (sz + 2) == 1;
 }
@@ -130,6 +130,7 @@ void addBuildActions(const PlayerView& playerView, const World& world, vector<My
             int sz = props.at(EntityType::HOUSE).size;
             for (Cell newPos : nearCells(bu.position - Cell(sz - 1, sz - 1), sz)) {
                 if (canBuild(world, newPos, sz) && goodForHouse(newPos, sz)) {
+                    // if (newPos.x + newPos.y == 3 && !world.hasNonMovable({0, 0})) continue;
                     buildScore.aux = (newPos.x == 0) * 1000 + (newPos.y == 0) * 1000 - newPos.x - newPos.y;
                     actions.emplace_back(bi, A_BUILD, newPos, EntityType::HOUSE, buildScore);
                 }
@@ -223,6 +224,7 @@ void addWarActions(const PlayerView& playerView, const World& world, vector<MyAc
         const int attackDist = props.at(bu.entityType).attack->attackRange;
         for (const auto& ou : world.oppEntities) {
             int movableBonus = ou.entityType == EntityType::RANGED_UNIT || ou.entityType == EntityType::MELEE_UNIT;
+            if (world.staying.count(ou.id) && world.staying.at(ou.id) > 4) movableBonus = 0;
             int cd = dist(bu.position, ou, props.at(ou.entityType).size);
             if (cd <= attackDist + movableBonus) {
                 if (movableBonus && hasEnemyInRange(ou, playerView.entities)) {

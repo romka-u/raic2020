@@ -22,6 +22,7 @@ struct World {
     vector<int> buildings[5];
     vector<int> resources;
     vector<Entity> oppEntities;
+    unordered_map<int, int> staying;
     int eMap[88][88];
     int infMap[88][88];
     int myId, tick;
@@ -86,6 +87,13 @@ struct World {
                 int pid = *e.playerId;
                 int eid = e.id;
                 if (pid != playerView.myId) oppEntities.push_back(e);
+                if (entityMap.find(eid) != entityMap.end()) {
+                    if (entityMap[eid].position == e.position) {
+                        staying[eid]++;
+                    } else {
+                        staying[eid] = 0;
+                    }
+                }
                 entityMap[eid] = e;
                 if (e.entityType == EntityType::BUILDER_UNIT)
                     workers[pid].push_back(eid);
