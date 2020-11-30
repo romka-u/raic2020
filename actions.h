@@ -151,11 +151,11 @@ void addBuildActions(const PlayerView& playerView, const World& world, vector<My
     // cerr << "After add build: " << actions.size() << " actions.\n";
 }
 
-void addTrainActions(int myId, const World& world, vector<MyAction>& actions, const GameStatus& st) {
+void addTrainActions(const PlayerView& playerView, const World& world, vector<MyAction>& actions, const GameStatus& st) {
     if (st.foodUsed == st.foodLimit) return;
-    for (int bi : world.buildings[myId]) {
+    for (int bi : world.buildings[world.myId]) {
         const auto& bu = world.entityMap.at(bi);
-        if (bu.entityType == EntityType::BUILDER_BASE && !st.underAttack && world.workers[myId].size() < min(77, int(st.resToGather.size() * 0.91))) {
+        if (bu.entityType == EntityType::BUILDER_BASE && !st.underAttack && world.workers[world.myId].size() < min(64, int(st.resToGather.size() * 0.91))) {
             for (Cell bornPlace : nearCells(bu.position, props.at(bu.entityType).size)) {
                 if (world.isEmpty(bornPlace)) {
                     int aux = bornPlace.x + bornPlace.y;
@@ -171,6 +171,13 @@ void addTrainActions(int myId, const World& world, vector<MyAction>& actions, co
                 }
             }
         }
+        /*if (bu.entityType == EntityType::MELEE_BASE && playerView.players[world.myId - 1].resource > 100) {
+            for (Cell bornPlace : nearCells(bu.position, props.at(bu.entityType).size)) {
+                if (world.isEmpty(bornPlace)) {
+                    actions.emplace_back(bi, A_TRAIN, bornPlace, EntityType::MELEE_UNIT, Score{10, bornPlace.x + bornPlace.y});
+                }
+            }
+        }*/
     }
     // cerr << "After add train: " << actions.size() << " actions.\n";
 }
@@ -236,8 +243,9 @@ void addWarActions(const PlayerView& playerView, const World& world, vector<MyAc
 
         const int attackDist = props.at(bu.entityType).attack->attackRange;
         for (const auto& ou : world.oppEntities) {
-            int movableBonus = ou.entityType == EntityType::RANGED_UNIT || ou.entityType == EntityType::MELEE_UNIT;
-            if (world.staying.count(ou.id) && world.staying.at(ou.id) > 4) movableBonus = 0;
+            // int movableBonus = ou.entityType == EntityType::RANGED_UNIT || ou.entityType == EntityType::MELEE_UNIT;
+            // if (world.staying.count(ou.id) && world.staying.at(ou.id) > 4) movableBonus = 0;
+            int movableBonus = 0;
             int cd = dist(bu.position, ou, props.at(ou.entityType).size);
             if (cd <= attackDist + movableBonus) {
                 if (movableBonus && hasEnemyInRange(ou, playerView.entities)) {

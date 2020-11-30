@@ -22,13 +22,15 @@ Action MyStrategy::getAction(const PlayerView& playerView, DebugInterface* debug
     std::unordered_map<int, EntityAction> moves;
     clearAStar();
 
+    if (world.oppEntities.empty()) return Action();
+
     gameStatus.update(playerView, world);
 
     calcSquadsTactic(myId, world, gameStatus);
 
     vector<MyAction> actions;
     addBuildActions(playerView, world, actions, gameStatus);
-    addTrainActions(myId, world, actions, gameStatus);
+    addTrainActions(playerView, world, actions, gameStatus);
     addRepairActions(myId, world, actions, gameStatus);
     addWarActions(playerView, world, actions, gameStatus);
     addGatherActions(myId, world, actions, gameStatus);
