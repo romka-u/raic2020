@@ -86,12 +86,12 @@ void addGatherActions(int myId, const World& world, vector<MyAction>& actions, c
             for (int ri : st.resToGather) {
                 const auto& res = world.entityMap.at(ri);
                 int cd = dist(res, 1, bu, 1);
-                actions.emplace_back(bi, A_GATHER, res.position, ri, Score(100 - cd, -bi));
+                actions.emplace_back(bi, A_GATHER, res.position, ri, Score(100 - cd, -bi * 1e5 - ri));
             }
         } 
     }
 
-    cerr << "After add gather: " << actions.size() << " actions.\n";
+    // cerr << "After add gather: " << actions.size() << " actions.\n";
 }
 /*
 bool intersects(const Cell& c1, int s1, const Cell& c2, int s2) {
@@ -148,7 +148,7 @@ void addBuildActions(const PlayerView& playerView, const World& world, vector<My
         }
     }
 
-    cerr << "After add build: " << actions.size() << " actions.\n";
+    // cerr << "After add build: " << actions.size() << " actions.\n";
 }
 
 void addTrainActions(int myId, const World& world, vector<MyAction>& actions, const GameStatus& st) {
@@ -172,7 +172,7 @@ void addTrainActions(int myId, const World& world, vector<MyAction>& actions, co
             }
         }
     }
-    cerr << "After add train: " << actions.size() << " actions.\n";
+    // cerr << "After add train: " << actions.size() << " actions.\n";
 }
 
 void addRepairActions(int myId, const World& world, vector<MyAction>& actions, const GameStatus& st) {
@@ -191,7 +191,7 @@ void addRepairActions(int myId, const World& world, vector<MyAction>& actions, c
             }
         }
     }
-    cerr << "After add repair: " << actions.size() << " actions.\n";
+    // cerr << "After add repair: " << actions.size() << " actions.\n";
 }
 
 bool hasEnemyInRange(const Entity& e, const vector<Entity>& allEntities) {
@@ -232,7 +232,7 @@ void addWarActions(const PlayerView& playerView, const World& world, vector<MyAc
                     }
                 }
         }
-        actions.emplace_back(bi, A_MOVE, target, -1, Score(100, 0));
+        actions.emplace_back(bi, A_MOVE, target, -1, Score(100, -dist(bu.position, target)));
 
         const int attackDist = props.at(bu.entityType).attack->attackRange;
         for (const auto& ou : world.oppEntities) {
@@ -270,5 +270,5 @@ void addWarActions(const PlayerView& playerView, const World& world, vector<MyAc
             }
         }
     }
-    cerr << "After add war: " << actions.size() << " actions.\n";
+    // cerr << "After add war: " << actions.size() << " actions.\n";
 }

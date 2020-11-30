@@ -163,9 +163,9 @@ void calcSquadsTactic(int myId, const World& world, const GameStatus& st) {
     }
 
     for (const auto& cbs : cellsBySquad) {
-        cerr << "[] Squad " << cbs.first << ":";
-        for (const auto& c : cbs.second) cerr << " " << c;
-        cerr << endl;
+        // cerr << "[] Squad " << cbs.first << ":";
+        // for (const auto& c : cbs.second) cerr << " " << c;
+        // cerr << endl;
         int cld = inf;
         for (const Cell& c : cbs.second) {
             for (const auto& ou : world.oppEntities) {
@@ -183,7 +183,7 @@ void calcSquadsTactic(int myId, const World& world, const GameStatus& st) {
         auto& si = squadInfo[cce.first];
         if (d < 7) {
             si.target = cell;
-            cerr << ">> Squad " << cce.first << " is close to enemy\n   distance " << d << ", target " << cell << endl;
+            // // cerr << ">> Squad " << cce.first << " is close to enemy\n   distance " << d << ", target " << cell << endl;
         } else {
             if (st.underAttack) {
                 for (int p = 1; p <= 4; p++) {
@@ -205,31 +205,31 @@ void calcSquadsTactic(int myId, const World& world, const GameStatus& st) {
                 auto [weightMass, conn0, conn1] = moreOrLessTogether(cellsBySquad[cce.first]);
                 if (!si.together) {
                     if (!conn0 && si.waiting < 50) {
-                        cerr << ">> Squad " << cce.first << " is waiting last friend" << endl;
+                        // cerr << ">> Squad " << cce.first << " is waiting last friend" << endl;
                         si.waiting++;
                     } else {
                         groupPoints.erase(si.target);
                         si.target = cell;
-                        cerr << ">> Squad " << cce.first << " is now completed!\n   attacking enemy at dist " << d << " at " << cell << endl;
+                        // cerr << ">> Squad " << cce.first << " is now completed!\n   attacking enemy at dist " << d << " at " << cell << endl;
                         si.together = true;
                     }
                 } else {
                     si.target = cell;
                     /*if (si.together && conn1) {
                         si.target = cell;
-                        cerr << ">> Squad " << cce.first << " is more or less together\n   attacking enemy at dist " << d << " at " << cell << endl;
+                        // cerr << ">> Squad " << cce.first << " is more or less together\n   attacking enemy at dist " << d << " at " << cell << endl;
                     } else if (conn0) {
                         si.target = cell;
                         si.together = true;
-                        cerr << ">> Squad " << cce.first << " is connected again\n   attacking enemy at dist " << d << " at " << cell << endl;
+                        // cerr << ">> Squad " << cce.first << " is connected again\n   attacking enemy at dist " << d << " at " << cell << endl;
                     } else {
                         si.target = weightMass;
                         si.together = false;
-                        cerr << ">> Squad " << cce.first << " is not together, group at " << weightMass << endl;
+                        // cerr << ">> Squad " << cce.first << " is not together, group at " << weightMass << endl;
                     }*/
                 }
             } else {
-                cerr << ">> Squad " << cce.first << " is not complete, group at " << si.target << endl;
+                // cerr << ">> Squad " << cce.first << " is not complete, group at " << si.target << endl;
             }
         }
     }

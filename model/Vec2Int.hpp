@@ -15,6 +15,7 @@ public:
     static Vec2Int readFrom(InputStream& stream);
     void writeTo(OutputStream& stream) const;
     bool operator ==(const Vec2Int& other) const;
+    bool operator !=(const Vec2Int& other) const;
 
     bool inside() const {
         return 0 <= x && x < 80 && 0 <= y && y < 80;
@@ -32,6 +33,7 @@ using Cell = Vec2Int;
 int dist(const Cell& a, const Cell& b);
 Cell operator+(const Cell& a, const Cell& b);
 Cell operator-(const Cell& a, const Cell& b);
+bool operator<(const Cell& a, const Cell& b);
 std::ostream& operator<<(std::ostream& out, const Vec2Int& v);
 
 #endif

@@ -13,14 +13,14 @@ MyStrategy::MyStrategy() {}
 
 Action MyStrategy::getAction(const PlayerView& playerView, DebugInterface* debugInterface)
 {
-    cerr << "=================== Tick " << playerView.currentTick << "======================\n";
+    // cerr << "=================== Tick " << playerView.currentTick << "======================\n";
     if (props.empty()) props = playerView.entityProperties;
     world.update(playerView);
     int resourcesLeft = playerView.players[playerView.myId - 1].resource;
-    cerr << "my resources: " << resourcesLeft << endl;
+    // cerr << "my resources: " << resourcesLeft << endl;
     int myId = playerView.myId;
     std::unordered_map<int, EntityAction> moves;
-    memset(busyForAStar, 0, sizeof(busyForAStar));
+    clearAStar();
 
     gameStatus.update(playerView, world);
 
@@ -38,11 +38,10 @@ Action MyStrategy::getAction(const PlayerView& playerView, DebugInterface* debug
     unordered_set<int> usedUnits, usedResources, hiding;
     int bestRepairScore = -1;
     debugTargets.clear();
+    vector<pair<pair<int, int>, pair<Cell, Cell>>> fmoves;
 
-    auto setMove = [&moves](int unitId, const Cell& from, const Cell& to) {
-        // Cell nc = getNextCellTo(world, from, to);
-        // if (world.eMap[nc.x][nc.y] != 0) nc = to;
-        moves[unitId].moveAction = std::make_shared<MoveAction>(to, true, false);
+    auto setMove = [&fmoves](int unitId, const Cell& from, const Cell& to) {
+        fmoves.emplace_back(make_pair(dist(from, to), unitId), make_pair(from, to));
     };
 
     for (const MyAction& action : actions) {
@@ -51,6 +50,7 @@ Action MyStrategy::getAction(const PlayerView& playerView, DebugInterface* debug
         const EntityType etype = static_cast<EntityType>(oid);
 
         if (usedUnits.find(unitId) != usedUnits.end()) continue;
+        bool moved = false;
 
         switch (actionType) {
             case A_ATTACK:
@@ -64,6 +64,7 @@ Action MyStrategy::getAction(const PlayerView& playerView, DebugInterface* debug
                         // cerr << unitId << " at " << upos << " gathers at " << world.entityMap[oid].position << endl;
                     } else {
                         setMove(unitId, upos, pos);
+                        moved = true;
                         // cerr << unitId << " at " << upos << " moves to gather at " << pos  << ", result by astar is " << moves[unitId].moveAction->target << endl;
                     }
                 } else {
@@ -72,11 +73,13 @@ Action MyStrategy::getAction(const PlayerView& playerView, DebugInterface* debug
                 break;
             case A_MOVE:
                 setMove(unitId, upos, pos);
+                moved = true;
                 // cerr << unitId << " at " << upos << " wants to move to " << pos << ", result by astar is " << moves[unitId].moveAction->target << endl;
                 break;
             case A_HIDE_MOVE:
                 hiding.insert(unitId);
                 setMove(unitId, upos, pos);
+                moved = true;
                 // cerr << unitId << " at " << upos << " wants to hide to " << pos << ", result by astar is " << moves[unitId].moveAction->target << endl;
                 break;
             case A_BUILD:
@@ -91,13 +94,15 @@ Action MyStrategy::getAction(const PlayerView& playerView, DebugInterface* debug
                 break;
             case A_REPAIR:
                 moves[unitId].repairAction = std::make_shared<RepairAction>(oid);
+                bestRepairScore = 200;
                 // cerr << unitId << " at " << upos << " wants to repair " << oid << endl;
                 break;
             case A_REPAIR_MOVE:
                 if (bestRepairScore == -1 || score.main == 199) {
                     setMove(unitId, upos, pos);
+                    moved = true;
                     bestRepairScore = score.main;
-                    cerr << unitId << " at " << upos << " wants to repair_move to " << pos << "( score.main = " << score.main << ")" << endl;
+                    // cerr << unitId << " at " << upos << " wants to repair_move to " << pos << "( score.main = " << score.main << ")" << endl;
                 } else {
                     continue;
                 }
@@ -106,15 +111,37 @@ Action MyStrategy::getAction(const PlayerView& playerView, DebugInterface* debug
                 assert(false);
         }
 
-        usedUnits.insert(unitId);
-        Cell t = upos;
-        busyForAStar[t.x][t.y] = true;
-        if (moves[unitId].moveAction) {
-            t = moves[unitId].moveAction->target;
-            busyForAStar[t.x][t.y] = true;
-            debugTargets.emplace_back(upos, t);
+        if (!moved) {
+            updateAStar(world, {upos});
         }
-    }   
+
+        usedUnits.insert(unitId);
+        /*if (moves[unitId].moveAction) {
+            Cell t = moves[unitId].moveAction->target;
+            debugTargets.emplace_back(upos, t);
+        }*/
+    }
+
+    sort(fmoves.begin(), fmoves.end());
+
+    for (const auto [fi, se] : fmoves) {
+        const int unitId = fi.second;
+        const auto [from, to] = se;
+        // cerr << "path from " << from << " to " << to << ":"; cerr.flush();
+        vector<Cell> path = getPathTo(world, from, to);        
+        // for (const Cell& c : path) cerr << " " << c;
+        // cerr << endl;
+        updateAStar(world, path);
+        Cell target = to;
+        debugTargets.emplace_back(from, to);
+        if (path.size() >= 2) {
+            target = path[1];
+            // for (size_t i = 1; i < path.size(); i++)
+            //     debugTargets.emplace_back(path[i-1], path[i]);
+        }
+        // cerr << "set move target for " << from << "->" << to << " : " << target << endl;
+        moves[unitId].moveAction = std::make_shared<MoveAction>(target, false, false);
+    }
 
     return Action(moves);
 }
@@ -127,10 +154,10 @@ void MyStrategy::debugUpdate(const PlayerView& playerView, DebugInterface& debug
 
     static vector<Color> colors = {
         Color(0, 0, 0, 0.25),
-        Color(1.0, 0, 0, 0.5),
         Color(0, 0, 1.0, 0.5),
-        Color(0, 0.8, 0.8, 0.5),
-        Color(0.8, 0, 0.8, 0.5)
+        Color(0, 1.0, 0, 0.5),
+        Color(1.0, 0, 0, 0.5),
+        Color(0, 1.0, 1.0, 0.5)
     };
 
     forn(x, 80) forn(y, 80) {

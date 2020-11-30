@@ -15,6 +15,9 @@ void Vec2Int::writeTo(OutputStream& stream) const {
 bool Vec2Int::operator ==(const Vec2Int& other) const {
     return x == other.x && y == other.y;
 }
+bool Vec2Int::operator !=(const Vec2Int& other) const {
+    return x != other.x || y != other.y;
+}
 size_t std::hash<Vec2Int>::operator ()(const Vec2Int& value) const {
     size_t result = 0;
     result ^= std::hash<int>{}(value.x) + 0x9e3779b9 + (result<<6) + (result>>2);
@@ -32,6 +35,11 @@ Cell operator+(const Cell& a, const Cell& b) {
 
 Cell operator-(const Cell& a, const Cell& b) {
     return Cell(a.x - b.x, a.y - b.y);
+}
+
+bool operator<(const Cell& a, const Cell& b) {
+    if (a.x != b.x) return a.x < b.x;
+    return a.y < b.y;
 }
 
 std::ostream& operator<<(std::ostream& out, const Vec2Int& v) {
