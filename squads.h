@@ -201,10 +201,10 @@ void calcSquadsTactic(int myId, const World& world, const GameStatus& st) {
                 out: continue;
             }
 
-            if (si.unitsAssigned == 5) {
+            if (si.unitsAssigned == 5 || world.warriors[world.myId].size() >= 19) {
                 auto [weightMass, conn0, conn1] = moreOrLessTogether(cellsBySquad[cce.first]);
                 if (!si.together) {
-                    if (!conn0 && si.waiting < 50) {
+                    if (!conn0 && si.waiting < 50 && world.warriors[world.myId].size() < 19) {
                         // cerr << ">> Squad " << cce.first << " is waiting last friend" << endl;
                         si.waiting++;
                     } else {
