@@ -27,6 +27,7 @@ const int A_REPAIR = 4;
 const int A_REPAIR_MOVE = 5;
 const int A_TRAIN = 6;
 const int A_GATHER = 7;
+const int A_HIDE_MOVE = 8;
 
 struct MyAction {
     int unitId;
@@ -59,7 +60,7 @@ void addGatherActions(int myId, const World& world, vector<MyAction>& actions, c
             if (p == myId) continue;
             for (int wi : world.warriors[p]) {
                 const auto& w = world.entityMap.at(wi);
-                if (dist(w.position, bu.position) <= props.at(w.entityType).attack->attackRange + 5) {
+                if (dist(w.position, bu.position) <= props.at(w.entityType).attack->attackRange + 3) {
                     if (underAttack < 1) {
                         underAttack = 1;
                         threatPos = w.position;
@@ -80,7 +81,7 @@ void addGatherActions(int myId, const World& world, vector<MyAction>& actions, c
             if (hideTarget.y >= 80) hideTarget.y = 79;
             if (hideTarget.x >= 80) hideTarget.x = 79;
 
-            actions.emplace_back(bi, A_MOVE, hideTarget, -1, Score(/*underAttack * 120*/ 120, 0));
+            actions.emplace_back(bi, A_HIDE_MOVE, hideTarget, -1, Score(/*underAttack * 120*/ 120, 0));
         } else {
             for (int ri : st.resToGather) {
                 const auto& res = world.entityMap.at(ri);
@@ -204,6 +205,18 @@ bool hasEnemyInRange(const Entity& e, const vector<Entity>& allEntities) {
 }
 
 void addWarActions(const PlayerView& playerView, const World& world, vector<MyAction>& actions, const GameStatus& st) {
+    // workers
+    for (int bi : world.workers[world.myId]) {
+        const auto& bu = world.entityMap.at(bi);
+        for (const auto& ou : world.oppEntities) {
+            const int sz = props.at(ou.entityType).size;
+            if (dist(bu.position, ou, sz) == 1) {
+                actions.emplace_back(bi, A_ATTACK, ou.position, ou.id, Score(150, -ou.health * 1e6 + ou.id));
+            }
+        }
+    }
+
+    // warriors
     for (int bi : world.warriors[world.myId]) {
         const auto& bu = world.entityMap.at(bi);
 
@@ -232,8 +245,9 @@ void addWarActions(const PlayerView& playerView, const World& world, vector<MyAc
                     if (cd > attackDist) continue;
                 }
                 int score = 200;
-                if (ou.entityType == EntityType::MELEE_UNIT && dist(bu.position, ou.position) > 1) score = 195;
-                if (ou.entityType == EntityType::BUILDER_UNIT) score = 160;
+                if (ou.entityType == EntityType::MELEE_UNIT && dist(bu.position, ou.position) > 1) score = 197;
+                if (ou.entityType == EntityType::BUILDER_UNIT) score = 194;
+                if (ou.entityType == EntityType::TURRET) score = 190;
                 if (ou.entityType == EntityType::RANGED_BASE || ou.entityType == EntityType::MELEE_BASE || ou.entityType == EntityType::BUILDER_BASE) score = 150;
                 actions.emplace_back(bi, A_ATTACK, ou.position, ou.id, Score(score - movableBonus * 30, -ou.health * 1e6 + ou.id));
             }

@@ -35,7 +35,7 @@ Action MyStrategy::getAction(const PlayerView& playerView, DebugInterface* debug
 
     sort(actions.begin(), actions.end());
 
-    unordered_set<int> usedUnits, usedResources;
+    unordered_set<int> usedUnits, usedResources, hiding;
     int bestRepairScore = -1;
     debugTargets.clear();
 
@@ -73,6 +73,11 @@ Action MyStrategy::getAction(const PlayerView& playerView, DebugInterface* debug
             case A_MOVE:
                 setMove(unitId, upos, pos);
                 // cerr << unitId << " at " << upos << " wants to move to " << pos << ", result by astar is " << moves[unitId].moveAction->target << endl;
+                break;
+            case A_HIDE_MOVE:
+                hiding.insert(unitId);
+                setMove(unitId, upos, pos);
+                // cerr << unitId << " at " << upos << " wants to hide to " << pos << ", result by astar is " << moves[unitId].moveAction->target << endl;
                 break;
             case A_BUILD:
             case A_TRAIN:
