@@ -142,6 +142,12 @@ int dist(const Cell& c, const Entity& b, int bsz) {
     return distX + distY;
 }
 
+int dist(const Cell& c, const Cell& c2, int bsz) {
+    const int distX = distToSeg(c.x, c2.x, c2.x + bsz - 1);
+    const int distY = distToSeg(c.y, c2.y, c2.y + bsz - 1);
+    return distX + distY;
+}
+
 vector<Cell> nearCells(const Cell& c, int sz) {
     vector<Cell> res;
     forn(delta, sz) {

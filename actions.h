@@ -75,6 +75,19 @@ void addGatherActions(int myId, const World& world, vector<MyAction>& actions, c
         }
 
         if (underAttack) {
+            bool hasEmptyNear = false;
+            forn(w, 4) {
+                const Cell nc = bu.position ^ w;
+                if (nc.inside() && world.eMap[nc.x][nc.y] == 0) {
+                    hasEmptyNear = true;
+                    break;
+                }
+            }    
+
+            if (!hasEmptyNear) underAttack = 0;
+        }
+
+        if (underAttack) {
             Cell hideTarget{bu.position.x * 2 - threatPos.x, bu.position.y * 2 - threatPos.y};
             if (hideTarget.x < 0) hideTarget.x = 0;
             if (hideTarget.y < 0) hideTarget.y = 0;
@@ -118,6 +131,16 @@ bool goodForHouse(const Cell& c, int sz) {
     return c.x % (sz + 2) == 1 && c.y % (sz + 2) == 1;
 }
 
+bool safeToBuild(const World& world, const Cell& c, int sz) {
+    for (const auto& oe : world.oppEntities) {
+        const auto& pr = props.at(oe.entityType);
+        if (pr.attack)
+            if (dist(oe.position, c, sz) <= pr.attack->attackRange + 3)
+                return false;
+    }
+    return true;
+}
+
 void addBuildActions(const PlayerView& playerView, const World& world, vector<MyAction>& actions, const GameStatus& st) {
     int myId = playerView.myId;
 
@@ -130,7 +153,7 @@ void addBuildActions(const PlayerView& playerView, const World& world, vector<My
             // houses
             int sz = props.at(EntityType::HOUSE).size;
             for (Cell newPos : nearCells(bu.position - Cell(sz - 1, sz - 1), sz)) {
-                if (canBuild(world, newPos, sz) && goodForHouse(newPos, sz)) {
+                if (canBuild(world, newPos, sz) && goodForHouse(newPos, sz) && safeToBuild(world, newPos, sz)) {
                     // if (newPos.x + newPos.y == 3 && !world.hasNonMovable({0, 0})) continue;
                     buildScore.aux = (newPos.x == 0) * 1000 + (newPos.y == 0) * 1000 - newPos.x - newPos.y;
                     actions.emplace_back(bi, A_BUILD, newPos, EntityType::HOUSE, buildScore);
@@ -140,7 +163,7 @@ void addBuildActions(const PlayerView& playerView, const World& world, vector<My
             // ranged
             int sz = props.at(EntityType::RANGED_BASE).size;
             for (Cell newPos : nearCells(bu.position - Cell(sz - 1, sz - 1), sz)) {
-                if (canBuild(world, newPos, sz)) {
+                if (canBuild(world, newPos, sz) && safeToBuild(world, newPos, sz)) {
                     buildScore.aux = - newPos.x - newPos.y;
                     actions.emplace_back(bi, A_BUILD, newPos, EntityType::RANGED_BASE, buildScore);
                 }
