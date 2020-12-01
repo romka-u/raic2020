@@ -185,7 +185,7 @@ void calcSquadsTactic(int myId, const World& world, const GameStatus& st) {
             si.target = cell;
             // // cerr << ">> Squad " << cce.first << " is close to enemy\n   distance " << d << ", target " << cell << endl;
         } else {
-            if (st.underAttack) {
+            if (st.underAttack && world.warriors[world.myId].size() < 19) {
                 for (int p = 1; p <= 4; p++) {
                     if (p == myId) continue;
                     for (int wi : world.warriors[p]) {

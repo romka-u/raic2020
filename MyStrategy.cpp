@@ -129,6 +129,7 @@ Action MyStrategy::getAction(const PlayerView& playerView, DebugInterface* debug
     for (const auto [fi, se] : fmoves) {
         const int unitId = fi.second;
         const auto [from, to] = se;
+        /*
         // cerr << "path from " << from << " to " << to << ":"; cerr.flush();
         vector<Cell> path = getPathTo(world, from, to);        
         // for (const Cell& c : path) cerr << " " << c;
@@ -141,8 +142,9 @@ Action MyStrategy::getAction(const PlayerView& playerView, DebugInterface* debug
             // for (size_t i = 1; i < path.size(); i++)
             //     debugTargets.emplace_back(path[i-1], path[i]);
         }
+        */
         // cerr << "set move target for " << from << "->" << to << " : " << target << endl;
-        moves[unitId].moveAction = std::make_shared<MoveAction>(target, false, false);
+        moves[unitId].moveAction = std::make_shared<MoveAction>(to, true, false);
     }
 
     return Action(moves);
