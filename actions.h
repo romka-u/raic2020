@@ -51,6 +51,22 @@ bool operator<(const MyAction& a, const MyAction& b) {
 }
 
 void addGatherActions(int myId, const World& world, vector<MyAction>& actions, const GameStatus& st) {
+    unordered_set<int> dangerousRes;
+    for (int ri : st.resToGather) {
+        const auto& r = world.entityMap.at(ri);
+        for (int p = 1; p <= 4; p++)
+            if (p != myId) {
+                for (int wi : world.warriors[p]) {
+                    const auto& ou = world.entityMap.at(wi);
+                    if (dist(ou.position, r.position) <= props.at(ou.entityType).attack->attackRange + 2) {
+                        dangerousRes.insert(ri);
+                        goto out;
+                    }
+                }
+            }
+        out:;
+    }
+
     for (int bi : world.workers[myId]) {
         const auto& bu = world.entityMap.at(bi);
 
@@ -98,8 +114,9 @@ void addGatherActions(int myId, const World& world, vector<MyAction>& actions, c
         } else {
             for (int ri : st.resToGather) {
                 const auto& res = world.entityMap.at(ri);
-                int cd = dist(res, 1, bu, 1);
-                actions.emplace_back(bi, A_GATHER, res.position, ri, Score(100 - cd, -bi * 1e5 - ri));
+                const int cd = dist(res.position, bu.position);
+                if (cd == 1 || dangerousRes.find(ri) == dangerousRes.end())
+                    actions.emplace_back(bi, A_GATHER, res.position, ri, Score(100 - cd, -bi * 1e5 - ri));
             }
         } 
     }
@@ -279,6 +296,7 @@ void addWarActions(const PlayerView& playerView, const World& world, vector<MyAc
                 if (ou.entityType == EntityType::MELEE_UNIT && dist(bu.position, ou.position) > 1) score = 197;
                 if (ou.entityType == EntityType::BUILDER_UNIT) score = 194;
                 if (ou.entityType == EntityType::TURRET) score = 190;
+                if (ou.entityType == EntityType::HOUSE) score = 188;
                 if (ou.entityType == EntityType::RANGED_BASE || ou.entityType == EntityType::MELEE_BASE || ou.entityType == EntityType::BUILDER_BASE) score = 150;
                 actions.emplace_back(bi, A_ATTACK, ou.position, ou.id, Score(score - movableBonus * 30, -ou.health * 1e6 + ou.id));
             }
@@ -291,13 +309,14 @@ void addWarActions(const PlayerView& playerView, const World& world, vector<MyAc
 
         const int attackDist = props.at(bu.entityType).attack->attackRange;
         for (const auto& ou : world.oppEntities) {
-            const int movableBonus = ou.entityType == EntityType::RANGED_UNIT || ou.entityType == EntityType::MELEE_UNIT;
-            if (dist(ou.position, bu, props.at(bu.entityType).size) <= attackDist + movableBonus) {
+            if (dist(ou.position, bu, props.at(bu.entityType).size) <= attackDist) {
                 int score = 200;
-                if (ou.entityType == EntityType::MELEE_UNIT && dist(bu.position, ou.position) > 1) score = 195;
-                if (ou.entityType == EntityType::BUILDER_UNIT) score = 160;
+                if (ou.entityType == EntityType::MELEE_UNIT && dist(bu.position, ou.position) > 1) score = 197;
+                if (ou.entityType == EntityType::BUILDER_UNIT) score = 194;
+                if (ou.entityType == EntityType::TURRET) score = 190;
+                if (ou.entityType == EntityType::HOUSE) score = 188;
                 if (ou.entityType == EntityType::RANGED_BASE || ou.entityType == EntityType::MELEE_BASE || ou.entityType == EntityType::BUILDER_BASE) score = 150;
-                actions.emplace_back(bi, A_ATTACK, ou.position, ou.id, Score(score - movableBonus * 30, -ou.health * 1e6 + ou.id));
+                actions.emplace_back(bi, A_ATTACK, ou.position, ou.id, Score(score, -ou.health * 1e6 + ou.id));
             }
         }
     }

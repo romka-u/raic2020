@@ -129,6 +129,7 @@ Action MyStrategy::getAction(const PlayerView& playerView, DebugInterface* debug
     for (const auto [fi, se] : fmoves) {
         const int unitId = fi.second;
         const auto [from, to] = se;
+        debugTargets.emplace_back(from, to);
         /*
         // cerr << "path from " << from << " to " << to << ":"; cerr.flush();
         vector<Cell> path = getPathTo(world, from, to);        
@@ -136,7 +137,7 @@ Action MyStrategy::getAction(const PlayerView& playerView, DebugInterface* debug
         // cerr << endl;
         updateAStar(world, path);
         Cell target = to;
-        debugTargets.emplace_back(from, to);
+        
         if (path.size() >= 2) {
             target = path[1];
             // for (size_t i = 1; i < path.size(); i++)
