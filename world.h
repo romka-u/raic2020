@@ -75,6 +75,7 @@ struct World {
         }
         resources.clear();
         oppEntities.clear();
+        entityMap.clear(); // turret construction relies on that
         memset(eMap, 0, sizeof(eMap));
 
         for (const auto& e : ent) {
@@ -128,11 +129,32 @@ int distToSeg(int x, int L, int R) {
     return 0;
 }
 
+int distSegs(int L1, int R1, int L2, int R2) {
+    if (L1 > R2) return L1 - R2;
+    if (L2 > R1) return L2 - R1;
+    return 0;
+}
+
 int dist(const Entity& a, int asz, const Entity& b, int bsz) {
     assert(asz == 1);
     if (asz == 1 && bsz == 1) return dist(a.position, b.position);
     const int distX = distToSeg(a.position.x, b.position.x, b.position.x + bsz - 1);
     const int distY = distToSeg(a.position.y, b.position.y, b.position.y + bsz - 1);
+    return distX + distY;
+}
+
+int dist(const Cell& c, const Entity& b) {
+    const int bsz = props.at(b.entityType).size;
+    const int distX = distToSeg(c.x, b.position.x, b.position.x + bsz - 1);
+    const int distY = distToSeg(c.y, b.position.y, b.position.y + bsz - 1);
+    return distX + distY;
+}
+
+int dist(const Entity& a, const Entity& b) {
+    const int asz = props.at(a.entityType).size;
+    const int bsz = props.at(b.entityType).size;
+    const int distX = distSegs(a.position.x, a.position.x + asz - 1, b.position.x, b.position.x + bsz - 1);
+    const int distY = distSegs(a.position.y, a.position.y + asz - 1, b.position.y, b.position.y + bsz - 1);
     return distX + distY;
 }
 

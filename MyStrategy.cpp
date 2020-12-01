@@ -13,11 +13,10 @@ MyStrategy::MyStrategy() {}
 
 Action MyStrategy::getAction(const PlayerView& playerView, DebugInterface* debugInterface)
 {
-    // cerr << "=================== Tick " << playerView.currentTick << "======================\n";
+    cerr << "=================== Tick " << playerView.currentTick << "======================\n";
     if (props.empty()) props = playerView.entityProperties;
     world.update(playerView);
     int resourcesLeft = playerView.players[playerView.myId - 1].resource;
-    // cerr << "my resources: " << resourcesLeft << endl;
     int myId = playerView.myId;
     std::unordered_map<int, EntityAction> moves;
     clearAStar();
@@ -32,6 +31,7 @@ Action MyStrategy::getAction(const PlayerView& playerView, DebugInterface* debug
     addBuildActions(playerView, world, actions, gameStatus);
     addTrainActions(playerView, world, actions, gameStatus);
     addRepairActions(myId, world, actions, gameStatus);
+    addTurretsActions(playerView, world, actions, gameStatus);
     addWarActions(playerView, world, actions, gameStatus);
     addGatherActions(myId, world, actions, gameStatus);
 
@@ -45,6 +45,14 @@ Action MyStrategy::getAction(const PlayerView& playerView, DebugInterface* debug
     auto setMove = [&fmoves](int unitId, const Cell& from, const Cell& to) {
         fmoves.emplace_back(make_pair(dist(from, to), unitId), make_pair(from, to));
     };
+
+    gameStatus.workersLeftToFixTurrets = false;
+    for (int bi : world.buildings[myId]) {
+        const auto& bu = world.entityMap.at(bi);
+        if (bu.entityType == EntityType::MELEE_BASE || bu.entityType == EntityType::BUILDER_BASE || bu.entityType == EntityType::RANGED_BASE) {
+            moves[bi].buildAction = shared_ptr<BuildAction>();
+        }
+    }
 
     for (const MyAction& action : actions) {
         auto [unitId, actionType, pos, oid, score] = action;
@@ -100,7 +108,8 @@ Action MyStrategy::getAction(const PlayerView& playerView, DebugInterface* debug
                 // cerr << unitId << " at " << upos << " wants to repair " << oid << endl;
                 break;
             case A_REPAIR_MOVE:
-                if (bestRepairScore == -1 || score.main == 199) {
+                if (bestRepairScore == -1 || score.main >= 199 || score.main <= -2000) {
+                    if (score.main == -3000) gameStatus.workersLeftToFixTurrets = true;
                     setMove(unitId, upos, pos);
                     moved = true;
                     bestRepairScore = score.main;

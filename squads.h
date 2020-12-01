@@ -147,17 +147,35 @@ tuple<Cell, bool, bool> moreOrLessTogether(const vector<Cell>& cells) {
 void calcSquadsTactic(int myId, const World& world, const GameStatus& st) {
     if (squadInfo.empty()) {
         squadInfo.push_back(createNewSquadInfo(world));
+        squadInfo.push_back(createNewSquadInfo(world));
+        squadInfo[0].target = Cell{11, 16};
+        squadInfo[1].target = Cell{16, 11};
     }
 
     unordered_map<int, vector<Cell>> cellsBySquad;
     unordered_map<int, pair<Cell, int>> closestEnemy;
+    int sqSize = 1;
+    // if (squadInfo.size() > 2) sqSize = 10;
+    if (squadInfo.size() == 3) sqSize = 7;
+    else if (squadInfo.size() == 4) sqSize = 5;
+    else sqSize = 2;
     for (int wi : world.warriors[myId]) {
         if (squadId.find(wi) == squadId.end()) {
-            if (squadInfo.back().unitsAssigned == 5)
-                squadInfo.push_back(createNewSquadInfo(world));
+            if (st.ts[0].state == TS_NOT_BUILD) {
+                if (squadInfo[0].unitsAssigned <= squadInfo[1].unitsAssigned) {
+                    squadInfo[0].unitsAssigned++;
+                    squadId[wi] = 0;
+                } else {
+                    squadInfo[1].unitsAssigned++;
+                    squadId[wi] = 1;
+                }
+            } else {
+                if (squadInfo.back().unitsAssigned >= sqSize)
+                    squadInfo.push_back(createNewSquadInfo(world));
 
-            squadInfo.back().unitsAssigned++;
-            squadId[wi] = squadInfo.size() - 1;
+                squadInfo.back().unitsAssigned++;
+                squadId[wi] = squadInfo.size() - 1;
+            }
         }
         cellsBySquad[squadId[wi]].push_back(world.entityMap.at(wi).position);
     }
@@ -183,7 +201,7 @@ void calcSquadsTactic(int myId, const World& world, const GameStatus& st) {
         auto& si = squadInfo[cce.first];
         if (d < 7) {
             si.target = cell;
-            // // cerr << ">> Squad " << cce.first << " is close to enemy\n   distance " << d << ", target " << cell << endl;
+            // cerr << ">> Squad " << cce.first << " is close to enemy\n   distance " << d << ", target " << cell << endl;
         } else {
             if (st.underAttack && world.warriors[world.myId].size() < 19) {
                 for (int p = 1; p <= 4; p++) {
@@ -199,6 +217,13 @@ void calcSquadsTactic(int myId, const World& world, const GameStatus& st) {
                     }
                 }
                 out: continue;
+            }
+
+            if (cce.first < 2) {
+                if (st.ts[cce.first].state == TS_PLANNED) {
+                    si.target = st.ts[cce.first].target;
+                    continue;
+                }
             }
 
             if (si.unitsAssigned == 5 || world.warriors[world.myId].size() >= 19) {
