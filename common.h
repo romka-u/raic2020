@@ -34,3 +34,5 @@ const int dy[] = {0, -1, 0, 1};
 // #define contains(v, item) std::find(v.begin(), v.end(), item) != v.end()
 
 const int inf = 1e9;
+
+const bool TURRETS_CHEESE = false;

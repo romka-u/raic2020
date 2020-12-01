@@ -146,22 +146,26 @@ tuple<Cell, bool, bool> moreOrLessTogether(const vector<Cell>& cells) {
 
 void calcSquadsTactic(int myId, const World& world, const GameStatus& st) {
     if (squadInfo.empty()) {
-        squadInfo.push_back(createNewSquadInfo(world));
-        squadInfo.push_back(createNewSquadInfo(world));
-        squadInfo[0].target = Cell{11, 16};
-        squadInfo[1].target = Cell{16, 11};
+        if (TURRETS_CHEESE) {
+            squadInfo.push_back(createNewSquadInfo(world));
+            squadInfo.push_back(createNewSquadInfo(world));
+            squadInfo[0].target = Cell{11, 16};
+            squadInfo[1].target = Cell{16, 11};
+        } else {
+            squadInfo.push_back(createNewSquadInfo(world));
+        }
     }
 
     unordered_map<int, vector<Cell>> cellsBySquad;
     unordered_map<int, pair<Cell, int>> closestEnemy;
-    int sqSize = 1;
+    int sqSize = 5;
     // if (squadInfo.size() > 2) sqSize = 10;
     if (squadInfo.size() == 3) sqSize = 7;
     else if (squadInfo.size() == 4) sqSize = 5;
     else sqSize = 2;
     for (int wi : world.warriors[myId]) {
         if (squadId.find(wi) == squadId.end()) {
-            if (st.ts[0].state == TS_NOT_BUILD) {
+            if (st.ts[0].state == TS_NOT_BUILD && TURRETS_CHEESE) {
                 if (squadInfo[0].unitsAssigned <= squadInfo[1].unitsAssigned) {
                     squadInfo[0].unitsAssigned++;
                     squadId[wi] = 0;

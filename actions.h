@@ -160,6 +160,7 @@ bool safeToBuild(const World& world, const Cell& c, int sz, int arb) {
 
 void addTurretsActions(const PlayerView& playerView, const World& world, vector<MyAction>& actions, const GameStatus& st) {
     forn(i, KTS) {
+        if (!TURRETS_CHEESE) break;
         if (st.ts[i].state == TS_PLANNED) {
             for (int wi : st.ts[i].repairers) {
                 const auto& w = world.entityMap.at(wi);
@@ -219,6 +220,21 @@ void addTurretsActions(const PlayerView& playerView, const World& world, vector<
         }
     }
 
+    vector<Entity> closeToTurrets;
+    vector<Cell> myTurretCells;
+    for (int ti : world.buildings[world.myId]) {
+        const auto& t = world.entityMap.at(ti);
+        if (t.entityType == EntityType::TURRET)
+            myTurretCells.push_back(t.position);
+    }
+    for (const auto& oe : world.oppEntities) {
+        for (const Cell& c : myTurretCells)
+            if (dist(c, oe) <= 8) {
+                closeToTurrets.push_back(oe);
+                break;
+            }
+    }
+
     for (int ri : world.workers[world.myId]) {
         const auto& r = world.entityMap.at(ri);
         int cld = inf;
@@ -239,7 +255,7 @@ void addTurretsActions(const PlayerView& playerView, const World& world, vector<
             const auto& deft = world.entityMap.at(clt);
             const int tsz = props.at(deft.entityType).size;
 
-            for (const auto& oe : world.oppEntities) {
+            for (const auto& oe : closeToTurrets) {
                 const int cd = dist(oe.position, deft, tsz);
                 if (cd <= 8) {
                     const int mScore = st.resToGather.empty() ? 3030 : -3000;
@@ -302,7 +318,10 @@ void addBuildActions(const PlayerView& playerView, const World& world, vector<My
 
 void addTrainActions(const PlayerView& playerView, const World& world, vector<MyAction>& actions, const GameStatus& st) {
     if (st.foodUsed == st.foodLimit) return;
-    cerr << "workers: " << world.workers[world.myId].size() << ", rtg: " << st.resToGather.size() << ", wltft: " << st.workersLeftToFixTurrets << endl;
+    cerr << "workers: " << world.workers[world.myId].size()
+         << ", warriors: " << world.warriors[world.myId].size()
+         << ", rtg: " << st.resToGather.size()
+        << ", wltft: " << st.workersLeftToFixTurrets << endl;
     for (int bi : world.buildings[world.myId]) {
         const auto& bu = world.entityMap.at(bi);        
         if (bu.entityType == EntityType::BUILDER_BASE && !st.workersLeftToFixTurrets && world.workers[world.myId].size() < min(128, int(st.resToGather.size() * 0.91))) {

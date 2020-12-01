@@ -70,7 +70,7 @@ struct GameStatus {
         for (int bi : world.warriors[myId])
             foodUsed += world.P(bi).populationUse;
 
-        if (foodLimit >= 30) {
+        if (foodLimit >= 30 && TURRETS_CHEESE) {
             if (ts[0].state == TS_NOT_BUILD) {
                 ts[0].target = Cell{7, 80 - 7};
                 unordered_set<int> usedW;
@@ -124,6 +124,7 @@ struct GameStatus {
         }
 
         forn(i, KTS) {
+            if (!TURRETS_CHEESE) break;
             if (ts[i].state == TS_PLANNED) {
                 for (int wi : ts[i].repairers) {
                     if (world.entityMap.count(wi)) {
