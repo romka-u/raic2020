@@ -449,7 +449,7 @@ void addWarActions(const PlayerView& playerView, const World& world, vector<MyAc
         const auto& bu = world.entityMap.at(bi);
         const int myCld = closestDist.at(bi);
 
-        bool iAmOnFront = myCld < 8;
+        bool iAmOnFront = myCld < 8 && bu.entityType != EntityType::MELEE_UNIT;
         if (iAmOnFront) {
             for (int wi : world.warriors[world.myId]) {
                 if (wi == bi) continue;

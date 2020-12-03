@@ -3,19 +3,24 @@
 #include "world.h"
 
 struct QItem {
-    int f, h, d;
+    int f, h, d, hm;
     Cell c, prev;
 };
 
 bool operator<(const QItem& a, const QItem& b) {
     if (a.f + a.h != b.f + b.h) return a.f + a.h < b.f + b.h;
     if (a.h != b.h) return a.h < b.h;
+    if (a.hm != b.hm) return a.hm < b.hm;
     if (a.d != b.d) return a.d < b.d;
     return a.c < b.c;
 }
 
 int h(const Cell& from, const Cell& to) {
     return dist(from, to);
+}
+
+int hm(const Cell& from, const Cell& to) {
+    return max(abs(from.x - to.x), abs(from.y - to.y));
 }
 
 const int D = 19;
@@ -35,7 +40,7 @@ void clearAStar() {
 vector<Cell> getPathTo(const World& world, const Cell& from, const Cell& to) {
     if (from == to) return {from};
     set<QItem> queue;
-    queue.insert(QItem{0, h(from, to), 0, from});
+    queue.insert(QItem{0, h(from, to), 0, hm(from, to), from});
     uit++;
 
     while (!queue.empty()) {
@@ -75,7 +80,7 @@ vector<Cell> getPathTo(const World& world, const Cell& from, const Cell& to) {
                 if (moveUsed[nc.x][nc.y][cur.d + 1][w ^ 2] == astick) nf += 7;
             }
             if (nc.inside()) {
-                queue.insert(QItem{nf, h(nc, to), cur.d + 1, nc, cur.c});
+                queue.insert(QItem{nf, h(nc, to), cur.d + 1, hm(nc, to), nc, cur.c});
             }
         }
     }
