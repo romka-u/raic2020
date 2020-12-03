@@ -337,7 +337,7 @@ void addTrainActions(const PlayerView& playerView, const World& world, vector<My
         << ", wltft: " << st.workersLeftToFixTurrets << endl;
     for (int bi : world.buildings[world.myId]) {
         const auto& bu = world.entityMap.at(bi);        
-        if (bu.entityType == EntityType::BUILDER_BASE && !st.workersLeftToFixTurrets && world.workers[world.myId].size() < min(128, int(st.resToGather.size() * 0.91))) {
+        if (bu.entityType == EntityType::BUILDER_BASE && !st.workersLeftToFixTurrets && world.workers[world.myId].size() < min(100, int(st.resToGather.size() * 0.91))) {
             for (Cell bornPlace : nearCells(bu.position, props.at(bu.entityType).size)) {
                 if (world.isEmpty(bornPlace)) {
                     int aux = bornPlace.x + bornPlace.y;

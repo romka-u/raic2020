@@ -23,6 +23,7 @@ struct World {
     vector<int> resources;
     vector<Entity> oppEntities;
     unordered_map<int, int> staying;
+    unordered_map<EntityType, int> myUnitsCnt;
     int eMap[88][88];
     int infMap[88][88];
     int myId, tick;
@@ -76,6 +77,7 @@ struct World {
         resources.clear();
         oppEntities.clear();
         entityMap.clear(); // turret construction relies on that
+        myUnitsCnt.clear();
         memset(eMap, 0, sizeof(eMap));
 
         for (const auto& e : ent) {
@@ -87,7 +89,11 @@ struct World {
             if (e.playerId) {
                 int pid = *e.playerId;
                 int eid = e.id;
-                if (pid != playerView.myId) oppEntities.push_back(e);
+                if (pid != playerView.myId) {
+                    oppEntities.push_back(e);
+                } else {
+                    myUnitsCnt[e.entityType]++;
+                }
                 if (entityMap.find(eid) != entityMap.end()) {
                     if (entityMap[eid].position == e.position) {
                         staying[eid]++;

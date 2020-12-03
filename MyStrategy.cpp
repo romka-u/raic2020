@@ -61,7 +61,8 @@ Action MyStrategy::getAction(const PlayerView& playerView, DebugInterface* debug
 
         if (usedUnits.find(unitId) != usedUnits.end()) continue;
         bool moved = false;
-
+        const int cost = props.count(etype) ? props.at(etype).cost + world.myUnitsCnt[etype] : 0;
+        
         switch (actionType) {
             case A_ATTACK:
                 moves[unitId].attackAction = std::make_shared<AttackAction>(std::make_shared<int>(oid), nullptr);
@@ -94,17 +95,18 @@ Action MyStrategy::getAction(const PlayerView& playerView, DebugInterface* debug
                 break;
             case A_BUILD:
             case A_TRAIN:
-                if (props.at(etype).cost <= resourcesLeft) {
+                cerr << "build cost: " << cost << endl;
+                if (cost <= resourcesLeft) {
                     moves[unitId].buildAction = std::make_shared<BuildAction>(etype, pos);
                     // cerr << unitId << " at " << upos << " wants to build/train [" << oid << "] at " << pos << endl;
-                    resourcesLeft -= props.at(etype).cost;
+                    resourcesLeft -= cost;
                 } else {
                     continue;
                 }
                 break;
             case A_REPAIR:
                 moves[unitId].repairAction = std::make_shared<RepairAction>(oid);
-                bestRepairScore = 200;
+                // bestRepairScore = 200;
                 // cerr << unitId << " at " << upos << " wants to repair " << oid << endl;
                 break;
             case A_REPAIR_MOVE:
@@ -139,7 +141,7 @@ Action MyStrategy::getAction(const PlayerView& playerView, DebugInterface* debug
         const int unitId = fi.second;
         const auto [from, to] = se;
         debugTargets.emplace_back(from, to);
-        /*
+        
         // cerr << "path from " << from << " to " << to << ":"; cerr.flush();
         vector<Cell> path = getPathTo(world, from, to);        
         // for (const Cell& c : path) cerr << " " << c;
@@ -152,9 +154,9 @@ Action MyStrategy::getAction(const PlayerView& playerView, DebugInterface* debug
             // for (size_t i = 1; i < path.size(); i++)
             //     debugTargets.emplace_back(path[i-1], path[i]);
         }
-        */
+        
         // cerr << "set move target for " << from << "->" << to << " : " << target << endl;
-        moves[unitId].moveAction = std::make_shared<MoveAction>(to, true, false);
+        moves[unitId].moveAction = std::make_shared<MoveAction>(target, true, false);
     }
 
     return Action(moves);
