@@ -414,18 +414,6 @@ void addWarActions(const PlayerView& playerView, const World& world, vector<MyAc
         const auto& bu = world.entityMap.at(bi);
 
         Cell target = squadInfo[squadId[bi]].target;
-        /*if (st.underAttack) {
-            int cld = inf;
-            for (const auto& oe : st.attackers)
-                if (oe.entityType == EntityType::RANGED_UNIT || oe.entityType == EntityType::MELEE_UNIT) {
-                    const int cd = dist(bu.position, oe.position);
-                    if (cd < cld && cd <= 42) {
-                        cld = cd;
-                        target = oe.position;
-                    }
-                }
-        }*/
-
         closestDist[bi] = inf;
 
         const int attackDist = props.at(bu.entityType).attack->attackRange;
@@ -474,8 +462,11 @@ void addWarActions(const PlayerView& playerView, const World& world, vector<MyAc
             }
         }
 
+        cerr << bi << " at " << world.entityMap.at(bi).position << " on front: " << iAmOnFront << endl;
+
         if (!iAmOnFront) {
             const Cell target = squadInfo[squadId[bi]].target;
+            cerr << "his squad target: " << target << endl;
             actions.emplace_back(bi, A_MOVE, target, -1, Score(100, -dist(bu.position, target)));
             continue;
         }

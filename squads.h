@@ -245,7 +245,7 @@ void calcSquadsTactic(const World& world, const GameStatus& st) {
     auto enemiesToAttack = st.attackers.empty() ? world.oppEntities : st.attackers;
 
     for (const auto& cbs : cellsBySquad) {
-        cerr << "[] Squad " << cbs.first << "(sz " << cbs.second.size() << "):";
+        cerr << "[] Squad " << cbs.first << " (sz " << cbs.second.size() << "):";
         for (const auto& c : cbs.second) cerr << " " << c;
         cerr << endl;
         int cld = inf;
@@ -261,10 +261,12 @@ void calcSquadsTactic(const World& world, const GameStatus& st) {
         cerr << "   cl enemy: " << closestEnemy[cbs.first].first << endl;
     }
     
+    cerr << "attackers.size = " << st.attackers.size() << endl;
     for (const auto& cce : closestEnemy) {
         auto [cell, d] = cce.second;
         auto& si = squadInfo[cce.first];
-        if (d < 7 && !st.attackers.empty()) {
+        if (d < 7 || !st.attackers.empty()) {
+            cerr << "set " << cell << " as target for squad " << cce.first << endl;
             si.target = cell;
             // cerr << ">> Squad " << cce.first << " is close to enemy\n   distance " << d << ", target " << cell << endl;
         } else {
