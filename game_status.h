@@ -52,7 +52,7 @@ struct GameStatus {
         resToGather.clear();
         for (int ri : world.resources) {
             const auto& res = world.entityMap.at(ri);
-            if (world.infMap[res.position.x][res.position.y] != myId) continue;
+            // if (world.infMap[res.position.x][res.position.y] != myId) continue;
             bool coveredByTurret = false;
             for (const auto& oe : world.oppEntities) {
                 if (oe.entityType == EntityType::TURRET && dist(res.position, oe) < props.at(oe.entityType).attack->attackRange) {
