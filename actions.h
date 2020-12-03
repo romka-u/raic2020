@@ -72,7 +72,7 @@ void addGatherActions(int myId, const World& world, vector<MyAction>& actions, c
 
         int underAttack = 0;
         Cell threatPos;
-        for (int p = 1; p <= 4 && !underAttack; p++) {
+        /*for (int p = 1; p <= 4 && !underAttack; p++) {
             if (p == myId) continue;
             for (int wi : world.warriors[p]) {
                 const auto& w = world.entityMap.at(wi);
@@ -101,7 +101,7 @@ void addGatherActions(int myId, const World& world, vector<MyAction>& actions, c
             }    
 
             if (!hasEmptyNear) underAttack = 0;
-        }
+        }*/
 
         if (underAttack) {
             Cell hideTarget{bu.position.x * 2 - threatPos.x, bu.position.y * 2 - threatPos.y};
