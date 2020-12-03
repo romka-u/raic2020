@@ -29,18 +29,22 @@ struct GameStatus {
     TurretStatus ts[KTS];
     int initialTurretId;
     bool workersLeftToFixTurrets;
+    vector<Entity> attackers;
 
     void update(const PlayerView& playerView, const World& world) {
         int myId = playerView.myId;
 
         underAttack = false;
+        attackers.clear();
         for (int p = 1; p <= 4; p++) {
             if (p == myId) continue;
             for (int wi : world.warriors[p]) {
                 const auto& w = world.entityMap.at(wi);
                 for (int bi : world.buildings[myId]) {
-                    if (dist(w.position, world.entityMap.at(bi), world.P(bi).size) <= props.at(w.entityType).attack->attackRange + 10)
+                    if (dist(w.position, world.entityMap.at(bi), world.P(bi).size) <= props.at(w.entityType).attack->attackRange + 10) {
                         underAttack = true;
+                        attackers.push_back(w);
+                    }
                 }
             }
         }
@@ -49,16 +53,16 @@ struct GameStatus {
         for (int ri : world.resources) {
             const auto& res = world.entityMap.at(ri);
             if (world.infMap[res.position.x][res.position.y] != myId) continue;
-            // bool side = false;
-            // forn(q, 4) {
-            //     Cell c = res.position ^ q;
-            //     if (!c.inside()) continue;
-            //     if (world.hasNonMovable(c)) continue;
-            //     side = true;
-            //     break;
-            // }
-            // if (!side) continue;
-            resToGather.push_back(ri);
+            bool coveredByTurret = false;
+            for (const auto& oe : world.oppEntities) {
+                if (oe.entityType == EntityType::TURRET && dist(res.position, oe) < props.at(oe.entityType).attack->attackRange) {
+                    coveredByTurret = true;
+                    break;
+                }
+            }
+            if (!coveredByTurret) {
+                resToGather.push_back(ri);
+            }
         }
 
         foodUsed = 0;

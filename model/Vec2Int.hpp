@@ -16,6 +16,7 @@ public:
     void writeTo(OutputStream& stream) const;
     bool operator ==(const Vec2Int& other) const;
     bool operator !=(const Vec2Int& other) const;
+    Vec2Int& operator+=(const Vec2Int& other);
 
     bool inside() const {
         return 0 <= x && x < 80 && 0 <= y && y < 80;

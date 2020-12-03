@@ -405,23 +405,28 @@ void addWarActions(const PlayerView& playerView, const World& world, vector<MyAc
         }
     }
 
+    unordered_map<int, int> closestDist;
+    unordered_map<int, Cell> closestEnemyCell;
+    unordered_set<int> willAttack;
+
     // warriors
     for (int bi : world.warriors[world.myId]) {
         const auto& bu = world.entityMap.at(bi);
 
         Cell target = squadInfo[squadId[bi]].target;
-        if (st.underAttack) {
+        /*if (st.underAttack) {
             int cld = inf;
-            for (const auto& oe : world.oppEntities)
+            for (const auto& oe : st.attackers)
                 if (oe.entityType == EntityType::RANGED_UNIT || oe.entityType == EntityType::MELEE_UNIT) {
-                    int cd = dist(bu.position, oe.position);
-                    if (cd < cld) {
+                    const int cd = dist(bu.position, oe.position);
+                    if (cd < cld && cd <= 42) {
                         cld = cd;
                         target = oe.position;
                     }
                 }
-        }
-        actions.emplace_back(bi, A_MOVE, target, -1, Score(100, -dist(bu.position, target)));
+        }*/
+
+        closestDist[bi] = inf;
 
         const int attackDist = props.at(bu.entityType).attack->attackRange;
         for (const auto& ou : world.oppEntities) {
@@ -429,6 +434,10 @@ void addWarActions(const PlayerView& playerView, const World& world, vector<MyAc
             // if (world.staying.count(ou.id) && world.staying.at(ou.id) > 4) movableBonus = 0;
             int movableBonus = 0;
             int cd = dist(bu.position, ou, props.at(ou.entityType).size);
+            if ((ou.entityType == EntityType::RANGED_UNIT || ou.entityType == EntityType::MELEE_UNIT) && cd < closestDist[bi]) {
+                closestDist[bi] = cd;
+                closestEnemyCell[bi] = ou.position;
+            }
             if (cd <= attackDist + movableBonus) {
                 if (movableBonus && hasEnemyInRange(ou, playerView.entities)) {
                     movableBonus = 0;
@@ -441,6 +450,43 @@ void addWarActions(const PlayerView& playerView, const World& world, vector<MyAc
                 if (ou.entityType == EntityType::HOUSE) score = 188;
                 if (ou.entityType == EntityType::RANGED_BASE || ou.entityType == EntityType::MELEE_BASE || ou.entityType == EntityType::BUILDER_BASE) score = 150;
                 actions.emplace_back(bi, A_ATTACK, ou.position, ou.id, Score(score - movableBonus * 30, -ou.health * 1e6 + ou.id));
+                willAttack.insert(bi);
+            }
+        }
+    }
+
+    for (int bi : world.warriors[world.myId]) {
+        if (willAttack.find(bi) != willAttack.end()) continue;
+
+        const auto& bu = world.entityMap.at(bi);
+        const int myCld = closestDist.at(bi);
+
+        bool iAmOnFront = myCld < 8;
+        if (iAmOnFront) {
+            for (int wi : world.warriors[world.myId]) {
+                if (wi == bi) continue;
+                const auto& wu = world.entityMap.at(wi);
+                if (dist(bu.position, wu.position) <= 5)
+                    if (closestDist[wi] <= myCld) {
+                        iAmOnFront = false;
+                        break;
+                    }
+            }
+        }
+
+        if (!iAmOnFront) {
+            const Cell target = squadInfo[squadId[bi]].target;
+            actions.emplace_back(bi, A_MOVE, target, -1, Score(100, -dist(bu.position, target)));
+            continue;
+        }
+
+        const Cell target = closestEnemyCell[bi];
+        forn(w, 4) {
+            const Cell nc = bu.position ^ w;
+            if (nc.inside() && !world.hasNonMovable(nc)) {
+                if (dist(nc, target) > myCld) {
+                    actions.emplace_back(bi, A_MOVE, nc, -1, Score(110 + (world.eMap[nc.x][nc.y] == 0), 0));
+                }
             }
         }
     }

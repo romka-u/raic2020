@@ -18,6 +18,13 @@ bool Vec2Int::operator ==(const Vec2Int& other) const {
 bool Vec2Int::operator !=(const Vec2Int& other) const {
     return x != other.x || y != other.y;
 }
+
+Vec2Int& Vec2Int::operator+=(const Vec2Int& other) {
+    x += other.x;
+    y += other.y;
+    return *this;
+}
+
 size_t std::hash<Vec2Int>::operator ()(const Vec2Int& value) const {
     size_t result = 0;
     result ^= std::hash<int>{}(value.x) + 0x9e3779b9 + (result<<6) + (result>>2);

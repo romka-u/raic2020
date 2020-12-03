@@ -25,7 +25,7 @@ Action MyStrategy::getAction(const PlayerView& playerView, DebugInterface* debug
 
     gameStatus.update(playerView, world);
 
-    calcSquadsTactic(myId, world, gameStatus);
+    calcSquadsTactic(world, gameStatus);
 
     vector<MyAction> actions;
     addBuildActions(playerView, world, actions, gameStatus);
@@ -54,6 +54,11 @@ Action MyStrategy::getAction(const PlayerView& playerView, DebugInterface* debug
         }
     }
 
+    unordered_map<int, int> healthLeft;
+    for (const auto& e : playerView.entities) {
+        healthLeft[e.id] = e.health;
+    }
+
     for (const MyAction& action : actions) {
         auto [unitId, actionType, pos, oid, score] = action;
         const auto& upos = world.entityMap[unitId].position;
@@ -65,6 +70,10 @@ Action MyStrategy::getAction(const PlayerView& playerView, DebugInterface* debug
         
         switch (actionType) {
             case A_ATTACK:
+                if (healthLeft[oid] <= 0) {
+                    continue;
+                }
+                healthLeft[oid] -= props.at(world.entityMap[unitId].entityType).attack->damage;
                 moves[unitId].attackAction = std::make_shared<AttackAction>(std::make_shared<int>(oid), nullptr);
                 // cerr << unitId << " at " << upos << " wants to attack " << oid << " at " << world.entityMap[oid].position << endl;
                 break;
@@ -192,6 +201,18 @@ void MyStrategy::debugUpdate(const PlayerView& playerView, DebugInterface& debug
             vertices.push_back(ColoredVertex(make_shared<Vec2Float>(x + 0.7, y + 0.5), empty, colors[val]));
             vertices.push_back(ColoredVertex(make_shared<Vec2Float>(x + 0.5, y + 0.7), empty, colors[val]));
         }
+    }
+
+    for (int wi : world.warriors[world.myId]) {
+        const Cell& c = world.entityMap.at(wi).position;
+        const int color = min(squadId[wi] + 1, 4);
+
+        vertices.push_back(ColoredVertex(make_shared<Vec2Float>(c.x + 0.1, c.y + 1), empty, colors[color]));
+        vertices.push_back(ColoredVertex(make_shared<Vec2Float>(c.x + 0.4, c.y + 1), empty, colors[color]));
+        vertices.push_back(ColoredVertex(make_shared<Vec2Float>(c.x + 0.25, c.y + 1.35), empty, colors[color]));
+        vertices.push_back(ColoredVertex(make_shared<Vec2Float>(c.x + 0.6, c.y + 1), empty, colors[color]));
+        vertices.push_back(ColoredVertex(make_shared<Vec2Float>(c.x + 0.9, c.y + 1), empty, colors[color]));
+        vertices.push_back(ColoredVertex(make_shared<Vec2Float>(c.x + 0.75, c.y + 1.35), empty, colors[color]));
     }
 
     debugInterface.send(DebugCommand::Add(std::make_shared<DebugData::Primitives>(vertices, PrimitiveType::TRIANGLES)));
