@@ -95,7 +95,6 @@ Action MyStrategy::getAction(const PlayerView& playerView, DebugInterface* debug
                 break;
             case A_BUILD:
             case A_TRAIN:
-                cerr << "build cost: " << cost << endl;
                 if (cost <= resourcesLeft) {
                     moves[unitId].buildAction = std::make_shared<BuildAction>(etype, pos);
                     // cerr << unitId << " at " << upos << " wants to build/train [" << oid << "] at " << pos << endl;

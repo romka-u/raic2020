@@ -144,6 +144,13 @@ tuple<Cell, bool, bool> moreOrLessTogether(const vector<Cell>& cells) {
     return {center, conn0, conn1};
 }
 
+Cell getLastFreeCell(const World& world, Cell cur, int d) {
+    while (cur.x < 40 && cur.y < 40 && !world.hasNonMovable(cur))
+        cur = cur ^ d;
+    cur = cur ^ (d ^ 2);
+    return cur;
+}
+
 void calcSquadsTactic(int myId, const World& world, const GameStatus& st) {
     if (squadInfo.empty()) {
         if (TURRETS_CHEESE) {
@@ -153,16 +160,28 @@ void calcSquadsTactic(int myId, const World& world, const GameStatus& st) {
             squadInfo[1].target = Cell{16, 11};
         } else {
             squadInfo.push_back(createNewSquadInfo(world));
+            squadInfo.push_back(createNewSquadInfo(world));
+            squadInfo.push_back(createNewSquadInfo(world));
+            squadInfo.push_back(createNewSquadInfo(world));
+
+            squadInfo[0].target = getLastFreeCell(world, Cell(20, 7), 2);
+            squadInfo[1].target = getLastFreeCell(world, Cell(20, 17), 2);
+            squadInfo[2].target = getLastFreeCell(world, Cell(7, 20), 3);
+            squadInfo[3].target = getLastFreeCell(world, Cell(17, 20), 3);
         }
     }
 
     unordered_map<int, vector<Cell>> cellsBySquad;
     unordered_map<int, pair<Cell, int>> closestEnemy;
-    int sqSize = 5;
-    // if (squadInfo.size() > 2) sqSize = 10;
-    if (squadInfo.size() == 3) sqSize = 7;
-    else if (squadInfo.size() == 4) sqSize = 5;
-    else sqSize = 2;
+
+    forn(i, 4) squadInfo[i].unitsAssigned = 0;
+
+    for (int wi : world.warriors[myId]) {
+        if (squadId.find(wi) != squadId.end()) {
+            squadInfo[squadId[wi]].unitsAssigned++;
+        }
+    }
+    
     for (int wi : world.warriors[myId]) {
         if (squadId.find(wi) == squadId.end()) {
             if (st.ts[0].state == TS_NOT_BUILD && TURRETS_CHEESE) {
@@ -174,30 +193,33 @@ void calcSquadsTactic(int myId, const World& world, const GameStatus& st) {
                     squadId[wi] = 1;
                 }
             } else {
-                if (squadInfo.back().unitsAssigned >= sqSize)
-                    squadInfo.push_back(createNewSquadInfo(world));
+                int bi = 0;
+                forn(i, 4)
+                    if (squadInfo[i].unitsAssigned < squadInfo[bi].unitsAssigned)
+                        bi = i;
 
-                squadInfo.back().unitsAssigned++;
-                squadId[wi] = squadInfo.size() - 1;
+                squadId[wi] = bi;
+                squadInfo[squadId[wi]].unitsAssigned++;
             }
         }
-        cellsBySquad[squadId[wi]].push_back(world.entityMap.at(wi).position);
+        cellsBySquad[squadId[wi]].push_back(world.entityMap.at(wi).position);        
     }
 
     for (const auto& cbs : cellsBySquad) {
-        // cerr << "[] Squad " << cbs.first << ":";
-        // for (const auto& c : cbs.second) cerr << " " << c;
-        // cerr << endl;
+        cerr << "[] Squad " << cbs.first << "(sz " << cbs.second.size() << "):";
+        for (const auto& c : cbs.second) cerr << " " << c;
+        cerr << endl;
         int cld = inf;
         for (const Cell& c : cbs.second) {
             for (const auto& ou : world.oppEntities) {
-                int cd = dist(c, ou.position);
+                int cd = dist(c, ou);
                 if (cd < cld) {
                     cld = cd;
                     closestEnemy[cbs.first] = {ou.position, cld};
                 }
             }
         }
+        cerr << "  cl enemy: " << closestEnemy[cbs.first].first << endl;
     }
     
     for (const auto& cce : closestEnemy) {
