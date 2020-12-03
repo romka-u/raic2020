@@ -145,7 +145,7 @@ bool goodForHouse(const Cell& c, int sz) {
     if (c.x == 0) return c.y % sz == 1;
     if (c.y == 0) return c.x % sz == 1;
     if (c.x < sz || c.y < sz) return false;
-    return c.x % (sz + 2) == 1 && c.y % (sz + 2) == 1;
+    return (c.x % (sz + 2) == 1 || c.x == 3) && (c.y % (sz + 2) == 1 || c.y == 3);
 }
 
 bool safeToBuild(const World& world, const Cell& c, int sz, int arb) {
@@ -167,8 +167,10 @@ void addTurretsActions(const PlayerView& playerView, const World& world, vector<
                 const auto& w = world.entityMap.at(wi);
 
                 bool isEnemyClose = false;
-                for (const auto& ou : world.oppEntities)
-                    if (dist(w.position, ou) <= 16) {
+                for (const auto& ou : world.oppEntities) {
+                    int ar = 0;
+                    if (props.at(ou.entityType).attack) ar += props.at(ou.entityType).attack->attackRange;
+                    if (dist(w.position, ou) <= 11 + ar) {
                         const int sz = props.at(EntityType::TURRET).size;
                         bool isPlaceToBuild = false;
                         Score buildScore(3000, 0);
@@ -186,6 +188,7 @@ void addTurretsActions(const PlayerView& playerView, const World& world, vector<
                         isEnemyClose = true;
                         break;
                     }
+                }
 
                 if (!isEnemyClose) {
                     actions.emplace_back(wi, A_MOVE, st.ts[i].target, -1, Score(3000, 0));
@@ -197,7 +200,16 @@ void addTurretsActions(const PlayerView& playerView, const World& world, vector<
             const auto& t = world.entityMap.at(st.ts[i].turretId);
             bool second = false;
             for (int ri : st.ts[i].repairers) {
-                if (dist(world.entityMap.at(ri).position, t) == 1) {
+                bool inDanger = t.health < props.at(t.entityType).maxHealth;
+                if (!inDanger) {
+                    for (const auto& oe : world.oppEntities) {
+                        if (dist(oe.position, t) <= 8) {
+                            inDanger = true;
+                            break;
+                        }
+                    }
+                }
+                if (dist(world.entityMap.at(ri).position, t) == 1 && inDanger) {
                     actions.emplace_back(ri, A_REPAIR, NOWHERE, st.ts[i].turretId, Score(3000, 0));
                 } else {
                     Cell target = t.position;

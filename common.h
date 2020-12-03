@@ -35,4 +35,4 @@ const int dy[] = {0, -1, 0, 1};
 
 const int inf = 1e9;
 
-const bool TURRETS_CHEESE = true;
+const bool TURRETS_CHEESE = false;

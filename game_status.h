@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include "world.h"
+#include "astar.h"
 
 const int KTS = 2;
 
@@ -75,50 +76,66 @@ struct GameStatus {
                 ts[0].target = Cell{7, 80 - 7};
                 unordered_set<int> usedW;
 
-                forn(j, 2) {
-                    int bw = -1;
-                    int cld = inf;
-                    for (int w1 : world.workers[myId]) {
-                        if (usedW.find(w1) == usedW.end()) {
-                            const int cd = dist(ts[0].target, world.entityMap.at(w1).position);
-                            if (cd < cld) {
-                                cld = cd;
-                                bw = w1;
-                            }
-                        }
+                vector<Cell> path = getPathTo(world, Cell{10, 10}, {7, 75});
+                bool ok = true;
+                cerr << "path.size(): " << path.size() << endl;
+                for (const Cell& c : path) {
+                    if (30 <= c.x && c.x < 50 && 30 <= c.y && c.y < 50) {
+                        ok = false;
+                        break;
                     }
-                    ts[0].repairers.push_back(bw);
-                    usedW.insert(bw);
+                    cerr << " " << c;
                 }
-                ts[0].state = TS_PLANNED;
-                
-                ts[1].target = Cell{80 - 7, 7};
-                forn(j, 2) {
-                    int bw = -1;
-                    int cld = inf;
-                    for (int w1 : world.workers[myId]) {
-                        if (usedW.find(w1) == usedW.end()) {
-                            const int cd = dist(ts[1].target, world.entityMap.at(w1).position);
-                            if (cd < cld) {
-                                cld = cd;
-                                bw = w1;
-                            }
-                        }
-                    }
-                    ts[1].repairers.push_back(bw);
-                    usedW.insert(bw);
-                }
-                ts[1].state = TS_PLANNED;
-                cerr << "assigned cheese:";
-                for (int w : ts[0].repairers) cerr << " " << w;
-                cerr << " and";
-                for (int w : ts[1].repairers) cerr << " " << w;
                 cerr << endl;
+                if (path.size() < 10 || !ok) {
+                    ts[0].state = TS_FAILED;
+                    ts[1].state = TS_FAILED;                    
+                } else {
+                    forn(j, 2) {
+                        int bw = -1;
+                        int cld = inf;
+                        for (int w1 : world.workers[myId]) {
+                            if (usedW.find(w1) == usedW.end()) {
+                                const int cd = dist(ts[0].target, world.entityMap.at(w1).position);
+                                if (cd < cld) {
+                                    cld = cd;
+                                    bw = w1;
+                                }
+                            }
+                        }
+                        ts[0].repairers.push_back(bw);
+                        usedW.insert(bw);
+                    }
+                    ts[0].state = TS_PLANNED;
+                    
+                    ts[1].target = Cell{80 - 7, 7};
+                    forn(j, 2) {
+                        int bw = -1;
+                        int cld = inf;
+                        for (int w1 : world.workers[myId]) {
+                            if (usedW.find(w1) == usedW.end()) {
+                                const int cd = dist(ts[1].target, world.entityMap.at(w1).position);
+                                if (cd < cld) {
+                                    cld = cd;
+                                    bw = w1;
+                                }
+                            }
+                        }
+                        ts[1].repairers.push_back(bw);
+                        usedW.insert(bw);
+                    }
+                    ts[1].state = TS_PLANNED;
+                    cerr << "assigned cheese:";
+                    for (int w : ts[0].repairers) cerr << " " << w;
+                    cerr << " and";
+                    for (int w : ts[1].repairers) cerr << " " << w;
+                    cerr << endl;
 
-                for (int bi : world.buildings[world.myId]) {
-                    const auto& t = world.entityMap.at(bi);
-                    if (t.entityType == EntityType::TURRET)
-                        initialTurretId = t.id;
+                    for (int bi : world.buildings[world.myId]) {
+                        const auto& t = world.entityMap.at(bi);
+                        if (t.entityType == EntityType::TURRET)
+                            initialTurretId = t.id;
+                    }
                 }
             }
         }
@@ -167,6 +184,7 @@ struct GameStatus {
                                     cw = wi;
                                 }
                             }
+                        if (cw == -1) break;
                         ts[i].repairers.push_back(cw);
                         cerr << "add " << cw << " to list of turret " << i << " repairers\n";
                     }
