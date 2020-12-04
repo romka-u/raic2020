@@ -331,7 +331,8 @@ void addBuildActions(const PlayerView& playerView, const World& world, vector<My
 
 void addTrainActions(const PlayerView& playerView, const World& world, vector<MyAction>& actions, const GameStatus& st) {
     if (st.foodUsed == st.foodLimit) return;
-    cerr << "workers: " << world.workers[world.myId].size()
+    const int myWS = world.workers[world.myId].size();
+    cerr << "workers: " << myWS
          << ", warriors: " << world.warriors[world.myId].size()
          << ", rtg: " << st.resToGather.size()
         << ", wltft: " << st.workersLeftToFixTurrets << endl;
@@ -339,8 +340,9 @@ void addTrainActions(const PlayerView& playerView, const World& world, vector<My
         const auto& bu = world.entityMap.at(bi);        
         if (bu.entityType == EntityType::BUILDER_BASE
             && !st.workersLeftToFixTurrets
-            && (world.workers[world.myId].size() < world.warriors[world.myId].size() || !st.underAttack)
-            && world.workers[world.myId].size() < min(77, int(st.resToGather.size() * 0.91))) {
+            && (myWS < world.warriors[world.myId].size() || !st.underAttack)
+            && (myWS < world.warriors[world.myId].size() || myWS < 17)
+            && myWS < min(77, int(st.resToGather.size() * 0.91))) {
             for (Cell bornPlace : nearCells(bu.position, props.at(bu.entityType).size)) {
                 if (world.isEmpty(bornPlace)) {
                     int aux = bornPlace.x + bornPlace.y;
