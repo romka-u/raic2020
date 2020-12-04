@@ -151,7 +151,7 @@ Cell getLastFreeCell(const World& world, Cell cur, int d) {
     return cur;
 }
 
-void rearrangeSquads(const World& world, int K) {
+void rearrangeSquadsKMeans(const World& world, int K) {
     const auto& ww = world.warriors[world.myId];
     if (ww.size() < K) return;
     vector<Cell> center(K);
@@ -185,6 +185,20 @@ void rearrangeSquads(const World& world, int K) {
 
     forn(i, ww.size())
         squadId[ww[i]] = belong[i];
+}
+
+void rearrangeSquads(const World& world, int K) {
+    const auto& ww = world.warriors[world.myId];
+    if (ww.size() < K) return;
+    vector<pair<Cell, int>> p(ww.size());
+    forn(i, p.size()) p[i] = {world.entityMap.at(ww[i]).position, i};
+
+    sort(p.begin(), p.end(),
+         [](const pair<Cell, int>& a, const pair<Cell, int>& b)
+         { return a.first.x - a.first.y < b.first.x - b.first.y; });
+
+    forn(i, p.size())
+        squadId[p[i].second] = i * K / p.size();
 }
 
 void calcSquadsTactic(const World& world, const GameStatus& st) {
