@@ -341,7 +341,7 @@ void addTrainActions(const PlayerView& playerView, const World& world, vector<My
         if (bu.entityType == EntityType::BUILDER_BASE
             && !st.workersLeftToFixTurrets
             && (myWS < world.warriors[world.myId].size() || !st.underAttack)
-            && (myWS < world.warriors[world.myId].size() || myWS < 17)
+            && (myWS < world.warriors[world.myId].size() || myWS < 42)
             && myWS < min(77, int(st.resToGather.size() * 0.91))) {
             for (Cell bornPlace : nearCells(bu.position, props.at(bu.entityType).size)) {
                 if (world.isEmpty(bornPlace)) {
