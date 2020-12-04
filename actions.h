@@ -337,7 +337,10 @@ void addTrainActions(const PlayerView& playerView, const World& world, vector<My
         << ", wltft: " << st.workersLeftToFixTurrets << endl;
     for (int bi : world.buildings[world.myId]) {
         const auto& bu = world.entityMap.at(bi);        
-        if (bu.entityType == EntityType::BUILDER_BASE && !st.workersLeftToFixTurrets && !st.underAttack && world.workers[world.myId].size() < min(100, int(st.resToGather.size() * 0.91))) {
+        if (bu.entityType == EntityType::BUILDER_BASE
+            && !st.workersLeftToFixTurrets
+            && (world.workers[world.myId].size() < world.warriors[world.myId].size() || !st.underAttack)
+            && world.workers[world.myId].size() < min(77, int(st.resToGather.size() * 0.91))) {
             for (Cell bornPlace : nearCells(bu.position, props.at(bu.entityType).size)) {
                 if (world.isEmpty(bornPlace)) {
                     int aux = bornPlace.x + bornPlace.y;
@@ -422,7 +425,7 @@ void addWarActions(const PlayerView& playerView, const World& world, vector<MyAc
             // if (world.staying.count(ou.id) && world.staying.at(ou.id) > 4) movableBonus = 0;
             int movableBonus = 0;
             int cd = dist(bu.position, ou, props.at(ou.entityType).size);
-            if ((ou.entityType == EntityType::RANGED_UNIT || ou.entityType == EntityType::MELEE_UNIT) && cd < closestDist[bi]) {
+            if ((ou.entityType == EntityType::RANGED_UNIT || ou.entityType == EntityType::TURRET) && cd < closestDist[bi]) {
                 closestDist[bi] = cd;
                 closestEnemyCell[bi] = ou.position;
             }
@@ -449,7 +452,7 @@ void addWarActions(const PlayerView& playerView, const World& world, vector<MyAc
         const auto& bu = world.entityMap.at(bi);
         const int myCld = closestDist.at(bi);
 
-        bool iAmOnFront = myCld < 8 && bu.entityType != EntityType::MELEE_UNIT;
+        bool iAmOnFront = myCld < 8 && bu.entityType != EntityType::MELEE_UNIT && !st.underAttack;
         if (iAmOnFront) {
             for (int wi : world.warriors[world.myId]) {
                 if (wi == bi) continue;
@@ -462,11 +465,11 @@ void addWarActions(const PlayerView& playerView, const World& world, vector<MyAc
             }
         }
 
-        cerr << bi << " at " << world.entityMap.at(bi).position << " on front: " << iAmOnFront << endl;
+        // cerr << bi << " at " << world.entityMap.at(bi).position << " on front: " << iAmOnFront << endl;
 
         if (!iAmOnFront) {
             const Cell target = squadInfo[squadId[bi]].target;
-            cerr << "his squad target: " << target << endl;
+            // cerr << "his squad target: " << target << endl;
             actions.emplace_back(bi, A_MOVE, target, -1, Score(100, -dist(bu.position, target)));
             continue;
         }

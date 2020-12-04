@@ -162,6 +162,9 @@ void rearrangeSquads(const World& world, int K) {
     }
 
     forn(it, 42) {
+        if (it == 41) {
+            sort(center.begin(), center.end(), [](const Cell& a, const Cell& b) { return a.x - a.y < b.x - b.y; });
+        }
         forn(i, ww.size()) {
             belong[i] = 0;
             const Cell& mp = world.entityMap.at(ww[i]).position;
@@ -197,10 +200,10 @@ void calcSquadsTactic(const World& world, const GameStatus& st) {
             squadInfo.push_back(createNewSquadInfo(world));
             squadInfo.push_back(createNewSquadInfo(world));
 
-            squadInfo[0].target = getLastFreeCell(world, Cell(20, 7), 2);
+            squadInfo[3].target = getLastFreeCell(world, Cell(20, 7), 2);
             squadInfo[2].target = getLastFreeCell(world, Cell(20, 17), 2);
             squadInfo[1].target = getLastFreeCell(world, Cell(7, 20), 3);
-            squadInfo[3].target = getLastFreeCell(world, Cell(17, 20), 3);
+            squadInfo[0].target = getLastFreeCell(world, Cell(17, 20), 3);
         }
     }
 
@@ -209,10 +212,8 @@ void calcSquadsTactic(const World& world, const GameStatus& st) {
 
     forn(i, 4) squadInfo[i].unitsAssigned = 0;
 
-    cerr << "bfr";
     rearrangeSquads(world, 4);
-    cerr << ".ok!" << endl;
-
+    
     for (int wi : world.warriors[world.myId]) {
         if (squadId.find(wi) != squadId.end()) {
             squadInfo[squadId[wi]].unitsAssigned++;
@@ -245,28 +246,28 @@ void calcSquadsTactic(const World& world, const GameStatus& st) {
     auto enemiesToAttack = st.attackers.empty() ? world.oppEntities : st.attackers;
 
     for (const auto& cbs : cellsBySquad) {
-        cerr << "[] Squad " << cbs.first << " (sz " << cbs.second.size() << "):";
-        for (const auto& c : cbs.second) cerr << " " << c;
-        cerr << endl;
+        // cerr << "[] Squad " << cbs.first << " (sz " << cbs.second.size() << "):";
+        // for (const auto& c : cbs.second) cerr << " " << c;
+        // cerr << endl;
         int cld = inf;
         for (const Cell& c : cbs.second) {
             for (const auto& ou : enemiesToAttack) {
                 int cd = dist(c, ou);
-                if (cd < cld) {
+                if (cd < cld && int(ou.position.x < ou.position.y) == cbs.first < 2) {
                     cld = cd;
                     closestEnemy[cbs.first] = {ou.position, cld};
                 }
             }
         }
-        cerr << "   cl enemy: " << closestEnemy[cbs.first].first << endl;
+        // cerr << "   cl enemy: " << closestEnemy[cbs.first].first << endl;
     }
     
-    cerr << "attackers.size = " << st.attackers.size() << endl;
+    // cerr << "attackers.size = " << st.attackers.size() << endl;
     for (const auto& cce : closestEnemy) {
         auto [cell, d] = cce.second;
         auto& si = squadInfo[cce.first];
         if (d < 7 || !st.attackers.empty()) {
-            cerr << "set " << cell << " as target for squad " << cce.first << endl;
+            // cerr << "set " << cell << " as target for squad " << cce.first << endl;
             si.target = cell;
             // cerr << ">> Squad " << cce.first << " is close to enemy\n   distance " << d << ", target " << cell << endl;
         } else {
@@ -296,7 +297,7 @@ void calcSquadsTactic(const World& world, const GameStatus& st) {
             if (si.unitsAssigned == 5 || world.warriors[world.myId].size() >= 19) {
                 auto [weightMass, conn0, conn1] = moreOrLessTogether(cellsBySquad[cce.first]);
                 if (!si.together) {
-                    if (!conn0 && si.waiting < 50 && world.warriors[world.myId].size() < 19) {
+                    if (!conn0 && si.waiting < 42 && world.warriors[world.myId].size() < 17) {
                         // cerr << ">> Squad " << cce.first << " is waiting last friend" << endl;
                         si.waiting++;
                     } else {
