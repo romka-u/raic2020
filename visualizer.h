@@ -14,11 +14,12 @@
 #include <functional>
 #include <cmath>
 #include <iostream>
+#include <vector>
 
 namespace {
 
 QPen whitePen(Qt::white);
-QPen darkWhitePen(QColor(200, 200, 200));
+QPen darkWhitePen(QColor(222, 222, 222));
 QPen orangePen(QColor(255, 127, 0));
 QPen yellowPen(Qt::yellow);
 QPen darkOrangePen(QColor(127, 55, 0));
@@ -39,9 +40,10 @@ QPen lightBluePen(QColor(166, 202, 240));
 QPen darkYellowPen(QColor(100, 100, 0));
 QPen darkRedPen(QColor(100, 0, 0));
 QPen lightGreenPen(QColor(139, 250, 117));
+QPen balloonPen(QColor(0xbc, 0xbd, 0xba, 222));
 
 QBrush whiteBrush(Qt::white);
-QBrush darkWhiteBrush(QColor(200, 200, 200));
+QBrush darkWhiteBrush(QColor(222, 222, 222));
 QBrush orangeBrush(QColor(255, 127, 0));
 QBrush darkYellowBrush(QColor(100, 100, 0));
 QBrush yellowBrush(Qt::yellow);
@@ -58,6 +60,29 @@ QBrush grayBrush(QColor(87,84,85));
 QBrush transparentBrush(Qt::transparent);
 QBrush magentaBrush(Qt::magenta);
 QBrush lightBlueBrush(QColor(159, 194, 229));
+QBrush balloonBrush(QColor(0xbc, 0xbd, 0xba, 222));
+
+std::vector<QColor> playerColors = {
+    QColor(0, 55, 127),
+    QColor(0, 127, 55),
+    QColor(127, 0, 55),
+    QColor(127, 55, 0)
+};
+
+std::vector<QBrush> brushesPerPlayer = {
+    QBrush(playerColors[0]),
+    QBrush(playerColors[1]),
+    QBrush(playerColors[2]),
+    QBrush(playerColors[3])
+};
+
+std::vector<QPen> pensPerPlayer = {
+    QPen(playerColors[0]),
+    QPen(playerColors[1]),
+    QPen(playerColors[2]),
+    QPen(playerColors[3])
+};
+
 
 }
 
@@ -93,6 +118,8 @@ public:
             movey += MOVE_COEFF / scaley;
         }
 
+        // std::cerr << movex << " " << movey << " " << scalex << " " << scaley << std::endl;
+
         if (onKeyPress_)
             onKeyPress_(*event);
     }
@@ -112,10 +139,10 @@ public:
 
     static constexpr double SCALE_COEFF = 1.08;
     static constexpr double MOVE_COEFF = 10;
-    double scalex = 1.0;
-    double scaley = 1.0;
-    double movex = 0;
-    double movey = 0;
+    double scalex = 0.12;
+    double scaley = -0.12;
+    double movex = 3588;
+    double movey = 141;
     bool paused_ = false;
     std::function<void(const QMouseEvent&, double, double)> onMouseClick_;
     std::function<void(const QKeyEvent&)> onKeyPress_;
@@ -128,6 +155,7 @@ public:
         static char arg0[] = "Visualizer";
         static char* argv[] = { &arg0[0], NULL };
         static int argc = (int)(sizeof(argv) / sizeof(argv[0])) - 1;
+        QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
         app = new QApplication(argc, argv);
         scene = new QGraphicsScene();
         view = new CustomView(scene);
@@ -165,13 +193,13 @@ public:
         return view->paused();
     }
 
-    void setOnMouseClick(std::function<void(const QMouseEvent&, double, double)> onMouseClick) {
+    void setOnMouseClick(std::function<void(const QMouseEvent&, double, double, double, double)> onMouseClick) {
         onMouseClick_ = onMouseClick;
 
         view->setOnMouseClick([this] (const QMouseEvent& event, double screenX, double screenY) {
-            screenX = (screenX - width_ * 0.5) / view->scalex + width_ * 0.5 + view->movex;
-            screenY = (screenY - height_ * 0.5) / view->scaley + height_ * 0.5 + view->movey;
-            onMouseClick_(event, screenX, screenY);
+            const double worldX = (screenX - width_ * 0.5) / view->scalex + width_ * 0.5 + view->movex;
+            const double worldY = (screenY - height_ * 0.5) / view->scaley + height_ * 0.5 + view->movey;
+            onMouseClick_(event, screenX, screenY, worldX, worldY);
         });
     }
 
@@ -191,13 +219,14 @@ public:
     void switchToWindow() {
         p.end();
         p.begin(pixmap.get());
-        // p.scale(0.5, 0.5);
+        p.setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform | QPainter::TextAntialiasing);
     }
 
     void adjust() {
         p.begin(pixmap.get());
+        p.setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform | QPainter::TextAntialiasing);
         p.translate((-view->movex - width_ * 0.5) * view->scalex + width_ * 0.5,
-                               (-view->movey - height_ * 0.5) * view->scaley + height_ * 0.5);
+                    (-view->movey - height_ * 0.5) * view->scaley + height_ * 0.5);
         p.scale(view->scalex, view->scaley);
     }
 
@@ -214,7 +243,7 @@ private:
     std::unique_ptr<QPixmap> pixmap;
     QGraphicsPixmapItem* pixmapItem; // will be removed by scene
     int height_, width_;
-    std::function<void(const QMouseEvent&, double, double)> onMouseClick_;
+    std::function<void(const QMouseEvent&, double, double, double, double)> onMouseClick_;
     std::function<void(const QKeyEvent&)> onKeyPress_;
     friend class RenderCycle;
 };
@@ -226,6 +255,7 @@ public:
             visualizer.process();
 
         visualizer.pixmap->fill(Qt::black);
+        
         visualizer.adjust();
     }
 

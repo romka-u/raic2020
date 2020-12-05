@@ -54,9 +54,15 @@ int main(int argc, char* argv[])
     std::thread runner([host, port, token]() { Runner(host, port, token).run(); });
 
     v.setSize(1700, 1000);
-    v.setOnKeyPress([&](const QKeyEvent& ev) {
-        if (ev.key() == Qt::Key_C) currentDrawTick = max(0, currentDrawTick - 1);
-        if (ev.key() == Qt::Key_V) currentDrawTick = min(maxDrawTick, currentDrawTick + 1);
+    v.setOnKeyPress([](const QKeyEvent& ev) {
+        clickedPointWorld = Vec2Float(1e9, 1e9);
+        if (ev.key() == Qt::Key_C) { currentDrawTick = max(0, currentDrawTick - 1);  }
+        if (ev.key() == Qt::Key_V) { currentDrawTick = min(maxDrawTick, currentDrawTick + 1); }
+    });
+
+    v.setOnMouseClick([](const QMouseEvent& ev, double sx, double sy, double wx, double wy) {
+        clickedPointWorld = Vec2Float(wx, wy);
+        clickedPointScreen = Vec2Float(sx, sy);
     });
 
     bool moved = false;
