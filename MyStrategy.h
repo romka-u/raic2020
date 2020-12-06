@@ -35,6 +35,7 @@ public:
         info.players = playerView.players;
         info.myId = playerView.myId;
         info.status = gameStatus;
+        info.squadId = squadId;
         #endif
 
         calcSquadsTactic(world, gameStatus);
@@ -92,11 +93,11 @@ public:
                     if (usedResources.insert(oid).second) {
                         if (dist(upos, pos) == 1) {
                             moves[unitId].attackAction = std::make_shared<AttackAction>(std::make_shared<int>(oid), nullptr);
-                            info.msg[unitId] << "Gathers at " << world.entityMap[oid].position;
+                            info.msg[unitId] << "Gathers " << world.entityMap[oid].position;
                         } else {
                             setMove(unitId, upos, pos);
                             moved = true;
-                            info.msg[unitId] << "Moves to gather at " << pos;
+                            info.msg[unitId] << "Moves to gather " << pos;
                         }
                     } else {
                         continue;

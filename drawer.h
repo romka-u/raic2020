@@ -147,6 +147,19 @@ void drawTargetsLines(const Targets& targets) {
     }
 }
 
+void drawBarsWithDeltas(
+        unordered_map<EntityType, int> cnt[4],
+        unordered_map<EntityType, int> cntPrev[4],
+        unordered_map<EntityType, int> cntNew[4],
+        int yOffset, const string& label, EntityType et) {
+    vector<int> cp(4), cm(4);
+    forn(zid, 4) {
+        cp[zid] = cntNew[zid][et];
+        cm[zid] = cntPrev[zid][et] - (cnt[zid][et] - cntNew[zid][et]);
+    }
+    drawBars(cnt, yOffset, label, et, cp, cm);
+}
+
 void drawInfMapOverlay(const vector<Entity>& entities, int eMap[88][88]) {
     int infMap[88][88];
     calcInfMap(entities, eMap, infMap);
@@ -331,15 +344,9 @@ void draw() {
     }
     yOffset += 100;
     drawDoubleBars(cnt, yOffset, "Food", EntityType::FOOD_USAGE, EntityType::FOOD_LIMIT); yOffset += 100;
-    vector<int> cp(4), cm(4);
-    forn(zid, 4) {
-        cp[zid] = cntNew[zid][EntityType::BUILDER_UNIT];
-        cm[zid] = cntPrev[zid][EntityType::BUILDER_UNIT] - (cnt[zid][EntityType::BUILDER_UNIT] - cntNew[zid][EntityType::BUILDER_UNIT]);
-    }
-    drawBars(cnt, yOffset, "Workers", EntityType::BUILDER_UNIT, cp, cm); yOffset += 100;
-    drawBars(cnt, yOffset, "Range", EntityType::RANGED_UNIT); yOffset += 100;
-    drawBars(cnt, yOffset, "Melee", EntityType::MELEE_UNIT); yOffset += 100;
-    // drawBars(cnt, yOffset, "Houses", EntityType::HOUSE); yOffset += 100;
-    drawBars(cnt, yOffset, "Turrets", EntityType::TURRET); yOffset += 100;
+    drawBarsWithDeltas(cnt, cntPrev, cntNew, yOffset, "Workers", EntityType::BUILDER_UNIT); yOffset += 100;
+    drawBarsWithDeltas(cnt, cntPrev, cntNew, yOffset, "Range", EntityType::RANGED_UNIT); yOffset += 100;
+    drawBarsWithDeltas(cnt, cntPrev, cntNew, yOffset, "Melee", EntityType::MELEE_UNIT); yOffset += 100;
+    drawBarsWithDeltas(cnt, cntPrev, cntNew, yOffset, "Turrets", EntityType::TURRET); yOffset += 100;
 }
 #endif

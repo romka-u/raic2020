@@ -191,7 +191,7 @@ void rearrangeSquads(const World& world, int K) {
     const auto& ww = world.myWarriors;
     if (ww.size() < K) return;
     vector<pair<Cell, int>> p(ww.size());
-    forn(i, p.size()) p[i] = {ww[i].position, i};
+    forn(i, p.size()) p[i] = {ww[i].position, ww[i].id};
 
     sort(p.begin(), p.end(),
          [](const pair<Cell, int>& a, const pair<Cell, int>& b)

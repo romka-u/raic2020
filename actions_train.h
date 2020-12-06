@@ -2,9 +2,14 @@
 #include "actions.h"
 
 void addTrainActions(const PlayerView& playerView, const World& world, vector<MyAction>& actions, const GameStatus& st) {
-    if (st.foodUsed == st.foodLimit) return;
+    int gap = 3;
+    for (const Entity& bu : world.myBuildings)
+        if (!bu.active && bu.entityType == EntityType::HOUSE)
+            gap = 0;
+
+    if (st.foodUsed >= st.foodLimit - gap) return;
     const int myWS = world.workers[world.myId].size();
-    for (const Entity& bu : world.myBuildings) {        
+    for (const Entity& bu : world.myBuildings) {
         if (bu.entityType == EntityType::BUILDER_BASE
             && !st.workersLeftToFixTurrets
             && (myWS < world.warriors[world.myId].size() || !st.underAttack)
