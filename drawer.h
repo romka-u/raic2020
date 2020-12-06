@@ -21,7 +21,7 @@ struct TickDrawInfo {
     GameStatus status;
     unordered_map<int, ostringstream> msg;
 };
-
+#ifdef DEBUG
 unordered_map<EntityType, string> ename = {
     {EntityType::WALL, "WALL"},
     {EntityType::HOUSE, "HOUSE"},
@@ -39,16 +39,17 @@ QFont f20("Andale Mono", 20);
 QFont f12("Andale Mono", 12);
 QFont f8("Andale Mono", 8);
 
+Visualizer v;
+#endif
+
+const int SZ = 100;
 TickDrawInfo tickInfo[1010];
 int currentDrawTick, maxDrawTick;
 Vec2Float clickedPointWorld, clickedPointScreen;
 bool drawMyField, drawOppField, drawTargets, drawInfMap;
 
-#ifdef DEBUG
-Visualizer v;
-#endif
-const int SZ = 100;
 
+#ifdef DEBUG
 void drawTriangle(double x1, double y1, double x2, double y2, double x3, double y3) {
     QPolygonF polygon;
     polygon << QPointF(x1, y1);
@@ -159,7 +160,6 @@ void drawInfMapOverlay(const vector<Entity>& entities, int eMap[88][88]) {
 }
 
 void draw() {
-    #ifdef DEBUG
     const auto& info = tickInfo[currentDrawTick];
 
     v.p.setPen(darkWhitePen);
@@ -329,6 +329,5 @@ void draw() {
     drawBars(cnt, yOffset, "Melee", EntityType::MELEE_UNIT); yOffset += 100;
     // drawBars(cnt, yOffset, "Houses", EntityType::HOUSE); yOffset += 100;
     drawBars(cnt, yOffset, "Turrets", EntityType::TURRET); yOffset += 100;
-
-    #endif
 }
+#endif

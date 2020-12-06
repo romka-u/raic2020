@@ -12,7 +12,6 @@ find_package(Qt5Core REQUIRED)
 
 add_definitions(-DDEBUG)
 
-
 file(GLOB HEADERS "*.hpp" ".h" "model/*.hpp")
 SET_SOURCE_FILES_PROPERTIES(${HEADERS} PROPERTIES HEADER_FILE_ONLY TRUE)
 file(GLOB SRC "*.cpp" "model/*.cpp")

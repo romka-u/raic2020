@@ -30,8 +30,8 @@ public:
 
         gameStatus.update(playerView, world);
 
-        #ifdef DEBUG
         TickDrawInfo& info = tickInfo[playerView.currentTick];
+        #ifdef DEBUG
         info.entities = playerView.entities;
         info.players = playerView.players;
         info.myId = playerView.myId;
