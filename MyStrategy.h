@@ -20,6 +20,7 @@ public:
     Action getAction(const PlayerView& playerView, DebugInterface* debugInterface) {
         cerr << "=================== Tick " << playerView.currentTick << "======================\n";
         tickInfo[playerView.currentTick].entities = playerView.entities;
+        tickInfo[playerView.currentTick].players = playerView.players;
         maxDrawTick = playerView.currentTick;
         if (props.empty()) props = playerView.entityProperties;
         world.update(playerView);

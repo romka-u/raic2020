@@ -6,7 +6,7 @@
 #include <string>
 #include <thread>
 
-bool running;
+bool running, exited;
 MyStrategy myStrategy;
 
 class Runner {
@@ -56,6 +56,7 @@ int main(int argc, char* argv[])
     v.setSize(1700, 1000);
     v.setOnKeyPress([](const QKeyEvent& ev) {
         clickedPointWorld = Vec2Float(1e9, 1e9);
+        if (ev.key() == Qt::Key_Q) { exited = true;  }
         if (ev.key() == Qt::Key_C) { currentDrawTick = max(0, currentDrawTick - 1);  }
         if (ev.key() == Qt::Key_V) { currentDrawTick = min(maxDrawTick, currentDrawTick + 1); }
     });
@@ -66,7 +67,7 @@ int main(int argc, char* argv[])
     });
 
     bool moved = false;
-    while (running) {
+    while (running || !exited) {
         if (!moved) {
             auto w = v.app->activeWindow();
             if (w) {

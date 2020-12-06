@@ -2,6 +2,7 @@
 
 #include "model/Entity.hpp"
 #include "model/Vec2Float.hpp"
+#include "model/Player.hpp"
 
 #ifdef DEBUG
 #include "visualizer.h"
@@ -12,6 +13,7 @@
 struct TickDrawInfo {
     int myId;
     vector<Entity> entities;
+    vector<Player> players;
 };
 
 TickDrawInfo tickInfo[1010];
@@ -22,6 +24,24 @@ Vec2Float clickedPointWorld, clickedPointScreen;
 Visualizer v;
 #endif
 const int SZ = 100;
+
+void drawBars(unordered_map<EntityType, int> cnt[4], int yOffset, const string& label, EntityType et) {
+    v.p.setPen(whitePen);
+    v.p.drawText(1199, yOffset + 10, QString(label.c_str()));
+
+    int mx = 1;
+    forn(p, 4) mx = max(mx, cnt[p][et]);
+    const int L = 1292;
+    const int MAXW = 1650 - L;
+    forn(p, 4) {
+        v.p.setPen(pensPerPlayer[p]);
+        v.p.setBrush(brushesPerPlayer[p]);
+        v.p.drawRect(L, yOffset + 22 * (p - 2), MAXW * cnt[p][et] / mx, 21);
+
+        v.p.setPen(whitePen);
+        v.p.drawText(L + 5, yOffset + 22 * (p - 1) - 4, QString::number(cnt[p][et]));
+    }
+}
 
 void draw() {
     #ifdef DEBUG
@@ -84,7 +104,7 @@ void draw() {
 
     v.p.setBrush(blackBrush);
     v.p.setPen(blackPen);
-    v.p.drawRect(1250, 0, 500, 1111);
+    v.p.drawRect(1200, 0, 500, 1111);
 
     QFont fs("Andale Mono", 12);
     fs.setBold(true);
@@ -123,7 +143,7 @@ void draw() {
     sprintf(buf, "Tick: %d / %d", currentDrawTick, maxDrawTick);
     v.p.drawText(1379, 25, QString(buf));
 
-    v.p.drawText(1300, 50, "Workers");
+    /*v.p.drawText(1300, 50, "Workers");
     v.p.drawText(1300, 75, "Melee");
     v.p.drawText(1300, 100, "Ranged");
     v.p.drawText(1300, 125, "Houses");
@@ -136,7 +156,16 @@ void draw() {
         v.p.drawText(1400 + 50 * ip, 100, QString::number(cnt[ip][EntityType::RANGED_UNIT]));
         v.p.drawText(1400 + 50 * ip, 125, QString::number(cnt[ip][EntityType::HOUSE]));
         v.p.drawText(1400 + 50 * ip, 150, QString::number(cnt[ip][EntityType::TURRET]));
-    }
+    }*/
+    for (const auto& p : info.players)
+        cnt[p.id - 1][EntityType::SCORE] = p.score;
+
+    drawBars(cnt, 100, "Score", EntityType::SCORE);
+    drawBars(cnt, 200, "Workers", EntityType::BUILDER_UNIT);
+    drawBars(cnt, 300, "Ranged", EntityType::RANGED_UNIT);
+    drawBars(cnt, 400, "Melee", EntityType::MELEE_UNIT);
+    drawBars(cnt, 500, "Houses", EntityType::HOUSE);
+    drawBars(cnt, 600, "Turrets", EntityType::TURRET);
 
     #endif
 }

@@ -66,7 +66,7 @@ std::vector<QColor> playerColors = {
     QColor(0, 55, 127),
     QColor(0, 127, 55),
     QColor(127, 0, 55),
-    QColor(127, 55, 0)
+    QColor(215, 110, 0)
 };
 
 std::vector<QBrush> brushesPerPlayer = {
@@ -155,8 +155,11 @@ public:
         static char arg0[] = "Visualizer";
         static char* argv[] = { &arg0[0], NULL };
         static int argc = (int)(sizeof(argv) / sizeof(argv[0])) - 1;
-        QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+        QApplication::setAttribute(Qt::AA_DisableHighDpiScaling);
+        // QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
         app = new QApplication(argc, argv);
+        // app->setAttribute(Qt::AA_UseHighDpiPixmaps);
+        // app->setAttribute(Qt::AA_DisableHighDpiScaling);
         scene = new QGraphicsScene();
         view = new CustomView(scene);
         app->processEvents();

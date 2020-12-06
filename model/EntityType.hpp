@@ -13,7 +13,10 @@ enum EntityType {
     RANGED_BASE = 6,
     RANGED_UNIT = 7,
     RESOURCE = 8,
-    TURRET = 9
+    TURRET = 9,
+    FOOD_LIMIT = 10,
+    FOOD_USAGE = 11,
+    SCORE = 12
 };
 
 #endif
