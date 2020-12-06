@@ -61,6 +61,7 @@ int main(int argc, char* argv[])
         if (ev.key() == Qt::Key_A) { drawMyField = !drawMyField;  }
         if (ev.key() == Qt::Key_S) { drawOppField = !drawOppField;  }
         if (ev.key() == Qt::Key_T) { drawTargets = !drawTargets;  }
+        if (ev.key() == Qt::Key_D) { drawInfMap = !drawInfMap;  }
         if (ev.key() == Qt::Key_R) { v.resetView();  }
         if (ev.key() == Qt::Key_C) { currentDrawTick = max(0, currentDrawTick - 1);  }
         if (ev.key() == Qt::Key_V) { currentDrawTick = min(maxDrawTick, currentDrawTick + 1); }

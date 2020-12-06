@@ -69,11 +69,25 @@ std::vector<QColor> playerColors = {
     QColor(215, 110, 0)
 };
 
+std::vector<QColor> playerColorsAlpha = {
+    QColor(0, 55, 127, 64),
+    QColor(0, 127, 55, 64),
+    QColor(127, 0, 55, 64),
+    QColor(215, 110, 0, 64)
+};
+
 std::vector<QBrush> brushesPerPlayer = {
     QBrush(playerColors[0]),
     QBrush(playerColors[1]),
     QBrush(playerColors[2]),
     QBrush(playerColors[3])
+};
+
+std::vector<QBrush> brushesPerPlayerAlpha = {
+    QBrush(playerColorsAlpha[0]),
+    QBrush(playerColorsAlpha[1]),
+    QBrush(playerColorsAlpha[2]),
+    QBrush(playerColorsAlpha[3])
 };
 
 std::vector<QPen> pensPerPlayer = {

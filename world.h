@@ -15,6 +15,32 @@ Cell operator^(const Cell& a, int q) {
 
 Cell NOWHERE{-1, -1};
 
+void calcInfMap(const vector<Entity>& entities, int eMap[88][88], int infMap[88][88]) {
+    forn(i, 88) forn(j, 88) infMap[i][j] = 0;
+    // memset(infMap, 0, sizeof(infMap));
+
+    vector<pair<Cell, int>> q;
+    size_t qb = 0;
+
+    for (const auto& e : entities)
+        if (e.entityType == EntityType::RANGED_UNIT || e.entityType == EntityType::MELEE_UNIT || e.entityType == EntityType::BUILDER_UNIT) {
+            q.emplace_back(e.position, e.playerId);
+            infMap[e.position.x][e.position.y] = e.playerId;
+        }
+
+    while (qb < q.size()) {
+        const auto [pos, val] = q[qb++];
+        forn(w, 4) {
+            const Cell np = pos ^ w;
+            if (np.inside() && infMap[np.x][np.y] == 0) {
+                infMap[np.x][np.y] = val;
+                if (eMap[np.x][np.y] >= 0)
+                    q.emplace_back(np, val);
+            }
+        }
+    }
+}
+
 struct World {
     unordered_map<int, Entity> entityMap;
     vector<int> workers[5];
@@ -38,31 +64,6 @@ struct World {
 
     EntityProperties& P(int unitId) const {
         return props.at(entityMap.at(unitId).entityType);
-    }
-
-    void calcInfMap(const PlayerView& playerView) {
-        memset(infMap, 0, sizeof(infMap));
-
-        vector<pair<Cell, int>> q;
-        size_t qb = 0;
-
-        for (const auto& e : playerView.entities)
-            if (e.entityType == EntityType::RANGED_UNIT || e.entityType == EntityType::MELEE_UNIT || e.entityType == EntityType::BUILDER_UNIT) {
-                q.emplace_back(e.position, e.playerId);
-                infMap[e.position.x][e.position.y] = e.playerId;
-            }
-
-        while (qb < q.size()) {
-            const auto [pos, val] = q[qb++];
-            forn(w, 4) {
-                const Cell np = pos ^ w;
-                if (np.inside() && infMap[np.x][np.y] == 0) {
-                    infMap[np.x][np.y] = val;
-                    if (eMap[np.x][np.y] >= 0)
-                        q.emplace_back(np, val);
-                }
-            }
-        }
     }
 
     void update(const PlayerView& playerView) {
@@ -121,7 +122,7 @@ struct World {
             }
         }
 
-        calcInfMap(playerView);
+        calcInfMap(playerView.entities, eMap, infMap);
     }
 };
 

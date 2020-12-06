@@ -18,10 +18,6 @@ public:
     ~MyStrategy() {}
     Action getAction(const PlayerView& playerView, DebugInterface* debugInterface) {
         cerr << "=================== Tick " << playerView.currentTick << "======================\n";
-        TickDrawInfo& info = tickInfo[playerView.currentTick];
-        info.entities = playerView.entities;
-        info.players = playerView.players;
-        info.myId = playerView.myId;
         maxDrawTick = playerView.currentTick;
         if (props.empty()) props = playerView.entityProperties;
         world.update(playerView);
@@ -33,7 +29,14 @@ public:
         if (world.oppEntities.empty()) return Action();
 
         gameStatus.update(playerView, world);
+
+        #ifdef DEBUG
+        TickDrawInfo& info = tickInfo[playerView.currentTick];
+        info.entities = playerView.entities;
+        info.players = playerView.players;
+        info.myId = playerView.myId;
         info.status = gameStatus;
+        #endif
 
         calcSquadsTactic(world, gameStatus);
 
@@ -84,17 +87,17 @@ public:
                     }
                     healthLeft[oid] -= props.at(world.entityMap[unitId].entityType).attack->damage;
                     moves[unitId].attackAction = std::make_shared<AttackAction>(std::make_shared<int>(oid), nullptr);
-                    // cerr << unitId << " at " << upos << " wants to attack " << oid << " at " << world.entityMap[oid].position << endl;
+                    info.msg[unitId] << "Attack " << oid << " at " << world.entityMap[oid].position;
                     break;
                 case A_GATHER:
                     if (usedResources.insert(oid).second) {
                         if (dist(upos, pos) == 1) {
                             moves[unitId].attackAction = std::make_shared<AttackAction>(std::make_shared<int>(oid), nullptr);
-                            // cerr << unitId << " at " << upos << " gathers at " << world.entityMap[oid].position << endl;
+                            info.msg[unitId] << "Gathers at " << world.entityMap[oid].position;
                         } else {
                             setMove(unitId, upos, pos);
                             moved = true;
-                            // cerr << unitId << " at " << upos << " moves to gather at " << pos  << ", result by astar is " << moves[unitId].moveAction->target << endl;
+                            info.msg[unitId] << "Moves to gather at " << pos;
                         }
                     } else {
                         continue;
@@ -103,19 +106,19 @@ public:
                 case A_MOVE:
                     setMove(unitId, upos, pos);
                     moved = true;
-                    // cerr << unitId << " at " << upos << " wants to move to " << pos << ", result by astar is " << moves[unitId].moveAction->target << endl;
+                    info.msg[unitId] << "Move to " << pos;
                     break;
                 case A_HIDE_MOVE:
                     hiding.insert(unitId);
                     setMove(unitId, upos, pos);
                     moved = true;
-                    // cerr << unitId << " at " << upos << " wants to hide to " << pos << ", result by astar is " << moves[unitId].moveAction->target << endl;
+                    info.msg[unitId] << "Hide to " << pos;
                     break;
                 case A_BUILD:
                 case A_TRAIN:
                     if (cost <= resourcesLeft) {
                         moves[unitId].buildAction = std::make_shared<BuildAction>(etype, pos);
-                        // cerr << unitId << " at " << upos << " wants to build/train [" << oid << "] at " << pos << endl;
+                        info.msg[unitId] << "Build/train [" << oid << "] at " << pos;
                         resourcesLeft -= cost;
                     } else {
                         continue;
@@ -123,8 +126,8 @@ public:
                     break;
                 case A_REPAIR:
                     moves[unitId].repairAction = std::make_shared<RepairAction>(oid);
+                    info.msg[unitId] << "Repair " << oid;
                     // bestRepairScore = 200;
-                    // cerr << unitId << " at " << upos << " wants to repair " << oid << endl;
                     break;
                 case A_REPAIR_MOVE:
                     if (bestRepairScore == -1 || score.main >= 199 || score.main <= -2000) {
@@ -132,7 +135,7 @@ public:
                         setMove(unitId, upos, pos);
                         moved = true;
                         bestRepairScore = score.main;
-                        // cerr << unitId << " at " << upos << " wants to repair_move to " << pos << "( score.main = " << score.main << ")" << endl;
+                        info.msg[unitId] << "Repair_move to " << pos << " (score.main = " << score.main << ")" << endl;
                     } else {
                         continue;
                     }
@@ -170,6 +173,7 @@ public:
             
             // cerr << "set move target for " << from << "->" << to << " : " << target << endl;
             moves[unitId].moveAction = std::make_shared<MoveAction>(target, true, false);
+            info.msg[unitId] << ", A* next: " << target;
         }
 
         // if (debugInterface) draw(playerView, *debugInterface);

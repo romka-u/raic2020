@@ -19,6 +19,20 @@ struct TickDrawInfo {
     vector<Player> players;
     Targets targets;
     GameStatus status;
+    unordered_map<int, ostringstream> msg;
+};
+
+unordered_map<EntityType, string> ename = {
+    {EntityType::WALL, "WALL"},
+    {EntityType::HOUSE, "HOUSE"},
+    {EntityType::BUILDER_BASE, "BUILDER_BASE"},
+    {EntityType::BUILDER_UNIT, "BUILDER"},
+    {EntityType::MELEE_BASE, "MELEE_BASE"},
+    {EntityType::MELEE_UNIT, "MELEE"},
+    {EntityType::RANGED_BASE, "RANGED_BASE"},
+    {EntityType::RANGED_UNIT, "RANGED"},
+    {EntityType::RESOURCE, "RESOURCE"},
+    {EntityType::TURRET, "TURRET"}
 };
 
 QFont f20("Andale Mono", 20);
@@ -28,7 +42,7 @@ QFont f8("Andale Mono", 8);
 TickDrawInfo tickInfo[1010];
 int currentDrawTick, maxDrawTick;
 Vec2Float clickedPointWorld, clickedPointScreen;
-bool drawMyField, drawOppField, drawTargets;
+bool drawMyField, drawOppField, drawTargets, drawInfMap;
 
 #ifdef DEBUG
 Visualizer v;
@@ -95,11 +109,7 @@ void drawDoubleBars(unordered_map<EntityType, int> cnt[4], int yOffset, const st
     const int MAXW = 1650 - L;
     forn(p, 4) {
         v.p.setPen(pensPerPlayer[p]);
-        QBrush b = brushesPerPlayer[p];
-        QColor c = b.color();
-        c.setAlpha(64);
-        b.setColor(c);
-        v.p.setBrush(b);
+        v.p.setBrush(brushesPerPlayerAlpha[p]);
         v.p.drawRect(L, yOffset + 22 * (p - 2), MAXW * cnt[p][et2] / mx, 21);
         v.p.setBrush(brushesPerPlayer[p]);
         v.p.drawRect(L, yOffset + 22 * (p - 2), MAXW * cnt[p][et1] / mx, 21);
@@ -109,7 +119,7 @@ void drawDoubleBars(unordered_map<EntityType, int> cnt[4], int yOffset, const st
     }
 }
 
-void drawUnderAttack(const TickDrawInfo& info, const QColor& color, const std::function<bool(int)>& goodId) {
+void drawUnderAttack(const TickDrawInfo& info, int eMap[88][88], const QColor& color, const std::function<bool(int)>& goodId) {
     v.p.setBrush(QBrush(color));
     v.p.setPen(QPen(color));
 
@@ -120,7 +130,7 @@ void drawUnderAttack(const TickDrawInfo& info, const QColor& color, const std::f
         for (int x = e.position.x - e.attackRange; x <= e.position.x + e.size - 1 + e.attackRange; x++)
             for (int y = e.position.y - e.attackRange; y <= e.position.y + e.size - 1 + e.attackRange; y++) {
                 Cell nc(x, y);
-                if (nc.inside() && dist(nc, e) <= e.attackRange) {
+                if (nc.inside() && dist(nc, e) <= e.attackRange && eMap[nc.x][nc.y] >= 0) {
                     v.p.drawRect(x * SZ, y * SZ, SZ, SZ);
                 }
             }
@@ -133,6 +143,19 @@ void drawTargetsLines(const Targets& targets) {
         v.p.drawLine((p.first.x + 0.5) * SZ, (p.first.y + 0.5) * SZ,
                      (p.second.x + 0.5) * SZ, (p.second.y + 0.5) * SZ);
     }
+}
+
+void drawInfMapOverlay(const vector<Entity>& entities, int eMap[88][88]) {
+    int infMap[88][88];
+    calcInfMap(entities, eMap, infMap);
+    v.p.setPen(QPen(Qt::transparent));
+    forn(x, 80)
+        forn(y, 80) {
+            if (infMap[x][y] != 0) {
+                v.p.setBrush(brushesPerPlayerAlpha[infMap[x][y] - 1]);
+                v.p.drawRect(x * SZ, y * SZ, SZ, SZ);
+            }
+        }
 }
 
 void draw() {
@@ -157,12 +180,20 @@ void draw() {
 
     Cell clickedCell(int(clickedPointWorld.x / SZ), int(clickedPointWorld.y / SZ));
     const Entity* clickedEntity = nullptr;
+
+    int eMap[88][88];
+    memset(eMap, 0, sizeof(eMap));
     
     for (const auto& e : info.entities) {
+        const int valueToFill = props.at(e.entityType).canMove ? e.id : -e.id;
+        forn(dx, e.size) forn(dy, e.size) eMap[e.position.x + dx][e.position.y + dy] = valueToFill;
+
         const Cell& pos = e.position;
-        if (pos == clickedCell) {
+        if (pos.x <= clickedCell.x && clickedCell.x < pos.x + e.size
+            && pos.y <= clickedCell.y && clickedCell.y < pos.y + e.size) {
             clickedEntity = &e;
         }
+
         if (e.entityType == EntityType::RESOURCE) {
             v.p.setBrush(grayBrush);
             v.p.setPen(grayPen);
@@ -220,9 +251,10 @@ void draw() {
         }
     }
 
-    if (drawOppField) drawUnderAttack(info, QColor(255, 0, 0, 64), [&info](int id) { return id != info.myId; });
-    if (drawMyField) drawUnderAttack(info, QColor(0, 255, 0, 64), [&info](int id) { return id == info.myId; });
+    if (drawOppField) drawUnderAttack(info, eMap, QColor(255, 0, 0, 64), [&info](int id) { return id != info.myId; });
+    if (drawMyField) drawUnderAttack(info, eMap, QColor(0, 255, 0, 64), [&info](int id) { return id == info.myId; });
     if (drawTargets) drawTargetsLines(info.targets);
+    if (drawInfMap) drawInfMapOverlay(info.entities, eMap);
 
     if (currentDrawTick > 0) {
         forn(p, info.players.size()) {
@@ -239,30 +271,33 @@ void draw() {
 
     v.p.setBrush(blackBrush);
     v.p.setPen(blackPen);
-    v.p.drawRect(1200, 0, 500, 1111);
+    v.p.drawRect(1133, 0, 500, 1111);
 
     char buf[77];
 
     if (clickedEntity) {
         // v.p.setPen(balloonPen);
         // v.p.setBrush(balloonBrush);
-        const int H = 70;
-        const int W = 111;
+        const int H = 50;
+        const int W = 270;
         QPainterPath path;
         path.addRoundedRect(QRectF(clickedPointScreen.x, clickedPointScreen.y - H - 5, W, H), 10, 10);
         v.p.fillPath(path, balloonBrush);
 
+        v.p.setFont(f12);
+        v.p.setPen(blackPen);
+        sprintf(buf, "Cell (%d, %d)", clickedCell.x, clickedCell.y);
+        v.p.drawText(clickedPointScreen.x + 10, clickedPointScreen.y - H + 12, QString(buf));
+
         if (clickedEntity->playerId != -1)
             v.p.setPen(pensPerPlayer[clickedEntity->playerId - 1]);
-        else
-            v.p.setPen(blackPen);
+        
+        sprintf(buf, "%s Id: %d", ename[clickedEntity->entityType].c_str(), clickedEntity->id);
+        v.p.drawText(clickedPointScreen.x + 10, clickedPointScreen.y - H + 24, QString(buf));
 
-        v.p.setFont(f12);
-        sprintf(buf, "Id: %d", clickedEntity->id);
-        v.p.drawText(clickedPointScreen.x + 10, clickedPointScreen.y - H + 15, QString(buf));
-
-        sprintf(buf, "Squad Id: %d", 2);
-        v.p.drawText(clickedPointScreen.x + 10, clickedPointScreen.y - H + 30, QString(buf));
+        if (info.msg.count(clickedEntity->id))
+            v.p.drawText(clickedPointScreen.x + 10, clickedPointScreen.y - H + 36,
+                         QString(info.msg.at(clickedEntity->id).str().c_str()));
     }    
 
     v.p.setFont(f20);
