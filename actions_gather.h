@@ -59,7 +59,7 @@ void addGatherActions(int myId, const World& world, vector<MyAction>& actions, c
             if (hideTarget.y >= 80) hideTarget.y = 79;
             if (hideTarget.x >= 80) hideTarget.x = 79;
 
-            actions.emplace_back(wrk.id, A_HIDE_MOVE, hideTarget, -1, Score(/*underAttack * 120*/ 120, 0));
+            actions.emplace_back(wrk.id, A_HIDE_MOVE, hideTarget, -1, Score(/*underAttack * 120*/ 110, 0));
         } else {
             for (int ri : st.resToGather) {
                 const auto& res = world.entityMap.at(ri);
