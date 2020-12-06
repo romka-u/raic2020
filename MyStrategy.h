@@ -11,7 +11,6 @@
 
 World world;
 GameStatus gameStatus;
-vector<pair<Cell, Cell>> debugTargets;
 
 class MyStrategy {
 public:
@@ -19,8 +18,10 @@ public:
     ~MyStrategy() {}
     Action getAction(const PlayerView& playerView, DebugInterface* debugInterface) {
         cerr << "=================== Tick " << playerView.currentTick << "======================\n";
-        tickInfo[playerView.currentTick].entities = playerView.entities;
-        tickInfo[playerView.currentTick].players = playerView.players;
+        TickDrawInfo& info = tickInfo[playerView.currentTick];
+        info.entities = playerView.entities;
+        info.players = playerView.players;
+        info.myId = playerView.myId;
         maxDrawTick = playerView.currentTick;
         if (props.empty()) props = playerView.entityProperties;
         world.update(playerView);
@@ -47,7 +48,6 @@ public:
 
         unordered_set<int> usedUnits, usedResources, hiding;
         int bestRepairScore = -1;
-        debugTargets.clear();
         vector<pair<pair<int, int>, pair<Cell, Cell>>> fmoves;
 
         auto setMove = [&fmoves](int unitId, const Cell& from, const Cell& to) {
@@ -145,10 +145,6 @@ public:
             }
 
             usedUnits.insert(unitId);
-            /*if (moves[unitId].moveAction) {
-                Cell t = moves[unitId].moveAction->target;
-                debugTargets.emplace_back(upos, t);
-            }*/
         }
 
         sort(fmoves.begin(), fmoves.end());
@@ -156,7 +152,7 @@ public:
         for (const auto [fi, se] : fmoves) {
             const int unitId = fi.second;
             const auto [from, to] = se;
-            debugTargets.emplace_back(from, to);
+            info.targets.emplace_back(from, to);
             
             // cerr << "path from " << from << " to " << to << ":"; cerr.flush();
             vector<Cell> path = getPathTo(world, from, to);        

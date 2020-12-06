@@ -28,7 +28,7 @@ Cell getInitialPoint(const World& world) {
             const int id = world.eMap[x][y];
             if (id < 0) {
                 const Entity& e = world.entityMap.at(-id);
-                if (e.playerId && *e.playerId == world.myId)
+                if (e.playerId == world.myId)
                     my = y;
             }
         }

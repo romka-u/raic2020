@@ -41,7 +41,7 @@ struct GameStatus {
             for (int wi : world.warriors[p]) {
                 const auto& w = world.entityMap.at(wi);
                 for (int bi : world.buildings[myId]) {
-                    if (dist(w.position, world.entityMap.at(bi), world.P(bi).size) <= props.at(w.entityType).attack->attackRange + 10) {
+                    if (dist(w.position, world.entityMap.at(bi)) <= w.attackRange + 10) {
                         underAttack = true;
                         attackers.push_back(w);
                     }
@@ -55,7 +55,7 @@ struct GameStatus {
             if (world.infMap[res.position.x][res.position.y] != myId) continue;
             bool coveredByTurret = false;
             for (const auto& oe : world.oppEntities) {
-                if (oe.entityType == EntityType::TURRET && dist(res.position, oe) < props.at(oe.entityType).attack->attackRange) {
+                if (oe.entityType == EntityType::TURRET && dist(res.position, oe) < oe.attackRange) {
                     coveredByTurret = true;
                     break;
                 }

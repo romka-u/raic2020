@@ -11,13 +11,16 @@
 class Entity {
 public:
     int id;
-    std::shared_ptr<int> playerId;
+    int playerId;
     EntityType entityType;
     Vec2Int position;
     int health;
     bool active;
+    int size;
+    int attackRange;
+    int maxHealth;
     Entity();
-    Entity(int id, std::shared_ptr<int> playerId, EntityType entityType, Vec2Int position, int health, bool active);
+    Entity(int id, int playerId, EntityType entityType, Vec2Int position, int health, bool active);
     static Entity readFrom(InputStream& stream);
     void writeTo(OutputStream& stream) const;
 };

@@ -58,7 +58,7 @@ void addGatherActions(int myId, const World& world, vector<MyAction>& actions, c
             if (p != myId) {
                 for (int wi : world.warriors[p]) {
                     const auto& ou = world.entityMap.at(wi);
-                    if (dist(ou.position, r.position) <= props.at(ou.entityType).attack->attackRange + 2) {
+                    if (dist(ou.position, r.position) <= ou.attackRange + 2) {
                         dangerousRes.insert(ri);
                         goto out;
                     }
@@ -76,12 +76,12 @@ void addGatherActions(int myId, const World& world, vector<MyAction>& actions, c
             if (p == myId) continue;
             for (int wi : world.warriors[p]) {
                 const auto& w = world.entityMap.at(wi);
-                if (dist(w.position, bu.position) <= props.at(w.entityType).attack->attackRange + 3) {
+                if (dist(w.position, bu.position) <= w.attackRange + 3) {
                     if (underAttack < 1) {
                         underAttack = 1;
                         threatPos = w.position;
                     }
-                    if (dist(w.position, bu.position) <= props.at(w.entityType).attack->attackRange + 1) {
+                    if (dist(w.position, bu.position) <= w.attackRange + 1) {
                         underAttack = 2;
                         threatPos = w.position;              
                         break;
@@ -150,9 +150,8 @@ bool goodForHouse(const Cell& c, int sz) {
 
 bool safeToBuild(const World& world, const Cell& c, int sz, int arb) {
     for (const auto& oe : world.oppEntities) {
-        const auto& pr = props.at(oe.entityType);
-        if (pr.attack)
-            if (dist(oe.position, c, sz) <= pr.attack->attackRange + arb)
+        if (oe.attackRange > 0)
+            if (dist(oe.position, c, sz) <= oe.attackRange + arb)
                 return false;
     }
     return true;
@@ -168,9 +167,7 @@ void addTurretsActions(const PlayerView& playerView, const World& world, vector<
 
                 bool isEnemyClose = false;
                 for (const auto& ou : world.oppEntities) {
-                    int ar = 0;
-                    if (props.at(ou.entityType).attack) ar += props.at(ou.entityType).attack->attackRange;
-                    if (dist(w.position, ou) <= 11 + ar) {
+                    if (dist(w.position, ou) <= 11 + ou.attackRange) {
                         const int sz = props.at(EntityType::TURRET).size;
                         bool isPlaceToBuild = false;
                         Score buildScore(3000, 0);
@@ -266,10 +263,9 @@ void addTurretsActions(const PlayerView& playerView, const World& world, vector<
 
         if (clt != -1) {
             const auto& deft = world.entityMap.at(clt);
-            const int tsz = props.at(deft.entityType).size;
-
+            
             for (const auto& oe : closeToTurrets) {
-                const int cd = dist(oe.position, deft, tsz);
+                const int cd = dist(oe.position, deft);
                 if (cd <= 8) {
                     const int mScore = st.resToGather.empty() ? 3030 : -3000;
                     if (dist(r.position, oe) == 1) {
@@ -372,11 +368,10 @@ void addTrainActions(const PlayerView& playerView, const World& world, vector<My
 void addRepairActions(int myId, const World& world, vector<MyAction>& actions, const GameStatus& st) {
     for (int bi : world.buildings[myId]) {
         const auto& bu = world.entityMap.at(bi);
-        const int bsz = props.at(bu.entityType).size;
         if (bu.health < props.at(bu.entityType).maxHealth) {
             for (int ui : world.workers[myId]) {
                 const auto& unit = world.entityMap.at(ui);
-                int cd = dist(unit, 1, bu, bsz);
+                int cd = dist(unit.position, bu);
                 if (cd == 1) {
                     actions.emplace_back(ui, A_REPAIR, NOWHERE, bi, Score(200 - cd, 0));
                 } else {
@@ -389,10 +384,9 @@ void addRepairActions(int myId, const World& world, vector<MyAction>& actions, c
 }
 
 bool hasEnemyInRange(const Entity& e, const vector<Entity>& allEntities) {
-    const int attackRange = props.at(e.entityType).attack->attackRange;
     for (const auto& other : allEntities)
-        if (other.playerId && *other.playerId != *e.playerId)
-            if (dist(e.position, other, props.at(other.entityType).size) <= attackRange)
+        if (other.playerId != -1 && other.playerId != e.playerId)
+            if (dist(e.position, other) <= e.attackRange)
                 return true;
 
     return false;
@@ -403,8 +397,7 @@ void addWarActions(const PlayerView& playerView, const World& world, vector<MyAc
     for (int bi : world.workers[world.myId]) {
         const auto& bu = world.entityMap.at(bi);
         for (const auto& ou : world.oppEntities) {
-            const int sz = props.at(ou.entityType).size;
-            if (dist(bu.position, ou, sz) == 1) {
+            if (dist(bu.position, ou) == 1) {
                 actions.emplace_back(bi, A_ATTACK, ou.position, ou.id, Score(150, -ou.health * 1e6 + ou.id));
             }
         }
@@ -421,20 +414,19 @@ void addWarActions(const PlayerView& playerView, const World& world, vector<MyAc
         Cell target = squadInfo[squadId[bi]].target;
         closestDist[bi] = inf;
 
-        const int attackDist = props.at(bu.entityType).attack->attackRange;
         for (const auto& ou : world.oppEntities) {
             // int movableBonus = ou.entityType == EntityType::RANGED_UNIT || ou.entityType == EntityType::MELEE_UNIT;
             // if (world.staying.count(ou.id) && world.staying.at(ou.id) > 4) movableBonus = 0;
             int movableBonus = 0;
-            int cd = dist(bu.position, ou, props.at(ou.entityType).size);
+            int cd = dist(bu.position, ou);
             if ((ou.entityType == EntityType::RANGED_UNIT || ou.entityType == EntityType::TURRET) && cd < closestDist[bi]) {
                 closestDist[bi] = cd;
                 closestEnemyCell[bi] = ou.position;
             }
-            if (cd <= attackDist + movableBonus) {
+            if (cd <= bu.attackRange + movableBonus) {
                 if (movableBonus && hasEnemyInRange(ou, playerView.entities)) {
                     movableBonus = 0;
-                    if (cd > attackDist) continue;
+                    if (cd > ou.attackRange) continue;
                 }
                 int score = 200;
                 if (ou.entityType == EntityType::MELEE_UNIT && dist(bu.position, ou.position) > 1) score = 197;
@@ -491,9 +483,8 @@ void addWarActions(const PlayerView& playerView, const World& world, vector<MyAc
         const auto& bu = world.entityMap.at(bi);
         if (bu.entityType != EntityType::TURRET) continue;
 
-        const int attackDist = props.at(bu.entityType).attack->attackRange;
         for (const auto& ou : world.oppEntities) {
-            if (dist(ou, bu) <= attackDist) {
+            if (dist(ou, bu) <= ou.attackRange) {
                 int score = 200;
                 if (ou.entityType == EntityType::MELEE_UNIT && dist(bu.position, ou.position) > 1) score = 197;
                 if (ou.entityType == EntityType::BUILDER_UNIT) score = 194;

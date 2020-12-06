@@ -59,7 +59,16 @@ PlayerView PlayerView::readFrom(InputStream& stream) {
     }
     result.entities = std::vector<Entity>(stream.readInt());
     for (size_t i = 0; i < result.entities.size(); i++) {
-        result.entities[i] = Entity::readFrom(stream);
+        Entity e = Entity::readFrom(stream);
+        const auto& pr = result.entityProperties.at(e.entityType);
+        e.size = pr.size;
+        e.maxHealth = pr.maxHealth;
+        if (pr.attack) {
+            e.attackRange = pr.attack->attackRange;
+        } else {
+            e.attackRange = 0;
+        }
+        result.entities[i] = e;
     }
     return result;
 }

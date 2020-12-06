@@ -48,8 +48,8 @@ struct World {
 
         for (const auto& e : playerView.entities)
             if (e.entityType == EntityType::RANGED_UNIT || e.entityType == EntityType::MELEE_UNIT || e.entityType == EntityType::BUILDER_UNIT) {
-                q.emplace_back(e.position, *e.playerId);
-                infMap[e.position.x][e.position.y] = *e.playerId;
+                q.emplace_back(e.position, e.playerId);
+                infMap[e.position.x][e.position.y] = e.playerId;
             }
 
         while (qb < q.size()) {
@@ -86,8 +86,8 @@ struct World {
             const int valueToFill = props[e.entityType].canMove ? e.id : -e.id;
             forn(dx, esz) forn(dy, esz) eMap[e.position.x + dx][e.position.y + dy] = valueToFill;
 
-            if (e.playerId) {
-                int pid = *e.playerId;
+            if (e.playerId != -1) {
+                int pid = e.playerId;
                 int eid = e.id;
                 if (pid != playerView.myId) {
                     oppEntities.push_back(e);
@@ -141,38 +141,21 @@ int distSegs(int L1, int R1, int L2, int R2) {
     return 0;
 }
 
-int dist(const Entity& a, int asz, const Entity& b, int bsz) {
-    assert(asz == 1);
-    if (asz == 1 && bsz == 1) return dist(a.position, b.position);
-    const int distX = distToSeg(a.position.x, b.position.x, b.position.x + bsz - 1);
-    const int distY = distToSeg(a.position.y, b.position.y, b.position.y + bsz - 1);
+int dist(const Cell& c, const Entity& b) {
+    const int distX = distToSeg(c.x, b.position.x, b.position.x + b.size - 1);
+    const int distY = distToSeg(c.y, b.position.y, b.position.y + b.size - 1);
     return distX + distY;
 }
 
-int dist(const Cell& c, const Entity& b) {
-    const int bsz = props.at(b.entityType).size;
-    const int distX = distToSeg(c.x, b.position.x, b.position.x + bsz - 1);
-    const int distY = distToSeg(c.y, b.position.y, b.position.y + bsz - 1);
+int dist(const Cell& c, const Cell& b, int bsz) {
+    const int distX = distToSeg(c.x, b.x, b.x + bsz - 1);
+    const int distY = distToSeg(c.y, b.y, b.y + bsz - 1);
     return distX + distY;
 }
 
 int dist(const Entity& a, const Entity& b) {
-    const int asz = props.at(a.entityType).size;
-    const int bsz = props.at(b.entityType).size;
-    const int distX = distSegs(a.position.x, a.position.x + asz - 1, b.position.x, b.position.x + bsz - 1);
-    const int distY = distSegs(a.position.y, a.position.y + asz - 1, b.position.y, b.position.y + bsz - 1);
-    return distX + distY;
-}
-
-int dist(const Cell& c, const Entity& b, int bsz) {
-    const int distX = distToSeg(c.x, b.position.x, b.position.x + bsz - 1);
-    const int distY = distToSeg(c.y, b.position.y, b.position.y + bsz - 1);
-    return distX + distY;
-}
-
-int dist(const Cell& c, const Cell& c2, int bsz) {
-    const int distX = distToSeg(c.x, c2.x, c2.x + bsz - 1);
-    const int distY = distToSeg(c.y, c2.y, c2.y + bsz - 1);
+    const int distX = distSegs(a.position.x, a.position.x + a.size - 1, b.position.x, b.position.x + b.size - 1);
+    const int distY = distSegs(a.position.y, a.position.y + a.size - 1, b.position.y, b.position.y + b.size - 1);
     return distX + distY;
 }
 

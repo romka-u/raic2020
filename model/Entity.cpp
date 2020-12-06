@@ -1,15 +1,14 @@
 #include "Entity.hpp"
 
 Entity::Entity() { }
-Entity::Entity(int id, std::shared_ptr<int> playerId, EntityType entityType, Vec2Int position, int health, bool active) : id(id), playerId(playerId), entityType(entityType), position(position), health(health), active(active) { }
+Entity::Entity(int id, int playerId, EntityType entityType, Vec2Int position, int health, bool active) : id(id), playerId(playerId), entityType(entityType), position(position), health(health), active(active) { }
 Entity Entity::readFrom(InputStream& stream) {
     Entity result;
     result.id = stream.readInt();
     if (stream.readBool()) {
-        result.playerId = std::shared_ptr<int>(new int());
-        *result.playerId = stream.readInt();
+        result.playerId = stream.readInt();
     } else {
-        result.playerId = std::shared_ptr<int>();
+        result.playerId = -1;
     }
     switch (stream.readInt()) {
     case 0:
@@ -52,9 +51,9 @@ Entity Entity::readFrom(InputStream& stream) {
 }
 void Entity::writeTo(OutputStream& stream) const {
     stream.write(id);
-    if (playerId) {
+    if (playerId != -1) {
         stream.write(true);
-        stream.write((*playerId));
+        stream.write(playerId);
     } else {
         stream.write(false);
     }
