@@ -46,8 +46,10 @@ struct World {
     vector<int> workers[5];
     vector<int> warriors[5];
     vector<int> buildings[5];
-    vector<int> resources;
+    vector<int> resourceIds;
+    vector<Entity> resources;
     vector<Entity> oppEntities;
+    vector<Entity> myBuildings, myWarriors, myWorkers;
     unordered_map<int, int> staying;
     unordered_map<EntityType, int> myUnitsCnt;
     int eMap[88][88];
@@ -76,9 +78,13 @@ struct World {
             buildings[p].clear();
         }
         resources.clear();
+        resourceIds.clear();
         oppEntities.clear();
         entityMap.clear(); // turret construction relies on that
         myUnitsCnt.clear();
+        myWorkers.clear();
+        myBuildings.clear();
+        myWarriors.clear();
         memset(eMap, 0, sizeof(eMap));
 
         for (const auto& e : ent) {
@@ -103,22 +109,26 @@ struct World {
                     }
                 }
                 entityMap[eid] = e;
-                if (e.entityType == EntityType::BUILDER_UNIT)
+                if (e.entityType == EntityType::BUILDER_UNIT) {
                     workers[pid].push_back(eid);
-                else if (e.entityType == EntityType::RANGED_UNIT || e.entityType == EntityType::MELEE_UNIT)
+                    if (pid == myId) myWorkers.push_back(e);
+                } else if (e.entityType == EntityType::RANGED_UNIT || e.entityType == EntityType::MELEE_UNIT) {
                     warriors[pid].push_back(eid);
-                else if (e.entityType == EntityType::BUILDER_BASE
+                    if (pid == myId) myWarriors.push_back(e);
+                } else if (e.entityType == EntityType::BUILDER_BASE
                     || e.entityType == EntityType::MELEE_BASE
                     || e.entityType == EntityType::RANGED_BASE
                     || e.entityType == EntityType::HOUSE
                     || e.entityType == EntityType::WALL
                     || e.entityType == EntityType::TURRET) {
                     buildings[pid].push_back(eid);
+                    if (pid == myId) myBuildings.push_back(e);
                 }
             } else {
                 assert(e.entityType == EntityType::RESOURCE);
                 entityMap[e.id] = e;
-                resources.push_back(e.id);
+                resources.push_back(e);
+                resourceIds.push_back(e.id);
             }
         }
 

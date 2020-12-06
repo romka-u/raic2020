@@ -152,13 +152,13 @@ Cell getLastFreeCell(const World& world, Cell cur, int d) {
 }
 
 void rearrangeSquadsKMeans(const World& world, int K) {
-    const auto& ww = world.warriors[world.myId];
+    const auto& ww = world.myWarriors;
     if (ww.size() < K) return;
     vector<Cell> center(K);
     vector<int> cnt(K);
     vector<int> belong(ww.size());
     forn(i, K) {
-        center[i] = world.entityMap.at(ww[i]).position;
+        center[i] = ww[i].position;
     }
 
     forn(it, 42) {
@@ -167,7 +167,7 @@ void rearrangeSquadsKMeans(const World& world, int K) {
         }
         forn(i, ww.size()) {
             belong[i] = 0;
-            const Cell& mp = world.entityMap.at(ww[i]).position;
+            const Cell& mp = ww[i].position;
             for (int j = 1; j < K; j++) {
                 if (dist(mp, center[j]) < dist(mp, center[belong[i]]))
                     belong[i] = j;
@@ -176,7 +176,7 @@ void rearrangeSquadsKMeans(const World& world, int K) {
 
         forn(j, K) { center[j] = {0, 0}; cnt[j] = 0; }
         forn(i, ww.size()) {
-            center[belong[i]] += world.entityMap.at(ww[i]).position;
+            center[belong[i]] += ww[i].position;
             cnt[belong[i]]++;
         }
 
@@ -184,14 +184,14 @@ void rearrangeSquadsKMeans(const World& world, int K) {
     }
 
     forn(i, ww.size())
-        squadId[ww[i]] = belong[i];
+        squadId[ww[i].id] = belong[i];
 }
 
 void rearrangeSquads(const World& world, int K) {
-    const auto& ww = world.warriors[world.myId];
+    const auto& ww = world.myWarriors;
     if (ww.size() < K) return;
     vector<pair<Cell, int>> p(ww.size());
-    forn(i, p.size()) p[i] = {world.entityMap.at(ww[i]).position, i};
+    forn(i, p.size()) p[i] = {ww[i].position, i};
 
     sort(p.begin(), p.end(),
          [](const pair<Cell, int>& a, const pair<Cell, int>& b)

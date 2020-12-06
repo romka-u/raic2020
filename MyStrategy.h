@@ -7,7 +7,7 @@
 #include "game_status.h"
 #include "astar.h"
 #include "squads.h"
-#include "actions.h"
+#include "actions_all.h"
 
 World world;
 GameStatus gameStatus;
@@ -17,7 +17,6 @@ public:
     MyStrategy() {}
     ~MyStrategy() {}
     Action getAction(const PlayerView& playerView, DebugInterface* debugInterface) {
-        cerr << "=================== Tick " << playerView.currentTick << "======================\n";
         maxDrawTick = playerView.currentTick;
         if (props.empty()) props = playerView.entityProperties;
         world.update(playerView);

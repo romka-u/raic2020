@@ -40,8 +40,8 @@ struct GameStatus {
             if (p == myId) continue;
             for (int wi : world.warriors[p]) {
                 const auto& w = world.entityMap.at(wi);
-                for (int bi : world.buildings[myId]) {
-                    if (dist(w.position, world.entityMap.at(bi)) <= w.attackRange + 10) {
+                for (const Entity& b : world.myBuildings) {
+                    if (dist(w.position, b) <= w.attackRange + 10) {
                         underAttack = true;
                         attackers.push_back(w);
                     }
@@ -50,8 +50,7 @@ struct GameStatus {
         }
 
         resToGather.clear();
-        for (int ri : world.resources) {
-            const auto& res = world.entityMap.at(ri);
+        for (const Entity& res : world.resources) {
             if (world.infMap[res.position.x][res.position.y] != myId) continue;
             bool coveredByTurret = false;
             for (const auto& oe : world.oppEntities) {
@@ -61,7 +60,7 @@ struct GameStatus {
                 }
             }
             if (!coveredByTurret) {
-                resToGather.push_back(ri);
+                resToGather.push_back(res.id);
             }
         }
 
@@ -98,12 +97,12 @@ struct GameStatus {
                     forn(j, 2) {
                         int bw = -1;
                         int cld = inf;
-                        for (int w1 : world.workers[myId]) {
-                            if (usedW.find(w1) == usedW.end()) {
-                                const int cd = dist(ts[0].target, world.entityMap.at(w1).position);
+                        for (const Entity& w : world.myWorkers) {
+                            if (usedW.find(w.id) == usedW.end()) {
+                                const int cd = dist(ts[0].target, w.position);
                                 if (cd < cld) {
                                     cld = cd;
-                                    bw = w1;
+                                    bw = w.id;
                                 }
                             }
                         }
@@ -116,12 +115,12 @@ struct GameStatus {
                     forn(j, 2) {
                         int bw = -1;
                         int cld = inf;
-                        for (int w1 : world.workers[myId]) {
-                            if (usedW.find(w1) == usedW.end()) {
-                                const int cd = dist(ts[1].target, world.entityMap.at(w1).position);
+                        for (const Entity& w : world.myWorkers) {
+                            if (usedW.find(w.id) == usedW.end()) {
+                                const int cd = dist(ts[1].target, w.position);
                                 if (cd < cld) {
                                     cld = cd;
-                                    bw = w1;
+                                    bw = w.id;
                                 }
                             }
                         }
@@ -135,11 +134,9 @@ struct GameStatus {
                     for (int w : ts[1].repairers) cerr << " " << w;
                     cerr << endl;
 
-                    for (int bi : world.buildings[world.myId]) {
-                        const auto& t = world.entityMap.at(bi);
+                    for (const auto& t : world.myBuildings)
                         if (t.entityType == EntityType::TURRET)
                             initialTurretId = t.id;
-                    }
                 }
             }
         }
@@ -152,15 +149,13 @@ struct GameStatus {
                         const auto& w = world.entityMap.at(wi);
 
                         bool hasTurretNear = false;
-                        for (int bi : world.buildings[world.myId]) {
-                            const auto& bu = world.entityMap.at(bi);
-                            if (bu.entityType == EntityType::TURRET && dist(w.position, bu.position) <= 4 && bu.id != initialTurretId) {
+                        for (const auto& t : world.myBuildings)
+                            if (t.entityType == EntityType::TURRET && dist(w.position, t.position) <= 4 && t.id != initialTurretId) {
                                 ts[i].state = TS_BUILT;
-                                ts[i].turretId = bi;
+                                ts[i].turretId = t.id;
                                 cerr << "turret " << i << " is built\n";
                                 break;
                             }
-                        }
                     } else {
                         ts[i].state = TS_FAILED;
                     }
