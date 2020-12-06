@@ -271,7 +271,7 @@ void draw() {
 
     v.p.setBrush(blackBrush);
     v.p.setPen(blackPen);
-    v.p.drawRect(1133, 0, 500, 1111);
+    v.p.drawRect(1133, 0, 777, 1111);
 
     char buf[77];
 
@@ -279,7 +279,11 @@ void draw() {
         // v.p.setPen(balloonPen);
         // v.p.setBrush(balloonBrush);
         const int H = 50;
-        const int W = 270;
+        sprintf(buf, "%s Id: %d", ename[clickedEntity->entityType].c_str(), clickedEntity->id);
+        int W = strlen(buf) * 7 + 20;
+        if (info.msg.count(clickedEntity->id)) {
+            W = max(W, 20 + int(info.msg.at(clickedEntity->id).str().size()) * 7);
+        }
         QPainterPath path;
         path.addRoundedRect(QRectF(clickedPointScreen.x, clickedPointScreen.y - H - 5, W, H), 10, 10);
         v.p.fillPath(path, balloonBrush);
