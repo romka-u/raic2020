@@ -19,6 +19,12 @@ bool goodForHouse(const Cell& c, int sz) {
     return (c.x % (sz + 2) == 1 || c.x == 3) && (c.y % (sz + 2) == 1 || c.y == 3);
 }
 
+bool goodForTurret(const Cell& c, int sz) {
+    if (c.x < 27 && c.y < 27) return false;
+    if (c.x % 3 != 0 || c.y % 3 != 0) return false;
+    return true;
+}
+
 bool safeToBuild(const World& world, const Cell& c, int sz, int arb) {
     for (const auto& oe : world.oppEntities) {
         if (oe.attackRange > 0)
@@ -50,13 +56,34 @@ void addBuildActions(const PlayerView& playerView, const World& world, vector<My
                     actions.emplace_back(wrk.id, A_BUILD, newPos, EntityType::HOUSE, buildScore);
                 }
             }
-        } else {
+        } 
+        /*else {
             // ranged
             const int sz = props.at(EntityType::RANGED_BASE).size;
             for (Cell newPos : nearCells(wrk.position - Cell(sz - 1, sz - 1), sz)) {
                 if (canBuild(world, newPos, sz) && safeToBuild(world, newPos, sz, 5)) {
                     buildScore.aux = - newPos.x - newPos.y;
                     actions.emplace_back(wrk.id, A_BUILD, newPos, EntityType::RANGED_BASE, buildScore);
+                }
+            }
+        }*/
+        // turrets
+        bool nearRes = false;
+        forn(q, 4) {
+            const Cell nc = wrk.position ^ q;
+            if (nc.inside() && world.hasNonMovable(nc) && world.entityMap.at(-world.eMap[nc.x][nc.y]).entityType == EntityType::RESOURCE) {
+                nearRes = true;
+                break;
+            }
+        }
+        if (nearRes) {
+            Score buildScore(1000);
+            const int sz = props.at(EntityType::TURRET).size;
+            for (Cell newPos : nearCells(wrk.position - Cell(sz - 1, sz - 1), sz)) {
+                if (canBuild(world, newPos, sz) && goodForTurret(newPos, sz) && safeToBuild(world, newPos, sz, 5)) {
+                    // if (newPos.x + newPos.y == 3 && !world.hasNonMovable({0, 0})) continue;
+                    buildScore.aux = -min(newPos.x, newPos.y);
+                    actions.emplace_back(wrk.id, A_BUILD, newPos, EntityType::TURRET, buildScore);
                 }
             }
         }
