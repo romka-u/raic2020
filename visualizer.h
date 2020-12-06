@@ -137,6 +137,13 @@ public:
         onKeyPress_ = onKeyPress;
     }
 
+    void resetView() {
+        scalex = 0.12;
+        scaley = -0.12;
+        movex = 3588;
+        movey = 141;
+    }
+
     static constexpr double SCALE_COEFF = 1.08;
     static constexpr double MOVE_COEFF = 10;
     double scalex = 0.12;
@@ -163,6 +170,10 @@ public:
         scene = new QGraphicsScene();
         view = new CustomView(scene);
         app->processEvents();
+    }
+
+    void resetView() {
+        view->resetView();
     }
 
     void setSize(int height, int width) {

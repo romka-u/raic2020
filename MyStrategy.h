@@ -33,6 +33,7 @@ public:
         if (world.oppEntities.empty()) return Action();
 
         gameStatus.update(playerView, world);
+        info.status = gameStatus;
 
         calcSquadsTactic(world, gameStatus);
 

@@ -9,12 +9,16 @@
 #endif
 #include "common.h"
 #include "world.h"
+#include "game_status.h"
+
+using Targets = vector<pair<Cell, Cell>>;
 
 struct TickDrawInfo {
     int myId;
     vector<Entity> entities;
     vector<Player> players;
-    vector<pair<Cell, Cell>> targets;
+    Targets targets;
+    GameStatus status;
 };
 
 QFont f20("Andale Mono", 20);
@@ -24,7 +28,7 @@ QFont f8("Andale Mono", 8);
 TickDrawInfo tickInfo[1010];
 int currentDrawTick, maxDrawTick;
 Vec2Float clickedPointWorld, clickedPointScreen;
-bool drawMyField, drawOppField;
+bool drawMyField, drawOppField, drawTargets;
 
 #ifdef DEBUG
 Visualizer v;
@@ -93,7 +97,7 @@ void drawDoubleBars(unordered_map<EntityType, int> cnt[4], int yOffset, const st
         v.p.setPen(pensPerPlayer[p]);
         QBrush b = brushesPerPlayer[p];
         QColor c = b.color();
-        c.setAlpha(32);
+        c.setAlpha(64);
         b.setColor(c);
         v.p.setBrush(b);
         v.p.drawRect(L, yOffset + 22 * (p - 2), MAXW * cnt[p][et2] / mx, 21);
@@ -120,6 +124,14 @@ void drawUnderAttack(const TickDrawInfo& info, const QColor& color, const std::f
                     v.p.drawRect(x * SZ, y * SZ, SZ, SZ);
                 }
             }
+    }
+}
+
+void drawTargetsLines(const Targets& targets) {
+    v.p.setPen(QPen(QColor(222, 222, 222, 222), 8));
+    for (const auto& p : targets) {
+        v.p.drawLine((p.first.x + 0.5) * SZ, (p.first.y + 0.5) * SZ,
+                     (p.second.x + 0.5) * SZ, (p.second.y + 0.5) * SZ);
     }
 }
 
@@ -208,8 +220,9 @@ void draw() {
         }
     }
 
-    if (drawOppField) drawUnderAttack(info, QColor(255, 0, 0, 127), [&info](int id) { return id != info.myId; });
-    if (drawMyField) drawUnderAttack(info, QColor(0, 255, 0, 127), [&info](int id) { return id == info.myId; });
+    if (drawOppField) drawUnderAttack(info, QColor(255, 0, 0, 64), [&info](int id) { return id != info.myId; });
+    if (drawMyField) drawUnderAttack(info, QColor(0, 255, 0, 64), [&info](int id) { return id == info.myId; });
+    if (drawTargets) drawTargetsLines(info.targets);
 
     if (currentDrawTick > 0) {
         forn(p, info.players.size()) {
@@ -257,18 +270,26 @@ void draw() {
     sprintf(buf, "Tick: %d / %d", currentDrawTick, maxDrawTick);
     v.p.drawText(1379, 25, QString(buf));
 
-    drawBars(cnt, 100, "Score", EntityType::SCORE);
+    int yOffset = 100;
+    drawBars(cnt, yOffset, "Score", EntityType::SCORE);
+    yOffset += 100;
     if (currentDrawTick > 0) {
-        drawBars(cnt, 200, "Resource", EntityType::RESOURCE, income, expenses);
+        drawBars(cnt, yOffset, "Resource", EntityType::RESOURCE, income, expenses);
     } else {
-        drawBars(cnt, 200, "Resource", EntityType::RESOURCE);
+        drawBars(cnt, yOffset, "Resource", EntityType::RESOURCE);
     }
-    drawDoubleBars(cnt, 300, "Food", EntityType::FOOD_USAGE, EntityType::FOOD_LIMIT);
-    drawBars(cnt, 400, "Workers", EntityType::BUILDER_UNIT);
-    drawBars(cnt, 500, "Range", EntityType::RANGED_UNIT);
-    drawBars(cnt, 600, "Melee", EntityType::MELEE_UNIT);
-    // drawBars(cnt, 500, "Houses", EntityType::HOUSE);
-    drawBars(cnt, 700, "Turrets", EntityType::TURRET);
+    yOffset += 100;
+    drawDoubleBars(cnt, yOffset, "Food", EntityType::FOOD_USAGE, EntityType::FOOD_LIMIT); yOffset += 100;
+    vector<int> cp(4), cm(4);
+    forn(zid, 4) {
+        cp[zid] = cntNew[zid][EntityType::BUILDER_UNIT];
+        cm[zid] = cntPrev[zid][EntityType::BUILDER_UNIT] - (cnt[zid][EntityType::BUILDER_UNIT] - cntNew[zid][EntityType::BUILDER_UNIT]);
+    }
+    drawBars(cnt, yOffset, "Workers", EntityType::BUILDER_UNIT, cp, cm); yOffset += 100;
+    drawBars(cnt, yOffset, "Range", EntityType::RANGED_UNIT); yOffset += 100;
+    drawBars(cnt, yOffset, "Melee", EntityType::MELEE_UNIT); yOffset += 100;
+    // drawBars(cnt, yOffset, "Houses", EntityType::HOUSE); yOffset += 100;
+    drawBars(cnt, yOffset, "Turrets", EntityType::TURRET); yOffset += 100;
 
     #endif
 }

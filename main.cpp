@@ -54,11 +54,14 @@ int main(int argc, char* argv[])
     std::thread runner([host, port, token]() { Runner(host, port, token).run(); });
 
     v.setSize(1700, 1000);
+    drawTargets = true;
     v.setOnKeyPress([](const QKeyEvent& ev) {
         clickedPointWorld = Vec2Float(1e9, 1e9);
         if (ev.key() == Qt::Key_Escape) { exited = true;  }
         if (ev.key() == Qt::Key_A) { drawMyField = !drawMyField;  }
         if (ev.key() == Qt::Key_S) { drawOppField = !drawOppField;  }
+        if (ev.key() == Qt::Key_T) { drawTargets = !drawTargets;  }
+        if (ev.key() == Qt::Key_R) { v.resetView();  }
         if (ev.key() == Qt::Key_C) { currentDrawTick = max(0, currentDrawTick - 1);  }
         if (ev.key() == Qt::Key_V) { currentDrawTick = min(maxDrawTick, currentDrawTick + 1); }
     });
