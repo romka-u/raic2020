@@ -25,10 +25,19 @@ void addTrainActions(const PlayerView& playerView, const World& world, vector<My
         }
         if (bu.entityType == EntityType::RANGED_BASE
             && (playerView.players[playerView.myId - 1].resource > 100 || world.warriors[world.myId].size() < 25)
-            && world.warriors[world.myId].size() < 50) {
+            && world.warriors[world.myId].size() < 64) {
             for (Cell bornPlace : nearCells(bu.position, bu.size)) {
                 if (world.isEmpty(bornPlace)) {
                     actions.emplace_back(bu.id, A_TRAIN, bornPlace, EntityType::RANGED_UNIT, Score{30, bornPlace.x + bornPlace.y});
+                }
+            }
+        }
+        if (bu.entityType == EntityType::MELEE_BASE
+            && (playerView.players[playerView.myId - 1].resource > 100 || world.warriors[world.myId].size() < 25)
+            && world.warriors[world.myId].size() < 64) {
+            for (Cell bornPlace : nearCells(bu.position, bu.size)) {
+                if (world.isEmpty(bornPlace)) {
+                    actions.emplace_back(bu.id, A_TRAIN, bornPlace, EntityType::MELEE_UNIT, Score{20, bornPlace.x + bornPlace.y});
                 }
             }
         }
