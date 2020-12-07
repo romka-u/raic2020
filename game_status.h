@@ -30,9 +30,21 @@ struct GameStatus {
     int initialTurretId;
     bool workersLeftToFixTurrets;
     vector<Entity> attackers;
+    unordered_set<int> turretsInDanger;
 
     void update(const PlayerView& playerView, const World& world) {
         int myId = playerView.myId;
+
+        turretsInDanger.clear();
+        for (const auto& t : world.myBuildings)
+            if (t.entityType == EntityType::TURRET) {
+                for (const auto& oe : world.oppEntities)
+                    if (oe.entityType == EntityType::RANGED_UNIT || oe.entityType == EntityType::MELEE_UNIT)
+                        if (dist(oe.position, t) < 8) {
+                            turretsInDanger.insert(t.id);
+                            break;
+                        }
+            }
 
         underAttack = false;
         attackers.clear();

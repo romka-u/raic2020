@@ -25,7 +25,7 @@ void addGatherActions(int myId, const World& world, vector<MyAction>& actions, c
             if (p == myId) continue;
             for (int wi : world.warriors[p]) {
                 const auto& w = world.entityMap.at(wi);
-                if (dist(w.position, wrk.position) <= w.attackRange + 3) {
+                if (dist(w.position, wrk.position) <= w.attackRange + 2) {
                     if (underAttack < 1) {
                         underAttack = 1;
                         threatPos = w.position;
