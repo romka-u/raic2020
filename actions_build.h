@@ -25,6 +25,21 @@ bool goodForTurret(const Cell& c, int sz) {
     return true;
 }
 
+bool noTurretAhead(const World& world, const Cell& c) {
+    if (c.x < c.y) {
+        int lx = max(0, c.x - 3);
+        int rx = min(79, c.x + 3);
+        for (int y = c.y; y < 70; y++)
+            for (int x = lx; x <= rx; x++) {
+                const int id = world.eMap[x][y];
+                if (id < 0 && world.entityMap.at(-id).entityType == EntityType::TURRET && world.entityMap.at(-id).playerId == world.myId) {
+                    return false;
+                }
+            }
+    }
+    return true;
+}
+
 bool safeToBuild(const World& world, const Cell& c, int sz, int arb) {
     for (const auto& oe : world.oppEntities) {
         if (oe.attackRange > 0)
@@ -50,7 +65,7 @@ void addBuildActions(const PlayerView& playerView, const World& world, vector<My
             // houses
             const int sz = props.at(EntityType::HOUSE).size;
             for (Cell newPos : nearCells(wrk.position - Cell(sz - 1, sz - 1), sz)) {
-                if (canBuild(world, newPos, sz) && goodForHouse(newPos, sz) && safeToBuild(world, newPos, sz, 5)) {
+                if (canBuild(world, newPos, sz) && goodForHouse(newPos, sz) && safeToBuild(world, newPos, sz, 10)) {
                     // if (newPos.x + newPos.y == 3 && !world.hasNonMovable({0, 0})) continue;
                     buildScore.aux = (newPos.x == 0) * 1000 + (newPos.y == 0) * 1000 - newPos.x - newPos.y;
                     actions.emplace_back(wrk.id, A_BUILD, newPos, EntityType::HOUSE, buildScore);
@@ -80,7 +95,7 @@ void addBuildActions(const PlayerView& playerView, const World& world, vector<My
             Score buildScore(1000);
             const int sz = props.at(EntityType::TURRET).size;
             for (Cell newPos : nearCells(wrk.position - Cell(sz - 1, sz - 1), sz)) {
-                if (canBuild(world, newPos, sz) && goodForTurret(newPos, sz) && safeToBuild(world, newPos, sz, 5)) {
+                if (canBuild(world, newPos, sz) && goodForTurret(newPos, sz) && noTurretAhead(world, newPos) && safeToBuild(world, newPos, sz, 10)) {
                     // if (newPos.x + newPos.y == 3 && !world.hasNonMovable({0, 0})) continue;
                     buildScore.aux = -min(newPos.x, newPos.y);
                     actions.emplace_back(wrk.id, A_BUILD, newPos, EntityType::TURRET, buildScore);

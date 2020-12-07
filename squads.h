@@ -258,6 +258,9 @@ void calcSquadsTactic(const World& world, const GameStatus& st) {
     }
 
     auto enemiesToAttack = st.attackers.empty() ? world.oppEntities : st.attackers;
+    // if (st.attackers.size() == 1) {
+    //     cerr << st.attackers.front().position << endl;
+    // }
 
     for (const auto& cbs : cellsBySquad) {
         // cerr << "[] Squad " << cbs.first << " (sz " << cbs.second.size() << "):";
@@ -273,7 +276,18 @@ void calcSquadsTactic(const World& world, const GameStatus& st) {
                 }
             }
         }
-        // cerr << "   cl enemy: " << closestEnemy[cbs.first].first << endl;
+        if (cld == inf) {
+            for (const Cell& c : cbs.second) {
+                for (const auto& ou : world.oppEntities) {
+                    int cd = dist(c, ou);
+                    if (cd < cld && int(ou.position.x < ou.position.y) == cbs.first < 2) {
+                        cld = cd;
+                        closestEnemy[cbs.first] = {ou.position, cld};
+                    }
+                }
+            }
+        }
+        // cerr << "   cl enemy: " << closestEnemy[cbs.first].first << ", dist " << closestEnemy[cbs.first].second << endl;
     }
     
     // cerr << "attackers.size = " << st.attackers.size() << endl;

@@ -72,6 +72,7 @@ struct World {
         const auto& ent = playerView.entities;
         myId = playerView.myId;
         tick = playerView.currentTick;
+        cerr << "============== Tick " << tick << "=============\n";
         forn(p, 5) {
             workers[p].clear();
             warriors[p].clear();
