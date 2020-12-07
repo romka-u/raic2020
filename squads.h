@@ -15,133 +15,14 @@ struct SquadInfo {
 vector<SquadInfo> squadInfo;
 unordered_map<int, int> squadId;
 
-Cell INITIAL{15, 19};
-
-unordered_set<Cell> groupPoints;
-
-Cell getInitialPoint(const World& world) {
-    vector<int> hx(80);
-    int py = 0;
-    for (int x = 79; x >= 0; x--) {
-        int my = 0;
-        for (int y = 0; y < 79; y++) {
-            const int id = world.eMap[x][y];
-            if (id < 0) {
-                const Entity& e = world.entityMap.at(-id);
-                if (e.playerId == world.myId)
-                    my = y;
-            }
-        }
-        if (my < py) my = py;
-        if (my > py) py = my;
-        hx[x] = my;
-    }
-
-    vector<Cell> candidates;
-    int ly = hx[0] + 1;
-    forn(x, 80) {
-        while (ly > hx[x] + 1) {
-            candidates.emplace_back(x, ly);
-            ly--;
-        }
-        candidates.emplace_back(x, ly);
-        if (hx[x] == 0) break;
-    }
-
-    sort(candidates.begin(), candidates.end(), [](const Cell& a, const Cell& b) { return abs(a.x - a.y) < abs(b.x - b.y); });
-
-    for (const Cell& nc : candidates) {
-        bool ok = true;
-
-        for (const auto& gp : groupPoints)
-            if (dist(gp, nc) <= 8) {
-                ok = false;
-                break;
-            }
-
-        if (ok) {
-            forn(dx, 3) forn(dy, 3) {
-                Cell qc = nc + Cell(dx, dy);
-                if (!qc.inside()) ok = false;
-                if (world.hasNonMovable(qc)) ok = false;
-            }
-        }
-
-        if (ok) {
-            groupPoints.insert(nc);
-            return nc;
-        }
-    }
-
-    return INITIAL;
-}
-
 SquadInfo createNewSquadInfo(const World& world) {
     SquadInfo si;
     si.unitsAssigned = 0;
     si.unitsAlive = 0;
-    si.target = getInitialPoint(world);
+    // si.target = getInitialPoint(world);
     si.together = false;
     si.waiting = 0;
     return si;
-}
-
-tuple<Cell, bool, bool> moreOrLessTogether(const vector<Cell>& cells) {
-    int minx = inf, maxx = -inf, miny = inf, maxy = -inf;
-    for (const auto& c : cells) {
-        if (c.x < minx) minx = c.x;
-        if (c.x > maxx) maxx = c.x;
-        if (c.y < miny) miny = c.y;
-        if (c.y > maxy) maxy = c.y;
-    }
-
-    const Cell center((minx + maxx) / 2, (miny + maxy) / 2);
-
-    vector<int> p(cells.size());
-    forn(i, cells.size()) p[i] = i;
-
-    auto findset = [&p](int x) {
-        int y = x;
-        while (x != p[x]) x = p[x];
-        p[y] = x;
-        return x;
-    };
-    
-    forn(i, cells.size())
-        forn(j, i) {
-            if (dist(cells[i], cells[j]) == 1) {
-                int a = findset(i);
-                int b = findset(j);
-                p[a] = b;
-            }
-        }
-
-    bool conn0 = true;
-    forn(i, cells.size())
-        if (findset(i) != findset(0)) {
-            conn0 = false;
-            break;
-        }
-
-    forn(i, cells.size()) p[i] = i;
-
-    forn(i, cells.size())
-        forn(j, i) {
-            if (dist(cells[i], cells[j]) <= 2) {
-                int a = findset(i);
-                int b = findset(j);
-                p[a] = b;
-            }
-        }
-
-    bool conn1 = true;
-    forn(i, cells.size())
-        if (findset(i) != findset(0)) {
-            conn1 = false;
-            break;
-        }
-
-    return {center, conn0, conn1};
 }
 
 Cell getLastFreeCell(const World& world, Cell cur, int d) {
@@ -299,22 +180,6 @@ void calcSquadsTactic(const World& world, const GameStatus& st) {
             si.target = cell;
             // cerr << ">> Squad " << cce.first << " is close to enemy\n   distance " << d << ", target " << cell << endl;
         } else {
-            /*if (st.underAttack && world.warriors[world.myId].size() < 19) {
-                for (int p = 1; p <= 4; p++) {
-                    if (p == myId) continue;
-                    for (int wi : world.warriors[p]) {
-                        const auto& w = world.entityMap.at(wi);
-                        for (int bi : world.buildings[myId]) {
-                            if (dist(w.position, world.entityMap.at(bi), world.P(bi).size) <= props.at(w.entityType).attack->attackRange + 10) {
-                                si.target = w.position;
-                                goto out;
-                            }
-                        }
-                    }
-                }
-                out: continue;
-            }*/
-
             if (cce.first < 2) {
                 if (st.ts[cce.first].state == TS_PLANNED) {
                     si.target = st.ts[cce.first].target;
@@ -322,36 +187,8 @@ void calcSquadsTactic(const World& world, const GameStatus& st) {
                 }
             }
 
-            if (si.unitsAssigned == 5 || world.warriors[world.myId].size() >= 19) {
-                auto [weightMass, conn0, conn1] = moreOrLessTogether(cellsBySquad[cce.first]);
-                if (!si.together) {
-                    if (!conn0 && si.waiting < 42 && world.warriors[world.myId].size() < 17) {
-                        // cerr << ">> Squad " << cce.first << " is waiting last friend" << endl;
-                        si.waiting++;
-                    } else {
-                        groupPoints.erase(si.target);
-                        si.target = cell;
-                        // cerr << ">> Squad " << cce.first << " is now completed!\n   attacking enemy at dist " << d << " at " << cell << endl;
-                        si.together = true;
-                    }
-                } else {
-                    si.target = cell;
-                    /*if (si.together && conn1) {
-                        si.target = cell;
-                        // cerr << ">> Squad " << cce.first << " is more or less together\n   attacking enemy at dist " << d << " at " << cell << endl;
-                    } else if (conn0) {
-                        si.target = cell;
-                        si.together = true;
-                        // cerr << ">> Squad " << cce.first << " is connected again\n   attacking enemy at dist " << d << " at " << cell << endl;
-                    } else {
-                        si.target = weightMass;
-                        si.together = false;
-                        // cerr << ">> Squad " << cce.first << " is not together, group at " << weightMass << endl;
-                    }*/
-                }
-            } else {
-                // cerr << ">> Squad " << cce.first << " is not complete, group at " << si.target << endl;
-            }
+            if (world.tick > 111 || world.myWarriors.size() >= 8)
+                si.target = cell;
         }
     }
 }
