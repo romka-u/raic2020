@@ -29,8 +29,18 @@ bool noTurretAhead(const World& world, const Cell& c) {
     if (c.x < c.y) {
         int lx = max(0, c.x - 3);
         int rx = min(79, c.x + 3);
-        for (int y = c.y; y < 70; y++)
+        for (int y = c.y + 1; y < 70; y++)
             for (int x = lx; x <= rx; x++) {
+                const int id = world.eMap[x][y];
+                if (id < 0 && world.entityMap.at(-id).entityType == EntityType::TURRET && world.entityMap.at(-id).playerId == world.myId) {
+                    return false;
+                }
+            }
+    } else {
+        int ly = max(0, c.y - 3);
+        int ry = min(79, c.y + 3);
+        for (int x = c.x + 1; x < 70; x++)
+            for (int y = ly; y <= ry; y++) {
                 const int id = world.eMap[x][y];
                 if (id < 0 && world.entityMap.at(-id).entityType == EntityType::TURRET && world.entityMap.at(-id).playerId == world.myId) {
                     return false;
