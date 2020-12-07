@@ -187,7 +187,7 @@ void calcSquadsTactic(const World& world, const GameStatus& st) {
                 }
             }
 
-            if (world.tick > 111 || world.myWarriors.size() >= 8)
+            if (world.tick > 200 || world.myWarriors.size() >= 8)
                 si.target = cell;
         }
     }
