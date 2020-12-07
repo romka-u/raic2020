@@ -99,7 +99,7 @@ void addWarActions(const PlayerView& playerView, const World& world, vector<MyAc
         if (t.entityType != EntityType::TURRET) continue;
 
         for (const auto& ou : world.oppEntities) {
-            if (dist(ou, t) <= ou.attackRange) {
+            if (dist(ou, t) <= t.attackRange) {
                 int score = 200;
                 if (ou.entityType == EntityType::MELEE_UNIT && dist(t.position, ou.position) > 1) score = 197;
                 if (ou.entityType == EntityType::BUILDER_UNIT) score = 194;
