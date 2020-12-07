@@ -32,9 +32,12 @@ void addTrainActions(const PlayerView& playerView, const World& world, vector<My
                 }
             }
         }
+        int cntMelee = 0;
+        for (const auto& w : world.myWarriors)
+            cntMelee += w.entityType == EntityType::MELEE_UNIT;
         if (bu.entityType == EntityType::MELEE_BASE
             && (playerView.players[playerView.myId - 1].resource > 100 || world.warriors[world.myId].size() < 25)
-            && world.warriors[world.myId].size() < 64) {
+            && cntMelee < world.tick % 50 - 30) {
             for (Cell bornPlace : nearCells(bu.position, bu.size)) {
                 if (world.isEmpty(bornPlace)) {
                     actions.emplace_back(bu.id, A_TRAIN, bornPlace, EntityType::MELEE_UNIT, Score{20, bornPlace.x + bornPlace.y});
