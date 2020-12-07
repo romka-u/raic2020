@@ -1,6 +1,31 @@
 #pragma once
 #include "actions.h"
 
+int ru[88][88], rit, rd[88][88];
+
+void resBfs(const World& world) {
+    rit++;
+    vector<Cell> q;
+    size_t qb = 0;
+    for (const auto& r : world.resources) {
+        ru[r.position.x][r.position.y] = rit;
+        q.push_back(r.position);
+        rd[r.position.x][r.position.y] = 0;
+    }
+
+    while (qb < q.size()) {
+        Cell cur = q[qb++];
+        forn(w, 4) {
+            const Cell nc = cur ^ w;
+            if (nc.inside() && ru[nc.x][nc.y] != rit) {
+                ru[nc.x][nc.y] = rit;
+                q.push_back(nc);
+                rd[nc.x][nc.y] = rd[cur.x][cur.y] + 1;
+            }
+        }
+    }
+}
+
 void addTrainActions(const PlayerView& playerView, const World& world, vector<MyAction>& actions, const GameStatus& st) {
     int gap = 3;
     for (const Entity& bu : world.myBuildings)
@@ -8,6 +33,9 @@ void addTrainActions(const PlayerView& playerView, const World& world, vector<My
             gap = 0;
 
     if (st.foodUsed >= st.foodLimit - gap) return;
+
+    resBfs(world);
+
     const int myWS = world.workers[world.myId].size();
     for (const Entity& bu : world.myBuildings) {
         if (bu.entityType == EntityType::BUILDER_BASE
@@ -17,9 +45,9 @@ void addTrainActions(const PlayerView& playerView, const World& world, vector<My
             && myWS < min(77, int(st.resToGather.size() * 0.91))) {
             for (Cell bornPlace : nearCells(bu.position, bu.size)) {
                 if (world.isEmpty(bornPlace)) {
-                    int aux = bornPlace.x + bornPlace.y;
-                    if (world.tick < 70) aux = -aux;
-                    actions.emplace_back(bu.id, A_TRAIN, bornPlace, EntityType::BUILDER_UNIT, Score{50, aux});
+                    // int aux = bornPlace.x + bornPlace.y;
+                    // if (world.tick < 70) aux = -aux;
+                    actions.emplace_back(bu.id, A_TRAIN, bornPlace, EntityType::BUILDER_UNIT, Score{50, -rd[bornPlace.x][bornPlace.y]});
                 }
             }
         }

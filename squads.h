@@ -151,6 +151,7 @@ void calcSquadsTactic(const World& world, const GameStatus& st) {
         for (const Cell& c : cbs.second) {
             for (const auto& ou : enemiesToAttack) {
                 int cd = dist(c, ou);
+                if (ou.entityType == EntityType::TURRET) cd += 100;
                 if (cd < cld && int(ou.position.x < ou.position.y) == cbs.first < 2) {
                     cld = cd;
                     closestEnemy[cbs.first] = {ou.position, cld};
@@ -161,6 +162,7 @@ void calcSquadsTactic(const World& world, const GameStatus& st) {
             for (const Cell& c : cbs.second) {
                 for (const auto& ou : world.oppEntities) {
                     int cd = dist(c, ou);
+                    if (ou.entityType == EntityType::TURRET) cd += 100;
                     if (cd < cld && int(ou.position.x < ou.position.y) == cbs.first < 2) {
                         cld = cd;
                         closestEnemy[cbs.first] = {ou.position, cld};
