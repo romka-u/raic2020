@@ -32,9 +32,7 @@ struct GameStatus {
     vector<Entity> attackers;
     unordered_set<int> turretsInDanger;
 
-    void update(const PlayerView& playerView, const World& world) {
-        int myId = playerView.myId;
-
+    void updateTurretsInDanger(const World& world) {
         turretsInDanger.clear();
         for (const auto& t : world.myBuildings)
             if (t.entityType == EntityType::TURRET) {
@@ -45,11 +43,13 @@ struct GameStatus {
                             break;
                         }
             }
+    }
 
+    void updateUnderAttack(const World& world) {
         underAttack = false;
         attackers.clear();
         for (int p = 1; p <= 4; p++) {
-            if (p == myId) continue;
+            if (p == world.myId) continue;
             for (int wi : world.warriors[p]) {
                 const auto& w = world.entityMap.at(wi);
                 for (const Entity& b : world.myBuildings) {
@@ -60,10 +60,12 @@ struct GameStatus {
                 }
             }
         }
+    }
 
+    void updateResToGather(const World& world) {
         resToGather.clear();
         for (const Entity& res : world.resources) {
-            if (world.infMap[res.position.x][res.position.y] != myId) continue;
+            if (world.infMap[res.position.x][res.position.y] != world.myId) continue;
             bool coveredByTurret = false;
             for (const auto& oe : world.oppEntities) {
                 if (oe.entityType == EntityType::TURRET && dist(res.position, oe) < oe.attackRange) {
@@ -75,17 +77,21 @@ struct GameStatus {
                 resToGather.push_back(res.id);
             }
         }
+    }
 
+    void updateFoodLimit(const World& world) {
         foodUsed = 0;
         foodLimit = 0;
-        for (int bi : world.buildings[myId])
-            if (world.entityMap.at(bi).active)
-                foodLimit += world.P(bi).populationProvide;
-        for (int bi : world.workers[myId])
-            foodUsed += world.P(bi).populationUse;
-        for (int bi : world.warriors[myId])
-            foodUsed += world.P(bi).populationUse;
-
+        for (const auto& b : world.myBuildings)
+            if (b.active)
+                foodLimit += props.at(b.entityType).populationProvide;
+        for (const auto& w : world.myWorkers)
+            foodUsed += props.at(w.entityType).populationUse;
+        for (const auto& w : world.myWarriors)
+            foodUsed += props.at(w.entityType).populationUse;
+    }
+    
+    void updateTurretsState(const World& world) {
         if (foodLimit >= 30 && TURRETS_CHEESE) {
             if (ts[0].state == TS_NOT_BUILD) {
                 ts[0].target = Cell{7, 80 - 7};
@@ -204,5 +210,13 @@ struct GameStatus {
                 }
             }
         }
+    }
+
+    void update(const World& world) {
+        updateTurretsInDanger(world);
+        updateUnderAttack(world);
+        updateResToGather(world);
+        updateFoodLimit(world);
+        updateTurretsState(world);
     }
 };

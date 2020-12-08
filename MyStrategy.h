@@ -27,7 +27,7 @@ public:
 
         if (world.oppEntities.empty()) return Action();
 
-        gameStatus.update(playerView, world);
+        gameStatus.update(world);
 
         TickDrawInfo& info = tickInfo[playerView.currentTick];
         #ifdef DEBUG
