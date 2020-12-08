@@ -8,9 +8,11 @@ void resBfs(const World& world) {
     vector<Cell> q;
     size_t qb = 0;
     for (const auto& r : world.resources) {
-        ru[r.position.x][r.position.y] = rit;
-        q.push_back(r.position);
-        rd[r.position.x][r.position.y] = 0;
+        if (r.health == r.maxHealth) {
+            ru[r.position.x][r.position.y] = rit;
+            q.push_back(r.position);
+            rd[r.position.x][r.position.y] = 0;
+        }
     }
 
     while (qb < q.size()) {
