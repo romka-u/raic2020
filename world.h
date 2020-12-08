@@ -15,25 +15,27 @@ Cell operator^(const Cell& a, int q) {
 
 Cell NOWHERE{-1, -1};
 
-void calcInfMap(const vector<Entity>& entities, int eMap[88][88], int infMap[88][88]) {
-    forn(i, 88) forn(j, 88) infMap[i][j] = 0;
+void calcInfMap(const vector<Entity>& entities, int eMap[88][88], pii infMap[88][88]) {
+    forn(i, 88) forn(j, 88) infMap[i][j] = {0, 0};
     // memset(infMap, 0, sizeof(infMap));
 
     vector<pair<Cell, int>> q;
     size_t qb = 0;
 
     for (const auto& e : entities)
-        if (e.entityType == EntityType::RANGED_UNIT || e.entityType == EntityType::MELEE_UNIT || e.entityType == EntityType::BUILDER_UNIT) {
-            q.emplace_back(e.position, e.playerId);
-            infMap[e.position.x][e.position.y] = e.playerId;
+        if (e.playerId != -1) {
+            forn(x, e.size) forn(y, e.size)
+                q.emplace_back(e.position + Cell(x, y), e.playerId);
+            infMap[e.position.x][e.position.y] = {e.playerId, 0};
         }
 
     while (qb < q.size()) {
         const auto [pos, val] = q[qb++];
         forn(w, 4) {
             const Cell np = pos ^ w;
-            if (np.inside() && infMap[np.x][np.y] == 0) {
-                infMap[np.x][np.y] = val;
+            const int d = infMap[np.x][np.y].second;
+            if (np.inside() && infMap[np.x][np.y].first == 0) {
+                infMap[np.x][np.y] = {val, d + 1};
                 if (eMap[np.x][np.y] >= 0)
                     q.emplace_back(np, val);
             }
@@ -53,7 +55,7 @@ struct World {
     unordered_map<int, int> staying;
     unordered_map<EntityType, int> myUnitsCnt;
     int eMap[88][88];
-    int infMap[88][88];
+    pii infMap[88][88];
     int myId, tick;
 
     bool isEmpty(const Cell& c) const {

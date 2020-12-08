@@ -36,6 +36,7 @@ unordered_map<EntityType, string> ename = {
     {EntityType::TURRET, "TURRET"}
 };
 
+QFont f85("Andale Mono", 85);
 QFont f20("Andale Mono", 20);
 QFont f12("Andale Mono", 12);
 QFont f8("Andale Mono", 8);
@@ -47,7 +48,7 @@ const int SZ = 100;
 TickDrawInfo tickInfo[1010];
 int currentDrawTick, maxDrawTick;
 Vec2Float clickedPointWorld, clickedPointScreen;
-bool drawMyField, drawOppField, drawTargets, drawInfMap, colorBySquads;
+bool drawMyField, drawOppField, drawTargets, drawInfMap, colorBySquads, drawBorderGroups;
 
 
 #ifdef DEBUG
@@ -161,15 +162,34 @@ void drawBarsWithDeltas(
 }
 
 void drawInfMapOverlay(const vector<Entity>& entities, int eMap[88][88]) {
-    int infMap[88][88];
+    pii infMap[88][88];
     calcInfMap(entities, eMap, infMap);
     v.p.setPen(QPen(Qt::transparent));
     forn(x, 80)
         forn(y, 80) {
-            if (infMap[x][y] != 0) {
-                v.p.setBrush(brushesPerPlayerAlpha[infMap[x][y] - 1]);
+            if (infMap[x][y].first != 0) {
+                v.p.setBrush(brushesPerPlayerAlpha[infMap[x][y].first - 1]);
                 v.p.drawRect(x * SZ, y * SZ, SZ, SZ);
             }
+        }
+}
+
+void drawBorderGroupsInfo(const vector<Entity>& entities, const GameStatus& st) {
+    v.p.setFont(f85);
+    v.p.setPen(QPen(QColor(222, 222, 222), 10));
+    char buf[13];
+    buf[1] = 0;
+    forn(x, 80) forn(y, 80)
+        if (st.ubg[x][y] == st.ubit) {
+            buf[0] = 'A' + st.borderGroup[x][y];
+            v.p.drawText(x * SZ + 10, y * SZ + SZ - 10, QString(buf));
+        }
+
+    for (const auto& e : entities)
+        if (st.unitsToCell.count(e.id)) {
+            const Cell& from = e.position;
+            const Cell& to = st.unitsToCell.at(e.id);
+            v.p.drawLine((from.x + 0.5) * SZ, (from.y + 0.5) * SZ, (to.x + 0.5) * SZ, (to.y + 0.5) * SZ);
         }
 }
 
@@ -280,6 +300,7 @@ void draw() {
     if (drawMyField) drawUnderAttack(info, eMap, QColor(0, 255, 0, 64), [&info](int id) { return id == info.myId; });
     if (drawTargets) drawTargetsLines(info.targets);
     if (drawInfMap) drawInfMapOverlay(info.entities, eMap);
+    if (drawBorderGroups) drawBorderGroupsInfo(info.entities, info.status);
 
     if (currentDrawTick > 0) {
         forn(p, info.players.size()) {
@@ -329,11 +350,6 @@ void draw() {
                          QString(info.msg.at(clickedEntity->id).str().c_str()));
     }    
 
-    v.p.setFont(f20);
-    v.p.setPen(whitePen);
-    sprintf(buf, "Tick: %d / %d", currentDrawTick, maxDrawTick);
-    v.p.drawText(1379, 25, QString(buf));
-
     int yOffset = 100;
     drawBars(cnt, yOffset, "Score", EntityType::SCORE);
     yOffset += 100;
@@ -348,5 +364,13 @@ void draw() {
     drawBarsWithDeltas(cnt, cntPrev, cntNew, yOffset, "Range", EntityType::RANGED_UNIT); yOffset += 100;
     drawBarsWithDeltas(cnt, cntPrev, cntNew, yOffset, "Melee", EntityType::MELEE_UNIT); yOffset += 100;
     drawBarsWithDeltas(cnt, cntPrev, cntNew, yOffset, "Turrets", EntityType::TURRET); yOffset += 100;
+
+    v.p.setFont(f20);
+    v.p.setPen(whitePen);
+    sprintf(buf, "Tick: %d / %d", currentDrawTick, maxDrawTick);
+    v.p.drawText(1379, 25, QString(buf));
+    forn(i, info.status.groupsBalance.size()) {
+        v.p.drawText(1200, yOffset + i * 30, "BG " + QString::number(i) + ": " + QString::number(info.status.groupsBalance[i]));
+    }
 }
 #endif

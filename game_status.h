@@ -22,6 +22,8 @@ struct TurretStatus {
     }
 };
 
+int isBorder[88][88];
+
 struct GameStatus {
     bool underAttack;
     vector<int> resToGather;
@@ -31,6 +33,10 @@ struct GameStatus {
     bool workersLeftToFixTurrets;
     vector<Entity> attackers;
     unordered_set<int> turretsInDanger;
+    unordered_map<int, Cell> unitsToCell;
+    unordered_map<int, vector<int>> utg[5];
+    vector<int> groupsBalance;
+    int borderGroup[82][82], ubg[82][82], ubit;
 
     void updateTurretsInDanger(const World& world) {
         turretsInDanger.clear();
@@ -65,7 +71,7 @@ struct GameStatus {
     void updateResToGather(const World& world) {
         resToGather.clear();
         for (const Entity& res : world.resources) {
-            if (world.infMap[res.position.x][res.position.y] != world.myId) continue;
+            if (world.infMap[res.position.x][res.position.y].first != world.myId) continue;
             bool coveredByTurret = false;
             for (const auto& oe : world.oppEntities) {
                 if (oe.entityType == EntityType::TURRET && dist(res.position, oe) < oe.attackRange) {
@@ -212,11 +218,126 @@ struct GameStatus {
         }
     }
 
+    void calcBorderPoints(const World& world, vector<Cell> borderPoints[5]) {
+        ubit++;
+        forn(x, 80) forn(y, 80)
+            if (world.infMap[x][y].first > 0 && !world.hasNonMovable({x, y})) {
+                const int curId = world.infMap[x][y].first;
+                forn(q, 4) {
+                    Cell nc{x + dx[q], y + dy[q]};
+                    if (nc.inside()
+                        && !world.hasNonMovable(nc)
+                        && world.infMap[nc.x][nc.y].first != 0
+                        && world.infMap[nc.x][nc.y].first != curId) {
+                        borderPoints[world.infMap[x][y].first].emplace_back(x, y);
+                        isBorder[x][y] = ubit;
+                        break;
+                        // borderInd[x][y] = borderPoints.size() - 1;
+                    }
+                }
+            }
+    }
+
+    void calcUnitsToCell(const World& world, vector<Cell> borderPoints[5]) {
+        unitsToCell.clear();
+        for (int p = 1; p <= 4; p++) {
+            for (int wi : world.warriors[p]) {
+                const auto& w = world.entityMap.at(wi);
+                int cld = inf;
+                Cell cc{7, 7};
+                for (const Cell& c : borderPoints[p]) {
+                    int cd = dist(c, w.position);
+                    if (cd < cld) {
+                        cld = cd;
+                        cc = c;
+                    }
+                }
+                unitsToCell[wi] = cc;
+            }
+            for (int bi : world.buildings[p]) {
+                const auto& b = world.entityMap.at(bi);
+                if (b.entityType != EntityType::TURRET) continue;
+                int cld = inf;
+                Cell cc{7, 7};
+                for (const Cell& c : borderPoints[p]) {
+                    int cd = dist(c, b.position);
+                    if (cd < cld) {
+                        cld = cd;
+                        cc = c;
+                    }
+                }
+                unitsToCell[bi] = cc;
+            }
+        }
+    }
+
+    int calcBorderGroups(vector<Cell> borderPoints[5]) {
+        int color = 0;
+        for (int p = 1; p <= 4; p++)
+            forn(i, borderPoints[p].size()) {
+                const Cell& cb = borderPoints[p][i];
+                if (ubg[cb.x][cb.y] != ubit) {
+                    ubg[cb.x][cb.y] = ubit;
+                    borderGroup[cb.x][cb.y] = color;
+                    vector<Cell> q;
+                    q.push_back(cb);                
+                    size_t qb = 0;
+
+                    while (qb < q.size()) {
+                        Cell cur = q[qb++];
+                        forn(w, 4) {
+                            const Cell nc = cur ^ w;
+                            if (nc.inside() && isBorder[nc.x][nc.y] == ubit && ubg[nc.x][nc.y] != ubit) {
+                                ubg[nc.x][nc.y] = ubit;
+                                q.push_back(nc);
+                                borderGroup[nc.x][nc.y] = color;
+                            }
+                        }
+                    }
+                    color++;
+                }
+            }
+        return color;
+    }
+
+    void calcGroupsBalance(const World& world, const unordered_map<int, Cell>& unitsToCell, int groupsCnt) {
+        groupsBalance.assign(groupsCnt, 0);
+        for (int p = 1; p <= 4; p++) utg[p].clear();
+
+        for (const auto& [unitId, c] : unitsToCell) {
+            const auto& u = world.entityMap.at(unitId);
+            if (dist(c, u) <= 11) {
+                int pwr = 10;
+                // if (u.entityType == EntityType::TURRET) pwr = 42;
+                if (u.playerId == world.myId) {
+                    groupsBalance[borderGroup[c.x][c.y]] += pwr;
+                } else {
+                    groupsBalance[borderGroup[c.x][c.y]] -= pwr;
+                }
+                utg[u.playerId][borderGroup[c.x][c.y]].push_back(unitId);
+            }
+        }
+    }
+    
+    void updateHotPoints(const World& world) {
+        vector<Cell> borderPoints[5];
+        calcBorderPoints(world, borderPoints);
+        for (int p = 1; p <= 4; p++) {
+            cerr << p << ":";
+            for (const auto& cell : borderPoints[p]) cerr << " " << cell;
+            cerr << endl;                
+        }
+        int groupsCnt = calcBorderGroups(borderPoints);        
+        calcUnitsToCell(world, borderPoints);
+        calcGroupsBalance(world, unitsToCell, groupsCnt);
+    }
+
     void update(const World& world) {
         updateTurretsInDanger(world);
         updateUnderAttack(world);
         updateResToGather(world);
         updateFoodLimit(world);
         updateTurretsState(world);
+        updateHotPoints(world);
     }
 };
