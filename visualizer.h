@@ -1,20 +1,14 @@
 #pragma once
 
-#include <QApplication>
+#include <QWidget>
 #include <QPainter>
-#include <QGraphicsScene>
-#include <QScreen>
-#include <QGraphicsView>
-#include <QDesktopWidget>
-#include <QGraphicsItem>
+#include <QPainterPath>
+#include <QApplication>
+#include <QWindow>
 #include <QKeyEvent>
-#include <QMainWindow>
+#include <QScreen>
 
-#include <memory>
-#include <functional>
-#include <cmath>
 #include <iostream>
-#include <vector>
 
 namespace {
 
@@ -97,23 +91,16 @@ std::vector<QPen> pensPerPlayer = {
     QPen(playerColors[3])
 };
 
-
 }
 
-class CustomView : public QGraphicsView {
-public:
-    CustomView(QGraphicsScene *scene, QWidget *parent = nullptr) : QGraphicsView(scene, parent) {}
-
-    bool paused() const {
-        return paused_;
+class Widget : public QWidget {
+protected:
+    void paintEvent(QPaintEvent *event) override {
+        QPainter painter(this);
+        painter.drawPixmap(0, 0, pixmap_);
     }
 
-    void mousePressEvent(QMouseEvent* event) {
-        if (onMouseClick_)
-            onMouseClick_(*event, event->x(), event->y());
-    }
-
-    void keyPressEvent(QKeyEvent* event) {
+    void keyPressEvent(QKeyEvent* event) override {
         if (event->key() == Qt::Key_Space) {
             paused_ = !paused_;
         } else if (event->key() == Qt::Key_Equal) {
@@ -130,41 +117,47 @@ public:
             movey -= MOVE_COEFF / scaley;
         } else if (event->key() == Qt::Key_Down || event->key() == Qt::Key_J) {
             movey += MOVE_COEFF / scaley;
+        } else if (event->key() == Qt::Key_0) {
+            movex = 0;
+            movey = 0;
+            scalex = 1.0;
+            scaley = 1.0;
         }
 
         // std::cerr << movex << " " << movey << " " << scalex << " " << scaley << std::endl;
 
-        if (onKeyPress_)
+        if (onKeyPress_) {
             onKeyPress_(*event);
+        }
     }
 
-    void centerOn(double x, double y) {
-        movex = x;
-        movey = y;
+    void mousePressEvent(QMouseEvent* event) override {
+        if (onMouseClick_) {
+            onMouseClick_(*event, event->x(), event->y());
+        }
     }
 
-    void setOnMouseClick(std::function<void(const QMouseEvent&, double, double)> onMouseClick) {
-        onMouseClick_ = onMouseClick;
+    void setOnMousePress(std::function<void(const QMouseEvent&, double, double)> onMouseClick) {
+        onMouseClick_ = std::move(onMouseClick);
     }
 
     void setOnKeyPress(std::function<void(const QKeyEvent&)> onKeyPress) {
-        onKeyPress_ = onKeyPress;
+        onKeyPress_ = std::move(onKeyPress);
     }
 
-    void resetView() {
-        scalex = 0.12;
-        scaley = -0.12;
-        movex = 3588;
-        movey = 141;
-    }
+private:
+    friend class Visualizer;
+    friend class RenderCycle;
+    QPixmap pixmap_;
 
     static constexpr double SCALE_COEFF = 1.08;
     static constexpr double MOVE_COEFF = 10;
     double scalex = 0.12;
     double scaley = -0.12;
-    double movex = 3588;
-    double movey = 141;
+    double movex = 5000;
+    double movey = 3500;
     bool paused_ = false;
+
     std::function<void(const QMouseEvent&, double, double)> onMouseClick_;
     std::function<void(const QKeyEvent&)> onKeyPress_;
 };
@@ -172,90 +165,55 @@ public:
 
 class Visualizer {
 public:
-    Visualizer() : pixmapItem(nullptr), height_(0), width_(0) {
+    Visualizer(int width = 0, int height = 0) {
         static char arg0[] = "Visualizer";
-        static char* argv[] = { &arg0[0], NULL };
+        static char* argv[] = {&arg0[0], nullptr};
         static int argc = (int)(sizeof(argv) / sizeof(argv[0])) - 1;
-        QApplication::setAttribute(Qt::AA_DisableHighDpiScaling);
-        // QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
-        app = new QApplication(argc, argv);
-        // app->setAttribute(Qt::AA_UseHighDpiPixmaps);
-        // app->setAttribute(Qt::AA_DisableHighDpiScaling);
-        scene = new QGraphicsScene();
-        view = new CustomView(scene);
-        app->processEvents();
+        app_ = new QApplication{argc, argv};
+
+        widget_ = new Widget();
+        widget_->show();
+
+        setSize(width, height);
+
+        app_->processEvents();
     }
 
-    void resetView() {
-        view->resetView();
-    }
-
-    void setSize(int height, int width) {
-        if (height_ == height && width_ == width) return;
-        if (height <= 0 || width <= 0)
-            throw std::runtime_error("height and width should be greater than 0");
-        height_ = height;
+    void setSize(int width, int height) {
         width_ = width;
-        scene->setSceneRect(0, 0, height, width);
-        pixmap.reset(new QPixmap(height, width));
-        scene->clear();
-        pixmapItem = scene->addPixmap(*pixmap);
-        view->setFixedSize(height, width);
-        view->show();
-        view->raise();
+        height_ = height;
+        widget_->resize(width, height);
     }
 
     void process() {
-        if (width_ > 0 && height_ > 0) {
-            pixmapItem->setPixmap(*pixmap);
-            scene->update();
-        }
-        app->processEvents();
-    }
-
-    void centerOn(double x, double y) {
-        view->centerOn(x - width_ * 0.5, y - height_ * 0.5);
+        app_->processEvents();
     }
 
     bool paused() const {
-        return view->paused();
+        return widget_->paused_;
+    }
+
+    void setOnKeyPress(std::function<void(const QKeyEvent&)> onKeyPress) {
+        onKeyPress_ = std::move(onKeyPress);
+        widget_->setOnKeyPress([this] (const QKeyEvent& event) {
+            onKeyPress_(event);
+        });
     }
 
     void setOnMouseClick(std::function<void(const QMouseEvent&, double, double, double, double)> onMouseClick) {
         onMouseClick_ = onMouseClick;
 
-        view->setOnMouseClick([this] (const QMouseEvent& event, double screenX, double screenY) {
-            const double worldX = (screenX - width_ * 0.5) / view->scalex + width_ * 0.5 + view->movex;
-            const double worldY = (screenY - height_ * 0.5) / view->scaley + height_ * 0.5 + view->movey;
+        widget_->setOnMousePress([this] (const QMouseEvent& event, double screenX, double screenY) {
+            const double worldX = (screenX - width_ * 0.5) / widget_->scalex + width_ * 0.5 + widget_->movex;
+            const double worldY = (screenY - height_ * 0.5) / widget_->scaley + height_ * 0.5 + widget_->movey;
             onMouseClick_(event, screenX, screenY, worldX, worldY);
         });
     }
 
-    void setOnKeyPress(std::function<void(const QKeyEvent&)> onKeyPress) {
-        onKeyPress_ = onKeyPress;
-        view->setOnKeyPress([this] (const QKeyEvent& event) {
-            onKeyPress_(event);
-        });
-    }
-
-    QPainter p; // public painter
-
-    ~Visualizer() {
-        app->quit();
-    }
-
     void switchToWindow() {
         p.end();
-        p.begin(pixmap.get());
+        p.begin(&widget_->pixmap_);
         p.setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform | QPainter::TextAntialiasing);
-    }
-
-    void adjust() {
-        p.begin(pixmap.get());
-        p.setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform | QPainter::TextAntialiasing);
-        p.translate((-view->movex - width_ * 0.5) * view->scalex + width_ * 0.5,
-                    (-view->movey - height_ * 0.5) * view->scaley + height_ * 0.5);
-        p.scale(view->scalex, view->scaley);
     }
 
     void switchToWorld() {
@@ -263,17 +221,29 @@ public:
         adjust();
     }
 
-    QApplication* app;
+    QPainter p; // public painter
 
-private:    
-    QGraphicsScene* scene;
-    CustomView* view;
-    std::unique_ptr<QPixmap> pixmap;
-    QGraphicsPixmapItem* pixmapItem; // will be removed by scene
+    void adjust() {
+        p.begin(&widget_->pixmap_);
+        p.setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform | QPainter::TextAntialiasing);
+        p.translate((-widget_->movex - width_ * 0.5) * widget_->scalex + width_ * 0.5,
+                    (-widget_->movey - height_ * 0.5) * widget_->scaley + height_ * 0.5);
+        p.scale(widget_->scalex, widget_->scaley);
+    }
+
+    ~Visualizer() {
+        app_->quit();
+    }
+
+    QApplication* app_;
+private:
+    friend class RenderCycle;
+
     int height_, width_;
+    Widget* widget_;
+
     std::function<void(const QMouseEvent&, double, double, double, double)> onMouseClick_;
     std::function<void(const QKeyEvent&)> onKeyPress_;
-    friend class RenderCycle;
 };
 
 class RenderCycle {
@@ -282,14 +252,26 @@ public:
         while (visualizer.paused())
             visualizer.process();
 
-        visualizer.pixmap->fill(Qt::black);
-        
+        Widget* widget = visualizer_->widget_;
+        const auto devicePixelRatio = widget->devicePixelRatioF();
+        const auto desiredWidth = static_cast<int>(visualizer.width_ * devicePixelRatio);
+        const auto desiredHeight = static_cast<int>(visualizer.height_ * devicePixelRatio);
+
+        if (widget->pixmap_.size() != QSize(desiredWidth, desiredHeight)) {
+            widget->pixmap_ = QPixmap(desiredWidth, desiredHeight);
+            widget->pixmap_.setDevicePixelRatio(devicePixelRatio);
+        }
+
+        widget->pixmap_.fill(Qt::black);
         visualizer.adjust();
     }
 
     ~RenderCycle() {
+        // std::cerr << "RC" << std::endl;
         visualizer_->p.end();
+        visualizer_->widget_->repaint();
         visualizer_->process();
+        // std::cerr << "RCe" << std::endl;
     }
 
 private:

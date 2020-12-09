@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
         if (ev.key() == Qt::Key_D) { drawInfMap = !drawInfMap;  }
         if (ev.key() == Qt::Key_G) { drawBorderGroups = !drawBorderGroups;  }
         if (ev.key() == Qt::Key_U) { colorBySquads = !colorBySquads;  }
-        if (ev.key() == Qt::Key_R) { v.resetView();  }
+        // if (ev.key() == Qt::Key_R) { v.resetView();  }
         if (ev.key() == Qt::Key_C) { currentDrawTick = max(0, currentDrawTick - 1);  }
         if (ev.key() == Qt::Key_V) { currentDrawTick = min(maxDrawTick, currentDrawTick + 1); }
     });
@@ -77,7 +77,7 @@ int main(int argc, char* argv[])
     bool moved = false;
     while (running || !exited) {
         if (!moved) {
-            auto w = v.app->activeWindow();
+            auto w = v.app_->activeWindow();
             if (w) {
                 QDesktopWidget *widget = QApplication::desktop();
                 auto g = QGuiApplication::screens()[1]->availableGeometry();
