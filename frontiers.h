@@ -29,10 +29,14 @@ void assignTargets(const World& world, const GameStatus& st) {
 
     unordered_map<int, vector<pii>> myFronts;
     myFrontIds.clear();
+
+    forn(x, 80) forn(y, 80)
+        if (st.ubg[x][y] == st.ubit && world.infMap[x][y].first == world.myId)
+            myFrontIds.insert(st.borderGroup[x][y]);
+
     for (const auto& w : world.myWarriors) {
         Cell borderCell = st.unitsToCell.at(w.id);
         myFronts[st.borderGroup[borderCell.x][borderCell.y]].emplace_back(st.dtg[w.position.x][w.position.y], w.id);
-        myFrontIds.insert(st.borderGroup[borderCell.x][borderCell.y]);
     }
 
     vector<int> needSupport;
@@ -57,7 +61,6 @@ void assignTargets(const World& world, const GameStatus& st) {
         myPower[gr] = mpw;
 
         if (mpw < st.attackersPower[gr]) {
-            needSupport.push_back(gr);
             for (const auto& [_, id] : vpp) frontTarget[id] = Cell(7, 7);
         } else {
             for (; i < vpp.size(); i++) {
@@ -65,6 +68,10 @@ void assignTargets(const World& world, const GameStatus& st) {
             }
         }
     }
+
+    forn(i, st.attackersPower.size())
+        if (myPower[i] < st.attackersPower[i])
+            needSupport.push_back(i);
 
     vector<pair<int, pii>> cand;
     for (int gr : needSupport)
