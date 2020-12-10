@@ -20,7 +20,7 @@ struct TickDrawInfo {
     Targets targets;
     GameStatus status;
     unordered_map<int, ostringstream> msg;
-    unordered_map<int, int> squadId;
+    unordered_set<int> myFrontIds;
     vector<int> myPower;
 };
 #ifdef DEBUG
@@ -270,7 +270,7 @@ void draw() {
                 v.p.setPen(palePen);
             }
 
-            if (colorBySquads) {
+            /*if (colorBySquads) {
                 if (info.squadId.count(e.id)) {
                     v.p.setBrush(brushesPerPlayer[info.squadId.at(e.id)]);
                     v.p.setPen(pensPerPlayer[info.squadId.at(e.id)]);
@@ -278,7 +278,7 @@ void draw() {
                     v.p.setBrush(paleBrush);
                     v.p.setPen(palePen);
                 }
-            }
+            }*/
 
             v.p.drawRect((pos.x + 0.05) * SZ, (pos.y + 0.05) * SZ, (e.size - 0.1) * SZ, (e.size - 0.1) * SZ);
 
@@ -379,6 +379,17 @@ void draw() {
 
     v.p.setFont(f12);
     forn(i, info.status.attackersPower.size()) {
+        if (info.myFrontIds.count(i)) {
+            if (info.status.attackersPower[i] > info.myPower[i]) {
+                v.p.setPen(redPen);
+            } else if (info.status.attackersPower[i] < info.myPower[i]) {
+                v.p.setPen(greenPen);
+            } else {
+                v.p.setPen(whitePen);
+            }
+        } else {
+            v.p.setPen(grayPen);
+        }
         sprintf(buf, "Front %c: %d vs %d", 'A'+i, info.status.attackersPower[i], info.myPower[i]);
         v.p.drawText(1200, yOffset + i * 16, buf);
     }

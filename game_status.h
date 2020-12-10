@@ -220,7 +220,8 @@ struct GameStatus {
         }
     }
 
-    void calcBorderPoints(const World& world, vector<Cell> borderPoints[5]) {
+    bool calcBorderPoints(const World& world, vector<Cell> borderPoints[5]) {
+        bool found = false;
         forn(x, 80) forn(y, 80)
             if (world.infMap[x][y].first > 0 && !world.hasNonMovable({x, y})) {
                 const int curId = world.infMap[x][y].first;
@@ -231,12 +232,13 @@ struct GameStatus {
                         && world.infMap[nc.x][nc.y].first != 0
                         && world.infMap[nc.x][nc.y].first != curId) {
                         borderPoints[world.infMap[x][y].first].emplace_back(x, y);
+                        found = true;
                         isBorder[x][y] = ubit;
                         break;
-                        // borderInd[x][y] = borderPoints.size() - 1;
                     }
                 }
             }
+        return found;
     }
 
     void calcUnitsToCell(const World& world, vector<Cell> borderPoints[5]) {
@@ -265,7 +267,6 @@ struct GameStatus {
             }
         }
 
-        unitsToCell.clear();
         for (int p = 1; p <= 4; p++) {
             for (int wi : world.warriors[p]) {
                 const auto& w = world.entityMap.at(wi);
@@ -404,8 +405,9 @@ struct GameStatus {
     void updateHotPoints(const World& world) {
         vector<Cell> borderPoints[5];
         ubit++;
+        unitsToCell.clear();
 
-        calcBorderPoints(world, borderPoints);
+        if (!calcBorderPoints(world, borderPoints)) return;
         calcUnitsToCell(world, borderPoints);
         removeFar(borderPoints);
         // for (int p = 1; p <= 4; p++) {

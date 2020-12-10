@@ -42,7 +42,7 @@ void addTrainActions(const PlayerView& playerView, const World& world, vector<My
     for (const Entity& bu : world.myBuildings) {
         if (bu.entityType == EntityType::BUILDER_BASE
             && !st.workersLeftToFixTurrets
-            && (myWS < world.warriors[world.myId].size() || !st.underAttack)
+            && (!needBuildArmy)
             // && (myWS < world.warriors[world.myId].size() || myWS < 42)
             && myWS < min(77, int(st.resToGather.size() * 0.91))) {
             for (Cell bornPlace : nearCells(bu.position, bu.size)) {
@@ -68,6 +68,7 @@ void addTrainActions(const PlayerView& playerView, const World& world, vector<My
         if (bu.entityType == EntityType::MELEE_BASE
             && (playerView.players[playerView.myId - 1].resource > 100 || world.warriors[world.myId].size() < 25)
             && cntMelee < world.tick % 50 - 30
+            && !needBuildArmy
             && !st.underAttack) {
             for (Cell bornPlace : nearCells(bu.position, bu.size)) {
                 if (world.isEmpty(bornPlace)) {

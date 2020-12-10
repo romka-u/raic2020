@@ -37,6 +37,7 @@ public:
         info.status = gameStatus;
         // info.squadId = squadId;
         info.myPower = myPower;
+        info.myFrontIds = myFrontIds;
         #endif
 
         vector<MyAction> actions;
