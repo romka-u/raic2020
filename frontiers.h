@@ -114,7 +114,7 @@ void assignTargets(const World& world, const GameStatus& st) {
     }
 
     forn(i, st.attackersPower.size())
-        if (myPower[i] == st.attackersPower[i] && myPower[i] == 0 && world.tick < 400) {
+        if (myPower[i] == st.attackersPower[i] && myPower[i] == 0 && world.tick < 400 && world.myWarriors.size() <= 10) {
             if (!unitsByFront[i].empty()) {
                 Cell center(0, 0);
                 const auto& vu = unitsByFront.at(i);
