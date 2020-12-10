@@ -2,8 +2,8 @@
 
 #include "world.h"
 #include "common.h"
-#include "squads.h"
 #include "game_status.h"
+#include "frontiers.h"
 
 struct Score {
     int main;

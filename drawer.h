@@ -21,6 +21,7 @@ struct TickDrawInfo {
     GameStatus status;
     unordered_map<int, ostringstream> msg;
     unordered_map<int, int> squadId;
+    vector<int> myPower;
 };
 #ifdef DEBUG
 unordered_map<EntityType, string> ename = {
@@ -191,6 +192,12 @@ void drawBorderGroupsInfo(const vector<Entity>& entities, const GameStatus& st) 
             const Cell& to = st.unitsToCell.at(e.id);
             v.p.drawLine((from.x + 0.5) * SZ, (from.y + 0.5) * SZ, (to.x + 0.5) * SZ, (to.y + 0.5) * SZ);
         }
+
+    v.p.setPen(QPen(QColor(222, 192, 32), 16));
+    v.p.setBrush(Qt::transparent);
+    for (const auto& c : st.hotPoints) {
+        v.p.drawEllipse((c.x + 0.5) * SZ - SZ, (c.y + 0.5) * SZ - SZ, 2 * SZ, 2 * SZ);
+    }
 }
 
 void draw() {
@@ -369,8 +376,11 @@ void draw() {
     v.p.setPen(whitePen);
     sprintf(buf, "Tick: %d / %d", currentDrawTick, maxDrawTick);
     v.p.drawText(1379, 25, QString(buf));
-    forn(i, info.status.groupsBalance.size()) {
-        v.p.drawText(1200, yOffset + i * 30, "BG " + QString::number(i) + ": " + QString::number(info.status.groupsBalance[i]));
+
+    v.p.setFont(f12);
+    forn(i, info.status.attackersPower.size()) {
+        sprintf(buf, "Front %c: %d vs %d", 'A'+i, info.status.attackersPower[i], info.myPower[i]);
+        v.p.drawText(1200, yOffset + i * 16, buf);
     }
 }
 #endif

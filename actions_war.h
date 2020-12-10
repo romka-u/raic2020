@@ -27,7 +27,8 @@ void addWarActions(const PlayerView& playerView, const World& world, vector<MyAc
 
     // warriors
     for (const auto& w : world.myWarriors) {
-        Cell target = squadInfo[squadId[w.id]].target;
+        // Cell target = squadInfo[squadId[w.id]].target;
+        Cell target = frontTarget[w.id];
         closestDist[w.id] = inf;
 
         for (const auto& ou : world.oppEntities) {
@@ -79,7 +80,7 @@ void addWarActions(const PlayerView& playerView, const World& world, vector<MyAc
         }
 
         if (!iAmOnFront) {
-            const Cell target = squadInfo[squadId[w.id]].target;
+            const Cell target = frontTarget[w.id];
             actions.emplace_back(w.id, A_MOVE, target, -1, Score(100, -dist(w.position, target)));
             continue;
         }

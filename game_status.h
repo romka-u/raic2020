@@ -22,7 +22,8 @@ struct TurretStatus {
     }
 };
 
-int isBorder[88][88];
+int isBorder[88][88], ubc[88][88], bgg[88][88], usp[88][88];
+Cell clgc[88][88];
 
 struct GameStatus {
     bool underAttack;
@@ -35,8 +36,9 @@ struct GameStatus {
     unordered_set<int> turretsInDanger;
     unordered_map<int, Cell> unitsToCell;
     unordered_map<int, vector<int>> utg[5];
-    vector<int> groupsBalance;
-    int borderGroup[82][82], ubg[82][82], ubit;
+    vector<int> attackersPower;
+    vector<Cell> hotPoints;
+    int borderGroup[82][82], ubg[82][82], dtg[82][82], ubit;
 
     void updateTurretsInDanger(const World& world) {
         turretsInDanger.clear();
@@ -219,7 +221,6 @@ struct GameStatus {
     }
 
     void calcBorderPoints(const World& world, vector<Cell> borderPoints[5]) {
-        ubit++;
         forn(x, 80) forn(y, 80)
             if (world.infMap[x][y].first > 0 && !world.hasNonMovable({x, y})) {
                 const int curId = world.infMap[x][y].first;
@@ -239,43 +240,99 @@ struct GameStatus {
     }
 
     void calcUnitsToCell(const World& world, vector<Cell> borderPoints[5]) {
+        vector<Cell> q;
+        size_t qb = 0;
+        
+        for (int p = 1; p <= 4; p++) {
+            for (const Cell& c : borderPoints[p]) {
+                q.emplace_back(c);
+                clgc[c.x][c.y] = c;
+                dtg[c.x][c.y] = 0;
+                ubc[c.x][c.y] = ubit;
+            }
+        }
+
+        while (qb < q.size()) {
+            const Cell c = q[qb++];
+            forn(w, 4) {
+                const Cell nc = c ^ w;
+                if (nc.inside() && ubc[nc.x][nc.y] != ubit && !world.hasNonMovable(nc)) {
+                    ubc[nc.x][nc.y] = ubit;
+                    dtg[nc.x][nc.y] = dtg[c.x][c.y] + 1;
+                    clgc[nc.x][nc.y] = clgc[c.x][c.y];
+                    q.push_back(nc);
+                }
+            }
+        }
+
         unitsToCell.clear();
         for (int p = 1; p <= 4; p++) {
             for (int wi : world.warriors[p]) {
                 const auto& w = world.entityMap.at(wi);
-                int cld = inf;
-                Cell cc{7, 7};
-                for (const Cell& c : borderPoints[p]) {
-                    int cd = dist(c, w.position);
-                    if (cd < cld) {
-                        cld = cd;
-                        cc = c;
-                    }
-                }
-                unitsToCell[wi] = cc;
+                unitsToCell[wi] = clgc[w.position.x][w.position.y];
             }
-            for (int bi : world.buildings[p]) {
+            /*for (int bi : world.buildings[p]) {
                 const auto& b = world.entityMap.at(bi);
                 if (b.entityType != EntityType::TURRET) continue;
-                int cld = inf;
-                Cell cc{7, 7};
-                for (const Cell& c : borderPoints[p]) {
-                    int cd = dist(c, b.position);
-                    if (cd < cld) {
-                        cld = cd;
-                        cc = c;
-                    }
-                }
-                unitsToCell[bi] = cc;
-            }
+                unitsToCell[bi] = clgc[b.position.x][b.position.y];
+            }*/
         }
     }
 
-    int calcBorderGroups(vector<Cell> borderPoints[5]) {
+    void removeFar(vector<Cell> borderPoints[5]) {
+        vector<pair<Cell, int>> q;
+        size_t qb = 0;
+
+        for (const auto& [unitId, c] : unitsToCell) {
+            if (usp[c.x][c.y] != ubit) {
+                usp[c.x][c.y] = ubit;
+                q.emplace_back(c, 0);
+            }
+        }
+
+        while (qb < q.size()) {
+            auto [cur, d] = q[qb++];
+            forn(w, 4) {
+                const Cell nc = cur ^ w;
+                if (nc.inside() && usp[nc.x][nc.y] != ubit) {
+                    usp[nc.x][nc.y] = ubit;
+                    if (d <= 11) {
+                        q.emplace_back(nc, d + 1);
+                    }
+                }
+            }
+        }
+
+        for (int p = 1; p <= 4; p++) {
+            int nn = 0;
+            forn(i, borderPoints[p].size()) {
+                const Cell& c = borderPoints[p][i];
+                if (usp[c.x][c.y] == ubit) {
+                    borderPoints[p][nn++] = c;
+                } else {
+                    isBorder[c.x][c.y] = -1;
+                }
+            }
+            borderPoints[p].resize(nn);
+        }
+    }
+
+    int calcBorderGroups(const World& world, vector<Cell> borderPoints[5]) {
+        forn(x, 79) forn(y, 79) {
+            if (isBorder[x][y] == ubit && isBorder[x][y+1] == ubit && isBorder[x+1][y] == ubit && isBorder[x+1][y+1] == ubit) {
+                int cntDiff = 0;
+                for (int p = 1; p <= 4; p++) {
+                    cntDiff += world.infMap[x][y].first == p || world.infMap[x][y+1].first == p || world.infMap[x+1][y].first == p || world.infMap[x+1][y+1].first == p;
+                }
+                if (cntDiff > 2) {
+                    bgg[x][y] = bgg[x+1][y] = bgg[x][y+1] = bgg[x+1][y+1] = ubit;
+                }
+            }
+        }
+
         int color = 0;
         for (int p = 1; p <= 4; p++)
-            forn(i, borderPoints[p].size()) {
-                const Cell& cb = borderPoints[p][i];
+            for (const Cell& cb : borderPoints[p]) {
                 if (ubg[cb.x][cb.y] != ubit) {
                     ubg[cb.x][cb.y] = ubit;
                     borderGroup[cb.x][cb.y] = color;
@@ -289,8 +346,9 @@ struct GameStatus {
                             const Cell nc = cur ^ w;
                             if (nc.inside() && isBorder[nc.x][nc.y] == ubit && ubg[nc.x][nc.y] != ubit) {
                                 ubg[nc.x][nc.y] = ubit;
-                                q.push_back(nc);
                                 borderGroup[nc.x][nc.y] = color;
+                                if (bgg[nc.x][nc.y] != ubit)
+                                    q.push_back(nc);
                             }
                         }
                     }
@@ -300,36 +358,64 @@ struct GameStatus {
         return color;
     }
 
-    void calcGroupsBalance(const World& world, const unordered_map<int, Cell>& unitsToCell, int groupsCnt) {
-        groupsBalance.assign(groupsCnt, 0);
+    void calcGroupsBalance(const World& world, int groupsCnt) {
+        attackersPower.assign(groupsCnt, 0);
         for (int p = 1; p <= 4; p++) utg[p].clear();
 
         for (const auto& [unitId, c] : unitsToCell) {
             const auto& u = world.entityMap.at(unitId);
-            if (dist(c, u) <= 11) {
+            if (dtg[u.position.x][u.position.y] <= 14) {
                 int pwr = 10;
                 // if (u.entityType == EntityType::TURRET) pwr = 42;
-                if (u.playerId == world.myId) {
-                    groupsBalance[borderGroup[c.x][c.y]] += pwr;
-                } else {
-                    groupsBalance[borderGroup[c.x][c.y]] -= pwr;
-                }
+                if (u.playerId != world.myId)
+                    attackersPower[borderGroup[c.x][c.y]] += pwr;
                 utg[u.playerId][borderGroup[c.x][c.y]].push_back(unitId);
+            }
+        }
+    }
+
+    void calcHotPoints(const World& world, vector<Cell> borderPoints[5], int groupsCnt) {
+        vector<vector<Cell>> groupCells(groupsCnt), unitCloseGroupCells(groupsCnt);
+        for (const auto& [unitId, c] : unitsToCell) {
+            int grId = borderGroup[c.x][c.y];
+            unitCloseGroupCells[grId].push_back(c);
+        }
+        for (int p = 1; p <= 4; p++)
+            for (const Cell& c : borderPoints[p]) {
+                int grId = borderGroup[c.x][c.y];
+                groupCells[grId].push_back(c);
+            }
+
+        hotPoints.resize(groupsCnt);
+        forn(i, groupsCnt) {
+            int score = inf;
+            for (const Cell& c : groupCells[i]) {
+                int cs = 0;
+                for (const Cell& uc : unitCloseGroupCells[i])
+                    cs += dist(uc, c);
+                if (cs < score) {
+                    score = cs;
+                    hotPoints[i] = c;
+                }
             }
         }
     }
     
     void updateHotPoints(const World& world) {
         vector<Cell> borderPoints[5];
+        ubit++;
+
         calcBorderPoints(world, borderPoints);
-        for (int p = 1; p <= 4; p++) {
-            cerr << p << ":";
-            for (const auto& cell : borderPoints[p]) cerr << " " << cell;
-            cerr << endl;                
-        }
-        int groupsCnt = calcBorderGroups(borderPoints);        
         calcUnitsToCell(world, borderPoints);
-        calcGroupsBalance(world, unitsToCell, groupsCnt);
+        removeFar(borderPoints);
+        // for (int p = 1; p <= 4; p++) {
+        //     cerr << p << ":";
+        //     for (const auto& cell : borderPoints[p]) cerr << " " << cell;
+        //     cerr << endl;                
+        // }
+        int groupsCnt = calcBorderGroups(world, borderPoints);
+        calcGroupsBalance(world, groupsCnt);
+        calcHotPoints(world, borderPoints, groupsCnt);
     }
 
     void update(const World& world) {

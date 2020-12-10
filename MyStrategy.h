@@ -6,7 +6,6 @@
 #include "world.h"
 #include "game_status.h"
 #include "astar.h"
-#include "squads.h"
 #include "actions_all.h"
 
 World world;
@@ -28,6 +27,7 @@ public:
         if (world.oppEntities.empty()) return Action();
 
         gameStatus.update(world);
+        assignTargets(world, gameStatus);
 
         TickDrawInfo& info = tickInfo[playerView.currentTick];
         #ifdef DEBUG
@@ -35,10 +35,9 @@ public:
         info.players = playerView.players;
         info.myId = playerView.myId;
         info.status = gameStatus;
-        info.squadId = squadId;
+        // info.squadId = squadId;
+        info.myPower = myPower;
         #endif
-
-        calcSquadsTactic(world, gameStatus);
 
         vector<MyAction> actions;
         addBuildActions(playerView, world, actions, gameStatus);

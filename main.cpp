@@ -53,7 +53,7 @@ int main(int argc, char* argv[])
     #ifdef DEBUG 
     std::thread runner([host, port, token]() { Runner(host, port, token).run(); });
 
-    v.setSize(1700, 1000);
+    v.setSize(1800, 1040);
     drawTargets = true;
     v.setOnKeyPress([](const QKeyEvent& ev) {
         clickedPointWorld = Vec2Float(1e9, 1e9);

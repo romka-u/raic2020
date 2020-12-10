@@ -118,10 +118,10 @@ protected:
         } else if (event->key() == Qt::Key_Down || event->key() == Qt::Key_J) {
             movey += MOVE_COEFF / scaley;
         } else if (event->key() == Qt::Key_0) {
-            movex = 0;
-            movey = 0;
-            scalex = 1.0;
-            scaley = 1.0;
+            scalex = 0.12;
+            scaley = -0.12;
+            movex = 4500;
+            movey = 3500;
         }
 
         // std::cerr << movex << " " << movey << " " << scalex << " " << scaley << std::endl;
@@ -154,7 +154,7 @@ private:
     static constexpr double MOVE_COEFF = 10;
     double scalex = 0.12;
     double scaley = -0.12;
-    double movex = 5000;
+    double movex = 4500;
     double movey = 3500;
     bool paused_ = false;
 
