@@ -29,7 +29,7 @@ void resBfs(const World& world) {
 }
 
 void addTrainActions(const PlayerView& playerView, const World& world, vector<MyAction>& actions, const GameStatus& st) {
-    int gap = 3;
+    int gap = st.underAttack ? 0 : 3;
     for (const Entity& bu : world.myBuildings)
         if (!bu.active && bu.entityType == EntityType::HOUSE)
             gap = 0;
