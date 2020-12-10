@@ -55,7 +55,7 @@ void addTrainActions(const PlayerView& playerView, const World& world, vector<My
         }
         if (bu.entityType == EntityType::RANGED_BASE
             && (playerView.players[playerView.myId - 1].resource > 100 || world.warriors[world.myId].size() < 25)
-            && (needBuildArmy || myWS > 64)
+            && (needBuildArmy || myWS > 50)
             && world.warriors[world.myId].size() < 64) {
             for (Cell bornPlace : nearCells(bu.position, bu.size)) {
                 if (world.isEmpty(bornPlace)) {

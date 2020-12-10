@@ -29,10 +29,17 @@ void assignTargets(const World& world, const GameStatus& st) {
 
     unordered_map<int, vector<pii>> myFronts;
     myFrontIds.clear();
+    unordered_set<int> nearBaseFrontIds;
 
     forn(x, 80) forn(y, 80)
-        if (st.ubg[x][y] == st.ubit && world.infMap[x][y].first == world.myId)
+        if (st.ubg[x][y] == st.ubit && world.infMap[x][y].first == world.myId) {
             myFrontIds.insert(st.borderGroup[x][y]);
+            const Cell c(x, y);
+            for (const auto& b : world.myBuildings)
+                if (dist(c, b) <= 3) {
+                    nearBaseFrontIds.insert(st.borderGroup[x][y]);
+                }
+        }
 
     for (const auto& w : world.myWarriors) {
         Cell borderCell = st.unitsToCell.at(w.id);
@@ -42,6 +49,8 @@ void assignTargets(const World& world, const GameStatus& st) {
     vector<int> needSupport;
     unordered_set<int> freeWarriors;
     myPower.assign(st.attackersPower.size(), 0);
+    for (int fid : nearBaseFrontIds)
+        myPower[fid] = -5;
     unordered_map<int, vector<int>> unitsByFront;
 
     for (auto& [gr, vpp] : myFronts) {
@@ -60,7 +69,7 @@ void assignTargets(const World& world, const GameStatus& st) {
         }
         myPower[gr] = mpw;
 
-        if (mpw < st.attackersPower[gr]) {
+        if (mpw < st.attackersPower[gr] && nearBaseFrontIds.find(gr) == nearBaseFrontIds.end()) {
             for (const auto& [_, id] : vpp) frontTarget[id] = Cell(7, 7);
         } else {
             for (; i < vpp.size(); i++) {
