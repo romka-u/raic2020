@@ -61,6 +61,7 @@ void assignTargets(const World& world, const GameStatus& st) {
             mpw += 10;
             const auto& u = world.entityMap.at(vpp[i].second);
             frontTarget[u.id] = st.unitsToCell.at(u.id);
+            // cerr << "[A] front target of " << u.id << " set to " << frontTarget[u.id] << endl;
             if (st.dtg[u.position.x][u.position.y] <= 6) {
                 setClosestTarget(u, world.oppEntities);
             }
@@ -79,8 +80,9 @@ void assignTargets(const World& world, const GameStatus& st) {
     }
 
     forn(i, st.attackersPower.size())
-        if (myPower[i] < st.attackersPower[i])
+        if (myPower[i] < st.attackersPower[i] && myFrontIds.count(i)) {
             needSupport.push_back(i);
+        }
 
     vector<pair<int, pii>> cand;
     for (int gr : needSupport)
@@ -96,6 +98,7 @@ void assignTargets(const World& world, const GameStatus& st) {
         if (myPower[gr] < st.attackersPower[gr]) {
             myPower[gr] += 10;
             frontTarget[id] = st.hotPoints[gr];
+            // cerr << "[B] front target of " << id << " set to " << frontTarget[id] << endl;
             unitsByFront[gr].push_back(id);
             freeWarriors.erase(id);
         }
@@ -103,10 +106,28 @@ void assignTargets(const World& world, const GameStatus& st) {
 
     for (int freeId : freeWarriors) {
         const Cell c = st.unitsToCell.at(freeId);
+        int grId = st.borderGroup[c.x][c.y];
+        unitsByFront[grId].push_back(freeId);
         frontTarget[freeId] = c;
-        unitsByFront[st.borderGroup[c.x][c.y]].push_back(freeId);
-        myPower[st.borderGroup[c.x][c.y]] += 10;
+        // cerr << "[C] front target of " << freeId << " set to " << frontTarget[freeId] << endl;
+        // myPower[st.borderGroup[c.x][c.y]] += 10;
     }
+
+    forn(i, st.attackersPower.size())
+        if (myPower[i] == st.attackersPower[i] && myPower[i] == 0 && world.tick < 400) {
+            if (!unitsByFront[i].empty()) {
+                Cell center(0, 0);
+                const auto& vu = unitsByFront.at(i);
+                for (int id : vu) {
+                    const auto& u = world.entityMap.at(id);
+                    center = center + u.position;
+                }
+                center = Cell(center.x / vu.size(), center.y / vu.size());
+                // cerr << "Front " << i << " 0 vs 0, center " << center << " of " << vu.size() << " units\n";
+                for (int id : vu)
+                    frontTarget[id] = center;
+            }
+        }
 
     needBuildArmy = false;
     for (int grId : myFrontIds) {
