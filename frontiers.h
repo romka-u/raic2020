@@ -74,7 +74,11 @@ void assignTargets(const World& world, const GameStatus& st) {
         myPower[gr] = mpw;
 
         if (mpwc < st.attackersPowerClose[gr] && nearBaseFrontIds.find(gr) == nearBaseFrontIds.end()) {
-            for (const auto& [_, id] : vpp) frontTarget[id] = Cell(7, 7);
+            for (const auto& [_, id] : vpp) {
+                const auto& u = world.entityMap.at(id);
+                if (st.dtg[u.position.x][u.position.y] <= 4)
+                    frontTarget[id] = Cell(7, 7);
+            }
         } else {
             for (; i < vpp.size(); i++) {
                 freeWarriors.insert(vpp[i].second);
