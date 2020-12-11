@@ -107,7 +107,7 @@ void addBuildActions(const PlayerView& playerView, const World& world, vector<My
             }
         }
         if (nearRes) {
-            Score buildScore(10);
+            Score buildScore(200);
             const int sz = props.at(EntityType::TURRET).size;
             for (Cell newPos : nearCells(wrk.position - Cell(sz - 1, sz - 1), sz)) {
                 if (canBuild(world, newPos, sz) && goodForTurret(newPos, sz) && noTurretAhead(world, newPos) && safeToBuild(world, newPos, sz, 10)) {

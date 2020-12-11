@@ -13,13 +13,16 @@ GameStatus gameStatus;
 
 class MyStrategy {
 public:
+    int prevGathered = 0;
     MyStrategy() {}
     ~MyStrategy() {}
+
     Action getAction(const PlayerView& playerView, DebugInterface* debugInterface) {
         maxDrawTick = playerView.currentTick;
         if (props.empty()) props = playerView.entityProperties;
         world.update(playerView);
-        int resourcesLeft = playerView.players[playerView.myId - 1].resource;
+        int resourcesLeft = playerView.players[playerView.myId - 1].resource + prevGathered;
+        prevGathered = 0;
         int myId = playerView.myId;
         std::unordered_map<int, EntityAction> moves;
         clearAStar();
@@ -94,6 +97,7 @@ public:
                         if (dist(upos, pos) == 1) {
                             moves[unitId].attackAction = std::make_shared<AttackAction>(std::make_shared<int>(oid), nullptr);
                             info.msg[unitId] << "Gathers " << world.entityMap[oid].position;
+                            prevGathered++;
                         } else {
                             setMove(unitId, upos, pos);
                             moved = true;

@@ -79,10 +79,9 @@ void assignTargets(const World& world, const GameStatus& st) {
                 if (st.dtg[u.position.x][u.position.y] <= 4)
                     frontTarget[id] = Cell(7, 7);
             }
-        } else {
-            for (; i < vpp.size(); i++) {
-                freeWarriors.insert(vpp[i].second);
-            }
+        }
+        for (; i < vpp.size(); i++) {
+            freeWarriors.insert(vpp[i].second);
         }
     }
 
@@ -130,7 +129,7 @@ void assignTargets(const World& world, const GameStatus& st) {
                     center = center + u.position;
                 }
                 center = Cell(center.x / vu.size(), center.y / vu.size());
-                // cerr << "Front " << i << " 0 vs 0, center " << center << " of " << vu.size() << " units\n";
+                // cerr << "Front " << i << "; 0 vs 0, center " << center << " of " << vu.size() << " units\n";
                 for (int id : vu)
                     frontTarget[id] = center;
             }
@@ -142,4 +141,10 @@ void assignTargets(const World& world, const GameStatus& st) {
             needBuildArmy = true;
         }
     }
+    /*
+    for (const auto& w : world.myWarriors) {
+        assert(frontTarget.count(w.id));
+        cerr << w.id << "->" << frontTarget[w.id] << endl;
+    }
+    */
 }
