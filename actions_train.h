@@ -44,7 +44,7 @@ void addTrainActions(const PlayerView& playerView, const World& world, vector<My
             && !st.workersLeftToFixTurrets
             && (!needBuildArmy)
             // && (myWS < world.warriors[world.myId].size() || myWS < 42)
-            && myWS < min(77, int(st.resToGather.size() * 0.91))) {
+            && myWS < min(64, int(st.resToGather.size() * 0.91))) {
             for (Cell bornPlace : nearCells(bu.position, bu.size)) {
                 if (world.isEmpty(bornPlace)) {
                     // int aux = bornPlace.x + bornPlace.y;
@@ -54,9 +54,9 @@ void addTrainActions(const PlayerView& playerView, const World& world, vector<My
             }
         }
         if (bu.entityType == EntityType::RANGED_BASE
-            && (playerView.players[playerView.myId - 1].resource > 100 || world.warriors[world.myId].size() < 25)
-            && (needBuildArmy || myWS > 50)
-            && world.warriors[world.myId].size() < 64) {
+            && (playerView.players[playerView.myId - 1].resource > 100 || world.warriors[world.myId].size() < 42)
+            && (needBuildArmy || myWS > 32)
+            && world.warriors[world.myId].size() < 77) {
             for (Cell bornPlace : nearCells(bu.position, bu.size)) {
                 if (world.isEmpty(bornPlace)) {
                     actions.emplace_back(bu.id, A_TRAIN, bornPlace, EntityType::RANGED_UNIT, Score{30, bornPlace.x + bornPlace.y});
