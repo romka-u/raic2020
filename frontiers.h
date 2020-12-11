@@ -3,7 +3,7 @@
 #include "game_status.h"
 
 unordered_map<int, Cell> frontTarget;
-vector<int> myPower;
+vector<int> myPower; //, myPowerClose;
 unordered_set<int> myFrontIds;
 bool needBuildArmy;
 
@@ -49,6 +49,7 @@ void assignTargets(const World& world, const GameStatus& st) {
     vector<int> needSupport;
     unordered_set<int> freeWarriors;
     myPower.assign(st.attackersPower.size(), 0);
+    // myPowerClose.assign(st.attackersPower.size(), 0);
     for (int fid : nearBaseFrontIds)
         myPower[fid] = -5;
     unordered_map<int, vector<int>> unitsByFront;
@@ -60,7 +61,7 @@ void assignTargets(const World& world, const GameStatus& st) {
         while (mpw < st.attackersPower[gr] && i < vpp.size()) {
             const auto& u = world.entityMap.at(vpp[i].second);
             mpw += min(11, u.health);
-            if (st.dtg[u.position.x][u.position.y] <= 11) {
+            if (st.dtg[u.position.x][u.position.y] <= 8) {
                 mpwc += min(11, u.health);
             }
             frontTarget[u.id] = st.unitsToCell.at(u.id);
@@ -72,6 +73,7 @@ void assignTargets(const World& world, const GameStatus& st) {
             i++;
         }
         myPower[gr] = mpw;
+        // myPowerClose[gr] = mpwc;
 
         if (mpwc < st.attackersPowerClose[gr] && nearBaseFrontIds.find(gr) == nearBaseFrontIds.end()) {
             for (const auto& [_, id] : vpp) {
@@ -137,7 +139,7 @@ void assignTargets(const World& world, const GameStatus& st) {
 
     needBuildArmy = false;
     for (int grId : myFrontIds) {
-        if (myPower[grId] < st.attackersPower[grId]) {
+        if (myPower[grId] < st.attackersPower[grId] && st.attackersPowerClose[grId] != 0) {
             needBuildArmy = true;
         }
     }

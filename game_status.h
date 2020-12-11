@@ -366,12 +366,12 @@ struct GameStatus {
 
         for (const auto& [unitId, c] : unitsToCell) {
             const auto& u = world.entityMap.at(unitId);
-            if (dtg[u.position.x][u.position.y] <= 25) {
+            if (dtg[u.position.x][u.position.y] <= 19) {
                 int pwr = min(11, u.health);
                 // if (u.entityType == EntityType::TURRET) pwr = 42;
                 if (u.playerId != world.myId) {
                     attackersPower[borderGroup[c.x][c.y]] += pwr;
-                    if (dtg[u.position.x][u.position.y] <= 14) {
+                    if (dtg[u.position.x][u.position.y] <= 11) {
                         attackersPowerClose[borderGroup[c.x][c.y]] += pwr;
                     }
                 }
