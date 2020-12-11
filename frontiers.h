@@ -55,11 +55,14 @@ void assignTargets(const World& world, const GameStatus& st) {
 
     for (auto& [gr, vpp] : myFronts) {
         sort(vpp.begin(), vpp.end());
-        int mpw = 0;
+        int mpw = 0, mpwc = 0;
         size_t i = 0;
         while (mpw < st.attackersPower[gr] && i < vpp.size()) {
-            mpw += 10;
             const auto& u = world.entityMap.at(vpp[i].second);
+            mpw += min(11, u.health);
+            if (st.dtg[u.position.x][u.position.y] <= 11) {
+                mpwc += min(11, u.health);
+            }
             frontTarget[u.id] = st.unitsToCell.at(u.id);
             // cerr << "[A] front target of " << u.id << " set to " << frontTarget[u.id] << endl;
             if (st.dtg[u.position.x][u.position.y] <= 6) {
@@ -70,7 +73,7 @@ void assignTargets(const World& world, const GameStatus& st) {
         }
         myPower[gr] = mpw;
 
-        if (mpw < st.attackersPower[gr] && nearBaseFrontIds.find(gr) == nearBaseFrontIds.end()) {
+        if (mpwc < st.attackersPowerClose[gr] && nearBaseFrontIds.find(gr) == nearBaseFrontIds.end()) {
             for (const auto& [_, id] : vpp) frontTarget[id] = Cell(7, 7);
         } else {
             for (; i < vpp.size(); i++) {

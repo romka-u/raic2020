@@ -36,7 +36,7 @@ struct GameStatus {
     unordered_set<int> turretsInDanger;
     unordered_map<int, Cell> unitsToCell;
     unordered_map<int, vector<int>> utg[5];
-    vector<int> attackersPower;
+    vector<int> attackersPower, attackersPowerClose;
     vector<Cell> hotPoints;
     int borderGroup[82][82], ubg[82][82], dtg[82][82], ubit;
 
@@ -361,15 +361,20 @@ struct GameStatus {
 
     void calcGroupsBalance(const World& world, int groupsCnt) {
         attackersPower.assign(groupsCnt, 0);
+        attackersPowerClose.assign(groupsCnt, 0);
         for (int p = 1; p <= 4; p++) utg[p].clear();
 
         for (const auto& [unitId, c] : unitsToCell) {
             const auto& u = world.entityMap.at(unitId);
-            if (dtg[u.position.x][u.position.y] <= 14) {
-                int pwr = 10;
+            if (dtg[u.position.x][u.position.y] <= 25) {
+                int pwr = min(11, u.health);
                 // if (u.entityType == EntityType::TURRET) pwr = 42;
-                if (u.playerId != world.myId)
+                if (u.playerId != world.myId) {
                     attackersPower[borderGroup[c.x][c.y]] += pwr;
+                    if (dtg[u.position.x][u.position.y] <= 14) {
+                        attackersPowerClose[borderGroup[c.x][c.y]] += pwr;
+                    }
+                }
                 utg[u.playerId][borderGroup[c.x][c.y]].push_back(unitId);
             }
         }
