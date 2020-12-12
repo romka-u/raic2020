@@ -79,12 +79,13 @@ void assignTargets(const World& world, const GameStatus& st) {
     myPower.assign(st.attackersPower.size(), 0);
     // myPowerClose.assign(st.attackersPower.size(), 0);
     for (int fid : nearBaseFrontIds)
-        myPower[fid] = -5;
+        myPower[fid] = -7;
     unordered_map<int, vector<int>> unitsByFront;
 
     for (auto& [gr, vpp] : myFronts) {
         sort(vpp.begin(), vpp.end());
-        int mpw = 0, mpwc = 0;
+        int& mpw = myPower[gr];
+        int mpwc = 0;
         size_t i = 0;
         while (mpw < st.attackersPower[gr] && i < vpp.size()) {
             const auto& u = world.entityMap.at(vpp[i].second);
@@ -99,9 +100,7 @@ void assignTargets(const World& world, const GameStatus& st) {
             }
             unitsByFront[gr].push_back(u.id);
             i++;
-        }
-        myPower[gr] = mpw;
-        // myPowerClose[gr] = mpwc;
+        }        
 
         if (mpwc < st.attackersPowerClose[gr] && nearBaseFrontIds.find(gr) == nearBaseFrontIds.end()) {
             for (const auto& [_, id] : vpp) {
@@ -130,9 +129,10 @@ void assignTargets(const World& world, const GameStatus& st) {
 
     for (const auto& [_, p] : cand) {
         const auto& [gr, id] = p;
+        const auto& u = world.entityMap.at(id);
         if (freeWarriors.find(id) == freeWarriors.end()) continue;
         if (myPower[gr] < st.attackersPower[gr]) {
-            myPower[gr] += 10;
+            myPower[gr] += min(11, u.health);;
             frontTarget[id] = st.hotPoints[gr];
             // cerr << "[B] front target of " << id << " set to " << frontTarget[id] << endl;
             unitsByFront[gr].push_back(id);
