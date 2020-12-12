@@ -141,10 +141,10 @@ void assignTargets(const World& world, const GameStatus& st) {
     }
 
     for (int freeId : freeWarriors) {
-        const Cell c = st.unitsToCell.at(freeId);
+        /*const Cell c = st.unitsToCell.at(freeId);
         int grId = st.borderGroup[c.x][c.y];
-        unitsByFront[grId].push_back(freeId);
-        frontTarget[freeId] = c;
+        unitsByFront[grId].push_back(freeId);*/
+        frontTarget[freeId] = getNextTarget(world, world.entityMap.at(freeId).position);
         // cerr << "[C] front target of " << freeId << " set to " << frontTarget[freeId] << endl;
         // myPower[st.borderGroup[c.x][c.y]] += 10;
     }

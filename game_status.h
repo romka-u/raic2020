@@ -273,12 +273,11 @@ struct GameStatus {
             const Cell c = q[qb++];
             forn(w, 4) {
                 const Cell nc = c ^ w;
-                if (nc.inside() && ubc[nc.x][nc.y] != ubit) {
+                if (nc.inside() && ubc[nc.x][nc.y] != ubit && !world.hasNonMovable(nc)) {
                     ubc[nc.x][nc.y] = ubit;
                     dtg[nc.x][nc.y] = dtg[c.x][c.y] + 1;
                     clgc[nc.x][nc.y] = clgc[c.x][c.y];
-                    if (!world.hasNonMovable(nc))
-                        q.push_back(nc);
+                    q.push_back(nc);
                 }
             }
         }
