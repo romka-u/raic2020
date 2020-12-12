@@ -34,11 +34,13 @@ void addTrainActions(const PlayerView& playerView, const World& world, vector<My
         if (!bu.active && bu.entityType == EntityType::HOUSE)
             gap = 0;
 
-    if (st.foodUsed >= st.foodLimit - gap) return;
+    // if (st.foodUsed >= st.foodLimit - gap) return;
 
     resBfs(world);
 
     const int myWS = world.workers[world.myId].size();
+    int workersScore = 50 + 30 * (myWS < world.warriors[world.myId].size());
+    
     for (const Entity& bu : world.myBuildings) {
         if (bu.entityType == EntityType::BUILDER_BASE
             && !st.workersLeftToFixTurrets
@@ -49,17 +51,18 @@ void addTrainActions(const PlayerView& playerView, const World& world, vector<My
                 if (world.isEmpty(bornPlace)) {
                     // int aux = bornPlace.x + bornPlace.y;
                     // if (world.tick < 70) aux = -aux;
-                    actions.emplace_back(bu.id, A_TRAIN, bornPlace, EntityType::BUILDER_UNIT, Score{50, -rd[bornPlace.x][bornPlace.y]});
+                    actions.emplace_back(bu.id, A_TRAIN, bornPlace, EntityType::BUILDER_UNIT, Score{workersScore, -rd[bornPlace.x][bornPlace.y]});
                 }
             }
         }
         if (bu.entityType == EntityType::RANGED_BASE
-            && (playerView.players[playerView.myId - 1].resource > 100 || world.warriors[world.myId].size() < 42)
-            && (needBuildArmy || myWS > 32)
+            /* && (playerView.players[playerView.myId - 1].resource > 100 || world.warriors[world.myId].size() < 42)
+            && (needBuildArmy || myWS > 32) */
+            && (st.foodLimit > 15 || needBuildArmy)
             && world.warriors[world.myId].size() < 77) {
             for (Cell bornPlace : nearCells(bu.position, bu.size)) {
                 if (world.isEmpty(bornPlace)) {
-                    actions.emplace_back(bu.id, A_TRAIN, bornPlace, EntityType::RANGED_UNIT, Score{30, bornPlace.x + bornPlace.y});
+                    actions.emplace_back(bu.id, A_TRAIN, bornPlace, EntityType::RANGED_UNIT, Score{70, bornPlace.x + bornPlace.y});
                 }
             }
         }

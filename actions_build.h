@@ -76,7 +76,8 @@ void addBuildActions(const PlayerView& playerView, const World& world, vector<My
             housesInProgress++;
 
     for (const auto& wrk : world.myWorkers) {
-        if (st.foodLimit < st.foodUsed + 15 && st.foodLimit < 145 && housesInProgress < (2 - st.underAttack)) {
+        // if (st.foodLimit < st.foodUsed + 15 && st.foodLimit < 145 && housesInProgress < (2 - st.underAttack)) {
+        if (st.foodUsed >= st.foodLimit - 1 && housesInProgress == 0) {
             // houses
             const int sz = props.at(EntityType::HOUSE).size;
             for (Cell newPos : nearCells(wrk.position - Cell(sz - 1, sz - 1), sz)) {
@@ -106,7 +107,7 @@ void addBuildActions(const PlayerView& playerView, const World& world, vector<My
                 break;
             }
         }
-        if (nearRes) {
+        if (nearRes && false) {
             Score buildScore(200);
             const int sz = props.at(EntityType::TURRET).size;
             for (Cell newPos : nearCells(wrk.position - Cell(sz - 1, sz - 1), sz)) {
