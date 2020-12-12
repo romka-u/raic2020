@@ -49,7 +49,7 @@ void addTrainActions(const PlayerView& playerView, const World& world, vector<My
                 if (world.isEmpty(bornPlace)) {
                     // int aux = bornPlace.x + bornPlace.y;
                     // if (world.tick < 70) aux = -aux;
-                    actions.emplace_back(bu.id, A_TRAIN, bornPlace, EntityType::BUILDER_UNIT, Score{50, -rd[bornPlace.x][bornPlace.y]});
+                    actions.emplace_back(bu.id, A_TRAIN, bornPlace, EntityType::BUILDER_UNIT, Score{32, -rd[bornPlace.x][bornPlace.y]});
                 }
             }
         }
@@ -59,7 +59,7 @@ void addTrainActions(const PlayerView& playerView, const World& world, vector<My
             && world.warriors[world.myId].size() < 77) {
             for (Cell bornPlace : nearCells(bu.position, bu.size)) {
                 if (world.isEmpty(bornPlace)) {
-                    actions.emplace_back(bu.id, A_TRAIN, bornPlace, EntityType::RANGED_UNIT, Score{30, bornPlace.x + bornPlace.y});
+                    actions.emplace_back(bu.id, A_TRAIN, bornPlace, EntityType::RANGED_UNIT, Score{myWS, bornPlace.x + bornPlace.y});
                 }
             }
         }
