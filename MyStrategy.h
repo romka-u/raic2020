@@ -74,7 +74,6 @@ public:
             healthLeft[e.id] = e.health;
         }
 
-        bool buildFailed = false;
         for (const MyAction& action : actions) {
             auto [unitId, actionType, pos, oid, score] = action;
             const auto& upos = world.entityMap[unitId].position;
@@ -121,12 +120,11 @@ public:
                     break;
                 case A_BUILD:
                 case A_TRAIN:
-                    if (cost <= resourcesLeft && !buildFailed) {
+                    if (cost <= resourcesLeft) {
                         moves[unitId].buildAction = std::make_shared<BuildAction>(etype, pos);
                         info.msg[unitId] << "Build/train [" << oid << "] at " << pos;
                         resourcesLeft -= cost;
                     } else {
-                        buildFailed = true;
                         continue;
                     }
                     break;
