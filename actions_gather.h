@@ -61,12 +61,17 @@ void addGatherActions(int myId, const World& world, vector<MyAction>& actions, c
 
             actions.emplace_back(wrk.id, A_HIDE_MOVE, hideTarget, -1, Score(/*underAttack * 120*/ 110, 0));
         } else {
+            // vector<MyAction> ca;
             for (int ri : st.resToGather) {
                 const auto& res = world.entityMap.at(ri);
                 const int cd = dist(res.position, wrk.position);
                 if (cd == 1 || dangerousRes.find(ri) == dangerousRes.end())
                     actions.emplace_back(wrk.id, A_GATHER, res.position, ri, Score(100 - cd, -wrk.id * 1e5 - ri));
             }
+            // sort(ca.begin(), ca.end());
+            // forn(x, min(10, int(ca.size()))) {
+            //     actions.push_back(ca[x]);
+            // }
         } 
     }
 }

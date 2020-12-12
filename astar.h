@@ -1,17 +1,20 @@
 #pragma once
 
 #include "world.h"
+#include <queue>
 
 struct QItem {
     int f, h, d, hm;
     Cell c, prev;
 };
 
+using MyQueue = priority_queue<QItem>;
+
 bool operator<(const QItem& a, const QItem& b) {
-    if (a.f + a.h != b.f + b.h) return a.f + a.h < b.f + b.h;
-    if (a.h != b.h) return a.h < b.h;
-    if (a.hm != b.hm) return a.hm < b.hm;
-    if (a.d != b.d) return a.d < b.d;
+    if (a.f + a.h != b.f + b.h) return a.f + a.h > b.f + b.h;
+    if (a.h != b.h) return a.h > b.h;
+    if (a.hm != b.hm) return a.hm > b.hm;
+    if (a.d != b.d) return a.d > b.d;
     return a.c < b.c;
 }
 
@@ -39,14 +42,14 @@ void clearAStar() {
 
 vector<Cell> getPathTo(const World& world, const Cell& from, const Cell& to) {
     if (from == to) return {from};
-    set<QItem> queue;
-    queue.insert(QItem{0, h(from, to), 0, hm(from, to), from});
+    MyQueue queue;
+    queue.push(QItem{0, h(from, to), 0, hm(from, to), from});
     uit++;
 
     while (!queue.empty()) {
-        QItem cur = *queue.begin();
+        QItem cur = queue.top();
         // cerr << "\nextracted " << cur.c << "...";
-        queue.erase(queue.begin());
+        queue.pop();
 
         if (um[cur.c.x][cur.c.y] != uit) {
             Cell cc = cur.c;
@@ -80,7 +83,7 @@ vector<Cell> getPathTo(const World& world, const Cell& from, const Cell& to) {
                 if (moveUsed[nc.x][nc.y][cur.d + 1][w ^ 2] == astick) nf += 7;
             }
             if (nc.inside()) {
-                queue.insert(QItem{nf, h(nc, to), cur.d + 1, hm(nc, to), nc, cur.c});
+                queue.push(QItem{nf, h(nc, to), cur.d + 1, hm(nc, to), nc, cur.c});
             }
         }
     }
