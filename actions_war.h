@@ -79,7 +79,7 @@ void addWarActions(const PlayerView& playerView, const World& world, vector<MyAc
             }
         }
 
-        if (!iAmOnFront) {
+        if (!iAmOnFront || frontTarget[w.id] == Cell(7, 7)) {
             const Cell target = frontTarget[w.id];
             actions.emplace_back(w.id, A_MOVE, target, -1, Score(100, -dist(w.position, target)));
             continue;

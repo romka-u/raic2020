@@ -18,6 +18,34 @@ void setClosestTarget(const Entity& u, const vector<Entity>& oppEntities) {
     }
 }
 
+Cell getNextTarget(const World& world, const Cell& myPos) {
+    for (const auto& b : world.oppEntities) {
+        const Cell& c = b.position;
+        if (c.x > 40 && c.y < 40)
+            return c;
+    }
+    for (const auto& b : world.oppEntities) {
+        const Cell& c = b.position;
+        if (c.x < 40 && c.y > 40)
+            return c;
+    }
+    for (const auto& b : world.oppEntities) {
+        const Cell& c = b.position;
+        if (c.x > 40 && c.y > 40)
+            return c;
+    }
+    int cld = inf;
+    Cell res(73, 73);
+    for (const auto& b : world.oppEntities) {
+        int cd = dist(myPos, b);
+        if (cd < cld) {
+            cld = cd;
+            res = b.position;
+        }
+    }
+    return res;
+}
+
 void assignTargets(const World& world, const GameStatus& st) {
     frontTarget.clear();
     if (st.unitsToCell.empty()) {

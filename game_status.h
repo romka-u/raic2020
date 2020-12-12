@@ -61,13 +61,24 @@ struct GameStatus {
             if (p == world.myId) continue;
             for (int wi : world.warriors[p]) {
                 const auto& w = world.entityMap.at(wi);
+                bool pushedCB = false, pushedBA = false;
                 for (const Entity& b : world.myBuildings) {
-                    if (dist(w.position, b) <= w.attackRange) {
+                    if (dist(w.position, b) <= w.attackRange && !pushedBA) {
                         underAttack = true;
                         buildingAttackers.push_back(w);
+                        pushedBA = true;
                     }
-                    if (dist(w.position, b) <= w.attackRange + 7) {
+                    if (dist(w.position, b) <= w.attackRange + 7 && !pushedCB) {
                         enemiesCloseToBase.push_back(w);
+                        pushedCB = true;
+                    }
+                }
+                if (!pushedCB) {
+                    for (const Entity& wrk : world.myWorkers) {
+                        if (dist(w.position, wrk.position) <= w.attackRange + 2 && !pushedCB) {
+                            enemiesCloseToBase.push_back(w);
+                            pushedCB = true;
+                        }
                     }
                 }
             }
@@ -262,11 +273,12 @@ struct GameStatus {
             const Cell c = q[qb++];
             forn(w, 4) {
                 const Cell nc = c ^ w;
-                if (nc.inside() && ubc[nc.x][nc.y] != ubit && !world.hasNonMovable(nc)) {
+                if (nc.inside() && ubc[nc.x][nc.y] != ubit) {
                     ubc[nc.x][nc.y] = ubit;
                     dtg[nc.x][nc.y] = dtg[c.x][c.y] + 1;
                     clgc[nc.x][nc.y] = clgc[c.x][c.y];
-                    q.push_back(nc);
+                    if (!world.hasNonMovable(nc))
+                        q.push_back(nc);
                 }
             }
         }
@@ -276,11 +288,13 @@ struct GameStatus {
                 const auto& w = world.entityMap.at(wi);
                 unitsToCell[wi] = clgc[w.position.x][w.position.y];
             }
-            /*for (int bi : world.buildings[p]) {
+            /*
+            for (int bi : world.buildings[p]) {
                 const auto& b = world.entityMap.at(bi);
-                if (b.entityType != EntityType::TURRET) continue;
+                // if (b.entityType != EntityType::TURRET) continue;
                 unitsToCell[bi] = clgc[b.position.x][b.position.y];
-            }*/
+            }
+            */
         }
     }
 
