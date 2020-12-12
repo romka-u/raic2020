@@ -138,9 +138,11 @@ void assignTargets(const World& world, const GameStatus& st) {
         }
 
     needBuildArmy = false;
-    for (int grId : myFrontIds) {
-        if (myPower[grId] < st.attackersPower[grId] && st.attackersPowerClose[grId] != 0) {
-            needBuildArmy = true;
+    if (!st.enemiesCloseToBase.empty()) {
+        for (int grId : myFrontIds) {
+            if (myPower[grId] < st.attackersPower[grId] && st.attackersPowerClose[grId] != 0) {
+                needBuildArmy = true;
+            }
         }
     }
     /*

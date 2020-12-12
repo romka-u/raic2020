@@ -62,7 +62,7 @@ void addWarActions(const PlayerView& playerView, const World& world, vector<MyAc
         const int myCld = closestDist.at(w.id);
 
         bool iAmOnFront = myCld < 8 && w.entityType != EntityType::MELEE_UNIT;
-        for (const auto& at : st.attackers)
+        for (const auto& at : st.buildingAttackers)
             if (at.position == closestEnemyCell[w.id]) {
                 iAmOnFront = false;
                 break;
