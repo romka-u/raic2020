@@ -38,6 +38,7 @@ struct GameStatus {
     unordered_map<int, vector<int>> utg[5];
     vector<int> attackersPower, attackersPowerClose;
     vector<Cell> hotPoints;
+    int needRanged;
     int borderGroup[82][82], ubg[82][82], dtg[82][82], ubit;
 
     void updateTurretsInDanger(const World& world) {
@@ -273,11 +274,12 @@ struct GameStatus {
             const Cell c = q[qb++];
             forn(w, 4) {
                 const Cell nc = c ^ w;
-                if (nc.inside() && ubc[nc.x][nc.y] != ubit && !world.hasNonMovable(nc)) {
+                if (nc.inside() && ubc[nc.x][nc.y] != ubit) {
                     ubc[nc.x][nc.y] = ubit;
                     dtg[nc.x][nc.y] = dtg[c.x][c.y] + 1;
                     clgc[nc.x][nc.y] = clgc[c.x][c.y];
-                    q.push_back(nc);
+                    if (!world.hasNonMovable(nc))
+                        q.push_back(nc);
                 }
             }
         }
@@ -285,15 +287,42 @@ struct GameStatus {
         for (int p = 1; p <= 4; p++) {
             for (int wi : world.warriors[p]) {
                 const auto& w = world.entityMap.at(wi);
-                unitsToCell[wi] = clgc[w.position.x][w.position.y];
+                const Cell& c = w.position;
+                if (ubc[c.x][c.y] == ubit) {
+                    unitsToCell[wi] = clgc[c.x][c.y];
+                } else {
+                    int cld = inf;
+                    Cell bc(-1, -1);
+                    for (const Cell& bp : borderPoints[p]) {
+                        int cd = dist(c, bp);
+                        if (cd < cld) {
+                            cld = cd;
+                            bc = bp;
+                        }
+                    }
+                    assert(bc.x != -1);
+                    unitsToCell[wi] = bc;
+                }
             }
-            /*
             for (int bi : world.buildings[p]) {
                 const auto& b = world.entityMap.at(bi);
-                // if (b.entityType != EntityType::TURRET) continue;
-                unitsToCell[bi] = clgc[b.position.x][b.position.y];
+                const Cell& c = b.position;
+                if (ubc[c.x][c.y] == ubit) {
+                    unitsToCell[bi] = clgc[c.x][c.y];
+                } else {
+                    int cld = inf;
+                    Cell bc(-1, -1);
+                    for (const Cell& bp : borderPoints[p]) {
+                        int cd = dist(c, bp);
+                        if (cd < cld) {
+                            cld = cd;
+                            bc = bp;
+                        }
+                    }
+                    assert(bc.x != -1);
+                    unitsToCell[bi] = bc;
+                }
             }
-            */
         }
     }
 
@@ -355,7 +384,7 @@ struct GameStatus {
                     ubg[cb.x][cb.y] = ubit;
                     borderGroup[cb.x][cb.y] = color;
                     vector<Cell> q;
-                    q.push_back(cb);                
+                    q.push_back(cb);
                     size_t qb = 0;
 
                     while (qb < q.size()) {
@@ -377,6 +406,7 @@ struct GameStatus {
     }
 
     void calcGroupsBalance(const World& world, int groupsCnt) {
+        // cerr << "groupsCnt = " << groupsCnt << endl;
         attackersPower.assign(groupsCnt, 0);
         attackersPowerClose.assign(groupsCnt, 0);
         for (int p = 1; p <= 4; p++) utg[p].clear();
@@ -398,9 +428,15 @@ struct GameStatus {
     }
 
     void calcHotPoints(const World& world, vector<Cell> borderPoints[5], int groupsCnt) {
+        // cerr << "groupsCnt = " << groupsCnt << endl;
         vector<vector<Cell>> groupCells(groupsCnt), unitCloseGroupCells(groupsCnt);
         for (const auto& [unitId, c] : unitsToCell) {
+            // cerr << "unit " << unitId << " -> front cell " << c << endl;
             int grId = borderGroup[c.x][c.y];
+            // cerr << "grId = " << grId << endl;
+            // while (grId > unitCloseGroupCells.size()) {
+            //     grId = grId + 0;
+            // }
             unitCloseGroupCells[grId].push_back(c);
         }
         for (int p = 1; p <= 4; p++)
@@ -432,11 +468,6 @@ struct GameStatus {
         if (!calcBorderPoints(world, borderPoints)) return;
         calcUnitsToCell(world, borderPoints);
         removeFar(borderPoints);
-        // for (int p = 1; p <= 4; p++) {
-        //     cerr << p << ":";
-        //     for (const auto& cell : borderPoints[p]) cerr << " " << cell;
-        //     cerr << endl;                
-        // }
         int groupsCnt = calcBorderGroups(world, borderPoints);
         calcGroupsBalance(world, groupsCnt);
         calcHotPoints(world, borderPoints, groupsCnt);
@@ -449,5 +480,15 @@ struct GameStatus {
         updateFoodLimit(world);
         updateTurretsState(world);
         updateHotPoints(world);
+
+        needRanged = 0;
+        if (world.myWorkers.size() >= 23) {
+            needRanged = 1;
+            for (const auto& b : world.myBuildings)
+                if (b.entityType == EntityType::RANGED_BASE && b.playerId == world.myId) {
+                    needRanged = 2;
+                    break;
+                }
+        }
     }
 };

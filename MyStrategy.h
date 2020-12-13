@@ -27,14 +27,12 @@ public:
         std::unordered_map<int, EntityAction> moves;
         clearAStar();
 
-        if (world.oppEntities.empty()) return Action();
-
         gameStatus.update(world);
         assignTargets(world, gameStatus);
-
+        
         TickDrawInfo& info = tickInfo[playerView.currentTick];
         #ifdef DEBUG
-        info.entities = playerView.entities;
+        info.entities = world.allEntities;
         info.players = playerView.players;
         info.myId = playerView.myId;
         info.status = gameStatus;

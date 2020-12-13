@@ -76,18 +76,18 @@ void addBuildActions(const PlayerView& playerView, const World& world, vector<My
             housesInProgress++;
 
     for (const auto& wrk : world.myWorkers) {
-        if (st.foodLimit < st.foodUsed + 15 && st.foodLimit < 145 && housesInProgress < (2 - st.underAttack)) {
+        if (st.foodLimit < st.foodUsed + 15 && st.foodLimit < 145 && housesInProgress < (2 - st.underAttack) && st.needRanged != 1) {
             // houses
             const int sz = props.at(EntityType::HOUSE).size;
             for (Cell newPos : nearCells(wrk.position - Cell(sz - 1, sz - 1), sz)) {
-                if (canBuild(world, newPos, sz) && goodForHouse(newPos, sz) && safeToBuild(world, newPos, sz, 10)) {
+                if (canBuild(world, newPos, sz) && (goodForHouse(newPos, sz) || st.needRanged == 0) && safeToBuild(world, newPos, sz, 10)) {
                     // if (newPos.x + newPos.y == 3 && !world.hasNonMovable({0, 0})) continue;
                     buildScore.aux = (newPos.x == 0) * 1000 + (newPos.y == 0) * 1000 - newPos.x - newPos.y;
                     actions.emplace_back(wrk.id, A_BUILD, newPos, EntityType::HOUSE, buildScore);
                 }
             }
-        } 
-        /*else {
+        }
+        if (st.needRanged == 1) {
             // ranged
             const int sz = props.at(EntityType::RANGED_BASE).size;
             for (Cell newPos : nearCells(wrk.position - Cell(sz - 1, sz - 1), sz)) {
@@ -96,7 +96,7 @@ void addBuildActions(const PlayerView& playerView, const World& world, vector<My
                     actions.emplace_back(wrk.id, A_BUILD, newPos, EntityType::RANGED_BASE, buildScore);
                 }
             }
-        }*/
+        }
         // turrets
         bool nearRes = false;
         forn(q, 4) {
@@ -106,7 +106,7 @@ void addBuildActions(const PlayerView& playerView, const World& world, vector<My
                 break;
             }
         }
-        if (nearRes) {
+        if (nearRes && st.needRanged == 2) {
             Score buildScore(200);
             const int sz = props.at(EntityType::TURRET).size;
             for (Cell newPos : nearCells(wrk.position - Cell(sz - 1, sz - 1), sz)) {
