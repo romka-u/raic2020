@@ -91,18 +91,18 @@ public:
                     info.msg[unitId] << "Attack " << oid << " at " << world.entityMap[oid].position;
                     break;
                 case A_GATHER:
-                    if (usedResources.insert(oid).second) {
-                        if (dist(upos, pos) == 1) {
-                            moves[unitId].attackAction = std::make_shared<AttackAction>(std::make_shared<int>(oid), nullptr);
-                            info.msg[unitId] << "Gathers " << world.entityMap[oid].position;
-                            prevGathered++;
-                        } else {
+                    if (dist(upos, pos) == 1) {
+                        moves[unitId].attackAction = std::make_shared<AttackAction>(std::make_shared<int>(oid), nullptr);
+                        info.msg[unitId] << "Gathers " << world.entityMap[oid].position;
+                        prevGathered++;
+                    } else {
+                        if (usedResources.insert(oid).second) {
                             setMove(unitId, upos, pos);
                             moved = true;
                             info.msg[unitId] << "Moves to gather " << pos;
+                        } else {
+                            continue;
                         }
-                    } else {
-                        continue;
                     }
                     break;
                 case A_MOVE:

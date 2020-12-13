@@ -10,7 +10,7 @@ endif()
 find_package(Qt5Widgets REQUIRED)
 find_package(Qt5Core REQUIRED)
 
-add_definitions(-DD2EBUG)
+add_definitions(-DDEBUG)
 add_definitions(-O2)
 
 file(GLOB HEADERS "*.hpp" ".h" "model/*.hpp")
