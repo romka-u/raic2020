@@ -413,6 +413,8 @@ struct GameStatus {
 
         for (const auto& [unitId, c] : unitsToCell) {
             const auto& u = world.entityMap.at(unitId);
+            if (u.entityType != EntityType::MELEE_UNIT && u.entityType != EntityType::RANGED_UNIT && u.entityType != EntityType::TURRET)
+                continue;
             if (dtg[u.position.x][u.position.y] <= 19) {
                 int pwr = min(11, u.health);
                 // if (u.entityType == EntityType::TURRET) pwr = 42;
@@ -428,15 +430,12 @@ struct GameStatus {
     }
 
     void calcHotPoints(const World& world, vector<Cell> borderPoints[5], int groupsCnt) {
-        // cerr << "groupsCnt = " << groupsCnt << endl;
         vector<vector<Cell>> groupCells(groupsCnt), unitCloseGroupCells(groupsCnt);
         for (const auto& [unitId, c] : unitsToCell) {
-            // cerr << "unit " << unitId << " -> front cell " << c << endl;
+            const auto& u = world.entityMap.at(unitId);
+            if (u.entityType != EntityType::MELEE_UNIT && u.entityType != EntityType::RANGED_UNIT && u.entityType != EntityType::TURRET)
+                continue;
             int grId = borderGroup[c.x][c.y];
-            // cerr << "grId = " << grId << endl;
-            // while (grId > unitCloseGroupCells.size()) {
-            //     grId = grId + 0;
-            // }
             unitCloseGroupCells[grId].push_back(c);
         }
         for (int p = 1; p <= 4; p++)
@@ -482,7 +481,7 @@ struct GameStatus {
         updateHotPoints(world);
 
         needRanged = 0;
-        if (world.myWorkers.size() >= 23) {
+        if (world.myWorkers.size() >= 16) {
             needRanged = 1;
             for (const auto& b : world.myBuildings)
                 if (b.entityType == EntityType::RANGED_BASE && b.playerId == world.myId) {
