@@ -27,7 +27,8 @@ const int A_REPAIR = 4;
 const int A_REPAIR_MOVE = 5;
 const int A_TRAIN = 6;
 const int A_GATHER = 7;
-const int A_HIDE_MOVE = 8;
+const int A_GATHER_MOVE = 8;
+const int A_HIDE_MOVE = 9;
 
 struct MyAction {
     int unitId;

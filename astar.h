@@ -18,11 +18,11 @@ bool operator<(const QItem& a, const QItem& b) {
     return a.c < b.c;
 }
 
-int h(const Cell& from, const Cell& to) {
+int hManh(const Cell& from, const Cell& to) {
     return dist(from, to);
 }
 
-int hm(const Cell& from, const Cell& to) {
+int hMax(const Cell& from, const Cell& to) {
     return max(abs(from.x - to.x), abs(from.y - to.y));
 }
 
@@ -34,7 +34,54 @@ int uit;
 int busyForAStar[80][80][D + 1];
 int foreverStuck[80][80];
 int moveUsed[80][80][D + 1][4];
+int dRes[82][82], dRep[82][82];
 int astick;
+
+void goBfs(const World& world, vector<Cell>& q, int d[82][82]) {
+    size_t qb = 0;
+    while (qb < q.size()) {
+        const Cell cur = q[qb++];
+        forn(w, 4) {
+            const Cell nc = cur ^ w;
+            if (nc.inside() && um[nc.x][nc.y] != uit && !world.hasNonMovable(nc)) {
+                um[nc.x][nc.y] = uit;
+                q.push_back(nc);
+                d[nc.x][nc.y] = d[cur.x][cur.y] + 1;
+            }
+        }
+    }
+}
+
+void updateD(const World& world) {
+    memset(dRes, 0x7f, sizeof(dRes));
+    memset(dRep, 0x7f, sizeof(dRep));
+
+    vector<Cell> q;    
+    uit++;
+    for (const Entity& r : world.resources) {
+        const Cell& c = r.position;
+        dRes[c.x][c.y] = 0;
+        q.push_back(c);
+        um[c.x][c.y] = uit;
+    }
+
+    goBfs(world, q, dRes);
+    
+    q.clear();
+    uit++;
+    for (const Entity& b : world.myBuildings) {
+        if (b.health < b.maxHealth) {
+            forn(x, b.size) forn(y, b.size) {
+                const Cell c = b.position + Cell(x, y);
+                dRep[c.x][c.y] = 0;
+                q.push_back(c);
+                um[c.x][c.y] = uit;
+            }
+        }
+    }
+
+    goBfs(world, q, dRep);
+}
 
 void clearAStar() {
     astick++;
@@ -43,12 +90,11 @@ void clearAStar() {
 vector<Cell> getPathTo(const World& world, const Cell& from, const Cell& to) {
     if (from == to) return {from};
     MyQueue queue;
-    queue.push(QItem{0, h(from, to), 0, hm(from, to), from});
+    queue.push(QItem{0, hManh(from, to), 0, hMax(from, to), from});
     uit++;
 
     while (!queue.empty()) {
         QItem cur = queue.top();
-        // cerr << "\nextracted " << cur.c << "...";
         queue.pop();
 
         if (um[cur.c.x][cur.c.y] != uit) {
@@ -76,19 +122,66 @@ vector<Cell> getPathTo(const World& world, const Cell& from, const Cell& to) {
 
         forn(w, 4) {
             Cell nc = cur.c ^ w;
-            // cerr << "\n-> nc = " << nc;
             int nf = cur.f + 1;
             if (cur.d < D) {
                 if (busyForAStar[nc.x][nc.y][cur.d + 1] == astick/* || foreverStuck[nc.x][nc.y]*/) nf += 7;
                 if (moveUsed[nc.x][nc.y][cur.d + 1][w ^ 2] == astick) nf += 7;
             }
             if (nc.inside()) {
-                queue.push(QItem{nf, h(nc, to), cur.d + 1, hm(nc, to), nc, cur.c});
+                queue.push(QItem{nf, hManh(nc, to), cur.d + 1, hMax(nc, to), nc, cur.c});
             }
         }
     }
 
     return {from};
+}
+
+pair<vector<Cell>, int> getPathToMany(const World& world, const Cell& from, int d[82][82]) {
+    MyQueue queue;
+    queue.push(QItem{0, d[from.x][from.y], 0, 0, from});
+    uit++;
+
+    while (!queue.empty()) {
+        QItem cur = queue.top();
+        queue.pop();
+
+        if (um[cur.c.x][cur.c.y] != uit) {
+            Cell cc = cur.c;
+            um[cc.x][cc.y] = uit;
+            p[cc.x][cc.y] = cur.prev;
+
+            if (d[cc.x][cc.y] == 0) {
+                vector<Cell> res;
+                while (cc != from) {
+                    res.push_back(cc);
+                    cc = p[cc.x][cc.y];
+                }
+                res.push_back(from);
+                reverse(res.begin(), res.end());
+                return {res, cur.f};
+            }
+
+            if (world.hasNonMovable(cc)) {
+                continue;
+            }
+        } else {
+            continue;
+        }
+
+        forn(w, 4) {
+            Cell nc = cur.c ^ w;
+            int nf = cur.f + 1;
+            if (cur.d < D) {
+                if (busyForAStar[nc.x][nc.y][cur.d + 1] == astick/* || foreverStuck[nc.x][nc.y]*/) nf += 19;
+                if (moveUsed[nc.x][nc.y][cur.d + 1][w ^ 2] == astick) nf += 19;
+            }
+            if (nc.inside()) {
+                queue.push(QItem{nf, d[nc.x][nc.y], cur.d + 1, 0, nc, cur.c});
+            }
+        }
+    }
+
+    return {{from}, inf};
 }
 
 void updateAStar(const World& world, const vector<Cell>& path) {
@@ -121,14 +214,14 @@ void updateAStar(const World& world, const vector<Cell>& path) {
 
             if (stuck) {
                 busyForAStar[last.x][last.y][i] = astick;
-                // foreverStuck[last.x][last.y] = astick;
+                foreverStuck[last.x][last.y] = astick;
                 // cerr << "mark " << last << "@" << i << " as busy\n";
             } else {
                 last = c;
             }
         } else {
             busyForAStar[last.x][last.y][i] = astick;
-            // foreverStuck[last.x][last.y] = astick;
+            foreverStuck[last.x][last.y] = astick;
             // cerr << "mark " << last << "@" << i << " as busy\n";
         }        
     }

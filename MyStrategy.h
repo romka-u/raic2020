@@ -26,6 +26,7 @@ public:
         int myId = playerView.myId;
         std::unordered_map<int, EntityAction> moves;
         clearAStar();
+        updateD(world);
 
         gameStatus.update(world);
         assignTargets(world, gameStatus);
@@ -42,12 +43,13 @@ public:
         #endif
 
         vector<MyAction> actions;
-        addBuildActions(playerView, world, actions, gameStatus);
+        addWorkersActions(world, actions, gameStatus, resourcesLeft);
+        // addBuildActions(playerView, world, actions, gameStatus);
         addTrainActions(playerView, world, actions, gameStatus);
-        addRepairActions(myId, world, actions, gameStatus);
-        addTurretsActions(playerView, world, actions, gameStatus);
-        addWarActions(playerView, world, actions, gameStatus);
-        addGatherActions(myId, world, actions, gameStatus);
+        // addRepairActions(myId, world, actions, gameStatus);
+        // addTurretsActions(playerView, world, actions, gameStatus);
+        addWarActions(world, actions, gameStatus);
+        // addGatherActions(myId, world, actions, gameStatus);
 
         sort(actions.begin(), actions.end());
 
@@ -91,19 +93,15 @@ public:
                     info.msg[unitId] << "Attack " << oid << " at " << world.entityMap[oid].position;
                     break;
                 case A_GATHER:
-                    if (usedResources.insert(oid).second || dist(upos, pos) == 1) {
-                        if (dist(upos, pos) == 1) {
-                            moves[unitId].attackAction = std::make_shared<AttackAction>(std::make_shared<int>(oid), nullptr);
-                            info.msg[unitId] << "Gathers " << world.entityMap[oid].position;
-                            prevGathered++;
-                        } else {
-                            setMove(unitId, upos, pos);
-                            moved = true;
-                            info.msg[unitId] << "Moves to gather " << pos;
-                        }
-                    } else {
-                        continue;
-                    }
+                    moves[unitId].attackAction = std::make_shared<AttackAction>(std::make_shared<int>(oid), nullptr);
+                    info.msg[unitId] << "Gathers " << world.entityMap[oid].position;
+                    moved = true;
+                    prevGathered++;
+                    break;
+                case A_GATHER_MOVE:
+                    moves[unitId].moveAction = std::make_shared<MoveAction>(pos, true, false);
+                    info.msg[unitId] << "Move to " << pos << " to gather " << oid;
+                    moved = true;
                     break;
                 case A_MOVE:
                     setMove(unitId, upos, pos);
@@ -117,11 +115,16 @@ public:
                     info.msg[unitId] << "Hide to " << pos;
                     break;
                 case A_BUILD:
+                    moves[unitId].buildAction = std::make_shared<BuildAction>(etype, pos);
+                    info.msg[unitId] << "Build [" << oid << "] at " << pos;
+                    moved = true;
+                    break;
                 case A_TRAIN:
                     if (cost <= resourcesLeft) {
                         moves[unitId].buildAction = std::make_shared<BuildAction>(etype, pos);
                         info.msg[unitId] << "Build/train [" << oid << "] at " << pos;
                         resourcesLeft -= cost;
+                        moved = true;
                     } else {
                         continue;
                     }
@@ -129,18 +132,12 @@ public:
                 case A_REPAIR:
                     moves[unitId].repairAction = std::make_shared<RepairAction>(oid);
                     info.msg[unitId] << "Repair " << oid;
-                    // bestRepairScore = 200;
+                    moved = true;
                     break;
                 case A_REPAIR_MOVE:
-                    if (bestRepairScore == -1 || score.main >= 199 || score.main <= -2000) {
-                        if (score.main == -3000) gameStatus.workersLeftToFixTurrets = true;
-                        setMove(unitId, upos, pos);
-                        moved = true;
-                        bestRepairScore = score.main;
-                        info.msg[unitId] << "Repair_move to " << pos << " (score.main = " << score.main << ")" << endl;
-                    } else {
-                        continue;
-                    }
+                    moves[unitId].moveAction = std::make_shared<MoveAction>(pos, true, false);
+                    info.msg[unitId] << "Move to " << pos << " to repair " << oid;
+                    moved = true;
                     break;
                 default:
                     assert(false);

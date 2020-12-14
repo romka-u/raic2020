@@ -119,6 +119,10 @@ struct World {
         return eMap[c.x][c.y] < 0;
     }
 
+    int getIdAt(const Cell& c) const {
+        return abs(eMap[c.x][c.y]);
+    }
+
     EntityProperties& P(int unitId) const {
         return props.at(entityMap.at(unitId).entityType);
     }

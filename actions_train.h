@@ -29,10 +29,11 @@ void resBfs(const World& world) {
 }
 
 void addTrainActions(const PlayerView& playerView, const World& world, vector<MyAction>& actions, const GameStatus& st) {
-    int gap = st.underAttack ? 0 : 1;
+    /*int gap = st.underAttack ? 0 : 1;
     for (const Entity& bu : world.myBuildings)
         if (!bu.active && bu.entityType == EntityType::HOUSE)
-            gap = 0;
+            gap = 0;*/
+    int gap = 0;
 
     if (st.foodUsed >= st.foodLimit - gap) return;
 

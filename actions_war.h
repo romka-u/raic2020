@@ -11,7 +11,7 @@ bool hasEnemyInRange(const Entity& e, const vector<Entity>& allEntities) {
     return false;
 }
 
-void addWarActions(const PlayerView& playerView, const World& world, vector<MyAction>& actions, const GameStatus& st) {
+void addWarActions(const World& world, vector<MyAction>& actions, const GameStatus& st) {
     // workers
     for (const auto& wrk : world.myWorkers) {
         for (const auto& ou : world.oppEntities) {
@@ -41,7 +41,7 @@ void addWarActions(const PlayerView& playerView, const World& world, vector<MyAc
                 closestEnemyCell[w.id] = ou.position;
             }
             if (cd <= w.attackRange + movableBonus) {
-                if (movableBonus && hasEnemyInRange(ou, playerView.entities)) {
+                if (movableBonus && hasEnemyInRange(ou, world.allEntities)) {
                     movableBonus = 0;
                     if (cd > ou.attackRange) continue;
                 }
