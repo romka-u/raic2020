@@ -9,7 +9,7 @@ wc -l *.h
 for i in $(seq -f "%04g" 1 1991); do
     fs="submits/submit${i}.zip"
     if [ ! -f "$fs" ]; then
-        echo "Copy submit.zip to $fs and binary"
+        echo "Copy submit.zip to $fs"
         cp submit.zip $fs
         break
     fi

@@ -74,9 +74,11 @@ void addBuildActions(const PlayerView& playerView, const World& world, vector<My
     for (const auto& b : world.myBuildings)
         if (b.entityType == EntityType::HOUSE && !b.active)
             housesInProgress++;
+    int housesLimit = 2 - st.underAttack;
+    if (world.fow && st.needRanged != 2) housesLimit = 1;
 
     for (const auto& wrk : world.myWorkers) {
-        if (st.foodLimit < st.foodUsed + 15 && st.foodLimit < 145 && housesInProgress < (2 - st.underAttack) && st.needRanged != 1) {
+        if (st.foodLimit < st.foodUsed + 15 && st.foodLimit < 145 && housesInProgress < housesLimit && st.needRanged != 1) {
             // houses
             const int sz = props.at(EntityType::HOUSE).size;
             for (Cell newPos : nearCells(wrk.position - Cell(sz - 1, sz - 1), sz)) {
