@@ -52,14 +52,14 @@ void goBfs(const World& world, vector<Cell>& q, int d[82][82]) {
     }
 }
 
-void updateD(const World& world) {
+void updateD(const World& world, const vector<int>& resToGather) {
     memset(dRes, 0x7f, sizeof(dRes));
     memset(dRep, 0x7f, sizeof(dRep));
 
     vector<Cell> q;    
     uit++;
-    for (const Entity& r : world.resources) {
-        const Cell& c = r.position;
+    for (int r : resToGather) {
+        const Cell& c = world.entityMap.at(r).position;
         dRes[c.x][c.y] = 0;
         q.push_back(c);
         um[c.x][c.y] = uit;

@@ -26,9 +26,8 @@ public:
         int myId = playerView.myId;
         std::unordered_map<int, EntityAction> moves;
         clearAStar();
-        updateD(world);
-
         gameStatus.update(world);
+        updateD(world, gameStatus.resToGather);
         assignTargets(world, gameStatus);
         
         TickDrawInfo& info = tickInfo[playerView.currentTick];
@@ -104,9 +103,10 @@ public:
                     moved = true;
                     break;
                 case A_MOVE:
-                    setMove(unitId, upos, pos);
+                    // setMove(unitId, upos, pos);
+                    moves[unitId].moveAction = std::make_shared<MoveAction>(pos, true, false);
                     moved = true;
-                    info.msg[unitId] << "Move to " << pos;
+                    info.msg[unitId] << "Hiding from enemy to " << pos;
                     break;
                 case A_HIDE_MOVE:
                     hiding.insert(unitId);
