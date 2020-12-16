@@ -163,6 +163,7 @@ struct World {
             fow = true;
             Entity base(123456789, 1, EntityType::BUILDER_BASE, Cell(70, 70), props.at(EntityType::BUILDER_BASE).maxHealth, true);
             base.size = 5;
+            base.maxHealth = base.health;
             if (base.playerId == myId) base.playerId++;
             newEM[base.id] = base;
 
@@ -178,6 +179,24 @@ struct World {
                 if (base.playerId == myId) base.playerId++;
                 base.position = Cell(5, 70);
                 newEM[base.id] = base;
+            }
+
+            Entity res(111222333, -1, EntityType::RESOURCE, Cell(40, 40), props.at(EntityType::RESOURCE).maxHealth, true);
+            res.maxHealth = res.health;
+            res.size = 1;
+            for (int z = 0; z < 80; z += 5) {
+                res.id++;
+                res.position = Cell(z, 41);
+                newEM[res.id] = res;
+                res.id++;
+                res.position = Cell(41, z);
+                newEM[res.id] = res;
+
+                if (playersCnt == 2) {
+                    res.id++;
+                    res.position = Cell(79 - z, z);
+                    newEM[res.id] = res;
+                }
             }
         }
 

@@ -92,7 +92,11 @@ struct GameStatus {
             if (world.infMap[res.position.x][res.position.y].first != world.myId) continue;
             bool coveredByEnemy = false;
             for (const auto& oe : world.oppEntities) {
-                if ((oe.entityType == EntityType::TURRET || oe.entityType == EntityType::RANGED_UNIT) && dist(res.position, oe) < oe.attackRange) {
+                if (oe.entityType == EntityType::TURRET && dist(res.position, oe) < oe.attackRange) {
+                    coveredByEnemy = true;
+                    break;
+                }
+                if (oe.entityType == EntityType::RANGED_UNIT && dist(res.position, oe.position) < oe.attackRange + 2) {
                     coveredByEnemy = true;
                     break;
                 }

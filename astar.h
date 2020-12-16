@@ -34,7 +34,7 @@ int uit;
 int busyForAStar[80][80][D + 1];
 int foreverStuck[80][80];
 int moveUsed[80][80][D + 1][4];
-int dRes[82][82], dRep[82][82];
+int dRes[82][82], dRep[82][82], dTur[82][82];
 int astick;
 
 void goBfs(const World& world, vector<Cell>& q, int d[82][82]) {
@@ -55,6 +55,7 @@ void goBfs(const World& world, vector<Cell>& q, int d[82][82]) {
 void updateD(const World& world, const vector<int>& resToGather) {
     memset(dRes, 0x7f, sizeof(dRes));
     memset(dRep, 0x7f, sizeof(dRep));
+    memset(dTur, 0x7f, sizeof(dTur));
 
     vector<Cell> q;    
     uit++;
@@ -81,6 +82,21 @@ void updateD(const World& world, const vector<int>& resToGather) {
     }
 
     goBfs(world, q, dRep);
+
+    q.clear();
+    uit++;
+    for (const Entity& b : world.myBuildings) {
+        if (b.entityType == EntityType::TURRET) {
+            forn(x, b.size) forn(y, b.size) {
+                const Cell c = b.position + Cell(x, y);
+                dTur[c.x][c.y] = 0;
+                q.push_back(c);
+                um[c.x][c.y] = uit;
+            }
+        }
+    }
+
+    goBfs(world, q, dTur);
 }
 
 void clearAStar() {

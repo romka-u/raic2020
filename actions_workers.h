@@ -81,7 +81,7 @@ int addBuildRanged(const World& world, vector<MyAction>& actions, const GameStat
     Cell bestPos;
     for (const auto& wrk : world.myWorkers) {
         if (usedWorkers.find(wrk.id) != usedWorkers.end()) continue;
-            
+
         const int sz = props.at(EntityType::RANGED_BASE).size;
         for (Cell newPos : nearCells(wrk.position - Cell(sz - 1, sz - 1), sz)) {
             if (canBuild(world, newPos, sz) && safeToBuild(world, newPos, sz, 15)) {
@@ -90,7 +90,7 @@ int addBuildRanged(const World& world, vector<MyAction>& actions, const GameStat
                     bestScore = score;
                     bestPos = newPos;
                     bestId = wrk.id;
-                }                
+                }
             }
         }
     }
@@ -109,7 +109,7 @@ int addBuildTurret(const World& world, vector<MyAction>& actions, const GameStat
     Cell bestPos;
     for (const auto& wrk : world.myWorkers) {
         if (usedWorkers.find(wrk.id) != usedWorkers.end()) continue;
-        
+
         bool nearRes = false;
         forn(q, 4) {
             const Cell nc = wrk.position ^ q;
@@ -137,7 +137,7 @@ int addBuildTurret(const World& world, vector<MyAction>& actions, const GameStat
         actions.emplace_back(bestId, A_BUILD, bestPos, EntityType::TURRET, Score(700, bestScore));
         return bestId;
     }
-    return -1;                
+    return -1;
 }
 
 int addBuildHouse(const World& world, vector<MyAction>& actions, const GameStatus& st) {
@@ -155,7 +155,7 @@ int addBuildHouse(const World& world, vector<MyAction>& actions, const GameStatu
         if (st.foodLimit >= st.foodUsed + 15 || st.foodLimit >= 145 || st.needRanged == 1)
             break;
         if (usedWorkers.find(wrk.id) != usedWorkers.end()) continue;
-            
+
         const int sz = props.at(EntityType::HOUSE).size;
         for (Cell newPos : nearCells(wrk.position - Cell(sz - 1, sz - 1), sz)) {
             if (canBuild(world, newPos, sz) && safeToBuild(world, newPos, sz, 10)) {
@@ -165,7 +165,7 @@ int addBuildHouse(const World& world, vector<MyAction>& actions, const GameStatu
                     bestScore = score;
                     bestPos = newPos;
                     bestId = wrk.id;
-                }                
+                }
             }
         }
     }
@@ -194,7 +194,7 @@ void addRepairActions(const World& world, vector<MyAction>& actions, const GameS
         if (usedWorkers.find(id) != usedWorkers.end()) continue;
         const auto& wrk = world.entityMap.at(id);
 
-        pair<vector<Cell>, int> pathToRep = getPathToMany(world, wrk.position, dRep);        
+        pair<vector<Cell>, int> pathToRep = getPathToMany(world, wrk.position, dRep);
         const Entity& repTarget = world.entityMap.at(world.getIdAt(pathToRep.first.back()));
         int healthToRepair = repTarget.maxHealth - repTarget.health;
         int currentWorkers = repairers[repTarget.id];
@@ -295,12 +295,45 @@ void addGatherActions(const World& world, vector<MyAction>& actions, const GameS
         const auto& wrk = world.entityMap.at(id);
 
         pair<vector<Cell>, int> pathToGo = getPathToMany(world, wrk.position, dRes);
-        int targetId = world.getIdAt(pathToGo.first.back());        
+        int targetId = world.getIdAt(pathToGo.first.back());
+
+        if (pathToGo.second > 88) {
+            continue;
+        }
 
         if (pathToGo.first.size() <= 2) {
             actions.emplace_back(id, A_GATHER, NOWHERE, targetId, Score(120, 0));
         } else {
             actions.emplace_back(id, A_GATHER_MOVE, pathToGo.first[1], targetId, Score(101, 0));
+        }
+        updateAStar(world, pathToGo.first);
+        usedWorkers.insert(id);
+        #ifdef DEBUG
+        pathDebug[id].path = pathToGo.first;
+        pathDebug[id].length = pathToGo.second;
+        #endif
+    }
+}
+
+void addTurretsActions(const World& world, vector<MyAction>& actions, const GameStatus& st) {
+    vector<pii> wrkList;
+    for (const auto& wrk : world.myWorkers) {
+        if (usedWorkers.find(wrk.id) != usedWorkers.end()) continue;
+        int pr = dTur[wrk.position.x][wrk.position.y];
+        wrkList.emplace_back(pr, wrk.id);
+    }
+
+    sort(wrkList.begin(), wrkList.end());
+    for (const auto& [_, id] : wrkList) {
+        const auto& wrk = world.entityMap.at(id);
+
+        pair<vector<Cell>, int> pathToGo = getPathToMany(world, wrk.position, dTur);
+        int targetId = world.getIdAt(pathToGo.first.back());
+
+        if (pathToGo.first.size() <= 2) {
+            actions.emplace_back(id, A_REPAIR, NOWHERE, targetId, Score(220, 0));
+        } else {
+            actions.emplace_back(id, A_REPAIR_MOVE, pathToGo.first[1], targetId, Score(201, 0));
         }
         updateAStar(world, pathToGo.first);
         usedWorkers.insert(id);
@@ -317,4 +350,5 @@ void addWorkersActions(const World& world, vector<MyAction>& actions, const Game
     addHideActions(world, actions, st);
     addBuildActions(world, actions, st, resources);
     addGatherActions(world, actions, st);
+    addTurretsActions(world, actions, st);
 }

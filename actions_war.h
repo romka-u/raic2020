@@ -27,7 +27,6 @@ void addWarActions(const World& world, vector<MyAction>& actions, const GameStat
 
     // warriors
     for (const auto& w : world.myWarriors) {
-        // Cell target = squadInfo[squadId[w.id]].target;
         Cell target = frontTarget[w.id];
         closestDist[w.id] = inf;
 
@@ -102,7 +101,7 @@ void addWarActions(const World& world, vector<MyAction>& actions, const GameStat
         for (const auto& ou : world.oppEntities) {
             if (dist(ou, t) <= t.attackRange) {
                 int score = 200;
-                if (ou.entityType == EntityType::MELEE_UNIT && dist(t.position, ou.position) > 1) score = 197;
+                if (ou.entityType == EntityType::MELEE_UNIT && dist(ou.position, t) > 1) score = 197;
                 if (ou.entityType == EntityType::BUILDER_UNIT) score = 194;
                 if (ou.entityType == EntityType::TURRET) score = 190;
                 if (ou.entityType == EntityType::HOUSE) score = 188;
