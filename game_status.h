@@ -300,8 +300,11 @@ struct GameStatus {
                             bc = bp;
                         }
                     }
-                    assert(bc.x != -1);
-                    unitsToCell[wi] = bc;
+                    if (bc.x != -1) {
+                        unitsToCell[wi] = bc;
+                    } else {
+                        unitsToCell[wi] = c;
+                    }
                 }
             }
             for (int bi : world.buildings[p]) {
@@ -319,8 +322,11 @@ struct GameStatus {
                             bc = bp;
                         }
                     }
-                    assert(bc.x != -1);
-                    unitsToCell[bi] = bc;
+                    if (bc.x != -1) {
+                        unitsToCell[bi] = bc;
+                    } else {
+                        unitsToCell[bi] = c;
+                    }
                 }
             }
         }
