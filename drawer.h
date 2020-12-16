@@ -13,6 +13,11 @@
 
 using Targets = vector<pair<Cell, Cell>>;
 
+struct PathDebug {
+    vector<Cell> path;
+    int length;
+};
+
 struct TickDrawInfo {
     int myId;
     vector<Entity> entities;
@@ -22,7 +27,9 @@ struct TickDrawInfo {
     unordered_map<int, ostringstream> msg;
     unordered_set<int> myFrontIds;
     vector<int> myPower;
+    unordered_map<int, PathDebug> pathDebug;
 };
+
 #ifdef DEBUG
 unordered_map<EntityType, string> ename = {
     {EntityType::WALL, "WALL"},
@@ -200,6 +207,17 @@ void drawBorderGroupsInfo(const vector<Entity>& entities, const GameStatus& st) 
     }
 }
 
+void drawPathDebug(int id) {
+    const auto& pd = tickInfo[currentDrawTick].pathDebug;
+    if (pd.find(id) == pd.end()) return;
+    const auto& path = pd.at(id).path;
+    v.p.setPen(QPen(QColor(100, 160, 220), 10));
+    for (size_t i = 0; i + 1 < path.size(); i++) {
+        v.p.drawLine((path[i].x + 0.5) * SZ, (path[i].y + 0.5) * SZ,
+                     (path[i+1].x + 0.5) * SZ, (path[i+1].y + 0.5) * SZ);
+    }
+}
+
 void draw() {
     const auto& info = tickInfo[currentDrawTick];
 
@@ -320,6 +338,10 @@ void draw() {
         cnt[p.id - 1][EntityType::RESOURCE] = p.resource;
     }
 
+    if (clickedEntity) {
+        drawPathDebug(clickedEntity->id);
+    }
+
     v.switchToWindow();
 
     v.p.setBrush(blackBrush);
@@ -329,10 +351,9 @@ void draw() {
     char buf[77];
 
     if (clickedEntity) {
-        // v.p.setPen(balloonPen);
-        // v.p.setBrush(balloonBrush);
-        const int H = 52;
-        sprintf(buf, "%s Id: %d", ename[clickedEntity->entityType].c_str(), clickedEntity->id);
+        const int H = 64;
+        sprintf(buf, "%s Id: %d, HP %d/%d", ename[clickedEntity->entityType].c_str(),
+                clickedEntity->id, clickedEntity->health, clickedEntity->maxHealth);
         int W = strlen(buf) * 7 + 24;
         if (info.msg.count(clickedEntity->id)) {
             W = max(W, 24 + int(info.msg.at(clickedEntity->id).str().size()) * 7);
@@ -349,11 +370,17 @@ void draw() {
         if (clickedEntity->playerId != -1)
             v.p.setPen(pensPerPlayer[clickedEntity->playerId - 1]);
         
-        sprintf(buf, "%s Id: %d", ename[clickedEntity->entityType].c_str(), clickedEntity->id);
+        sprintf(buf, "%s Id: %d, HP %d/%d", ename[clickedEntity->entityType].c_str(),
+                clickedEntity->id, clickedEntity->health, clickedEntity->maxHealth);
         v.p.drawText(clickedPointScreen.x + 10, clickedPointScreen.y - H + 24, QString(buf));
 
+        if (info.pathDebug.count(clickedEntity->id)) {
+            sprintf(buf, "A* length: %d", info.pathDebug.at(clickedEntity->id).length);
+            v.p.drawText(clickedPointScreen.x + 10, clickedPointScreen.y - H + 36, QString(buf));
+        }
+
         if (info.msg.count(clickedEntity->id))
-            v.p.drawText(clickedPointScreen.x + 10, clickedPointScreen.y - H + 36,
+            v.p.drawText(clickedPointScreen.x + 10, clickedPointScreen.y - H + 48,
                          QString(info.msg.at(clickedEntity->id).str().c_str()));
     }    
 

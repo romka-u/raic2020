@@ -99,14 +99,14 @@ public:
                     break;
                 case A_GATHER_MOVE:
                     moves[unitId].moveAction = std::make_shared<MoveAction>(pos, true, false);
-                    info.msg[unitId] << "Move to " << pos << " to gather " << oid;
+                    info.msg[unitId] << "Moves to " << pos << " to gather " << oid;
                     moved = true;
                     break;
                 case A_MOVE:
-                    // setMove(unitId, upos, pos);
-                    moves[unitId].moveAction = std::make_shared<MoveAction>(pos, true, false);
+                    setMove(unitId, upos, pos);
+                    // moves[unitId].moveAction = std::make_shared<MoveAction>(pos, true, false);
                     moved = true;
-                    info.msg[unitId] << "Hiding from enemy to " << pos;
+                    info.msg[unitId] << "Moves to " << pos;
                     break;
                 case A_HIDE_MOVE:
                     hiding.insert(unitId);
@@ -157,25 +157,25 @@ public:
             const auto [from, to] = se;
             info.targets.emplace_back(from, to);
             
-            // cerr << "path from " << from << " to " << to << ":"; cerr.flush();
-            vector<Cell> path = getPathTo(world, from, to);        
-            // for (const Cell& c : path) cerr << " " << c;
-            // cerr << endl;
+            vector<Cell> path = getPathTo(world, from, to);
+            #ifdef DEBUG
+            pathDebug[unitId].path = path;
+            pathDebug[unitId].length = -1;
+            #endif  
             updateAStar(world, path);
             Cell target = to;
             
             if (path.size() >= 2) {
                 target = path[1];
-                // for (size_t i = 1; i < path.size(); i++)
-                //     debugTargets.emplace_back(path[i-1], path[i]);
             }
             
-            // cerr << "set move target for " << from << "->" << to << " : " << target << endl;
             moves[unitId].moveAction = std::make_shared<MoveAction>(target, true, false);
             info.msg[unitId] << ", A* next: " << target;
         }
 
-        // if (debugInterface) draw(playerView, *debugInterface);
+        #ifdef DEBUG
+        info.pathDebug = pathDebug;
+        #endif
 
         return Action(moves);
     }

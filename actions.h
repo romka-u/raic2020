@@ -50,3 +50,7 @@ struct MyAction {
 bool operator<(const MyAction& a, const MyAction& b) {
     return a.score < b.score;
 }
+
+#ifdef DEBUG
+unordered_map<int, PathDebug> pathDebug;
+#endif

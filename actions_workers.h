@@ -2,6 +2,7 @@
 
 #include "actions.h"
 
+unordered_set<int> usedWorkers;
 
 bool canBuild(const World& world, const Cell& c, int sz) {
     if (!c.inside()) return false;
@@ -11,7 +12,7 @@ bool canBuild(const World& world, const Cell& c, int sz) {
         if (!world.isEmpty(c + Cell(dx, dy)))
             return false;
     }
-    if (c.x != 0 && c.y != 0) {
+    if ((c.x != 0 && c.y != 0) || sz > 3) {
         for (int d = -1; d <= sz; d++) {
             cc = c + Cell(d, -1);
             if (cc.inside() && !world.isEmpty(cc) && world.eMap[cc.x][cc.y] < 0 && world.entityMap.at(-world.eMap[cc.x][cc.y]).playerId != -1) return false;
@@ -74,11 +75,12 @@ bool safeToBuild(const World& world, const Cell& c, int sz, int arb) {
 }
 
 int addBuildRanged(const World& world, vector<MyAction>& actions, const GameStatus& st) {
+    if (st.needRanged != 1) return -1;
+
     int bestScore = -inf, bestId = -1;
     Cell bestPos;
     for (const auto& wrk : world.myWorkers) {
-        if (st.needRanged != 1)
-            break;
+        if (usedWorkers.find(wrk.id) != usedWorkers.end()) continue;
             
         const int sz = props.at(EntityType::RANGED_BASE).size;
         for (Cell newPos : nearCells(wrk.position - Cell(sz - 1, sz - 1), sz)) {
@@ -114,6 +116,7 @@ int addBuildHouse(const World& world, vector<MyAction>& actions, const GameStatu
     for (const auto& wrk : world.myWorkers) {
         if (st.foodLimit >= st.foodUsed + 15 || st.foodLimit >= 145 || st.needRanged == 1)
             break;
+        if (usedWorkers.find(wrk.id) != usedWorkers.end()) continue;
             
         const int sz = props.at(EntityType::HOUSE).size;
         for (Cell newPos : nearCells(wrk.position - Cell(sz - 1, sz - 1), sz)) {
@@ -137,62 +140,68 @@ int addBuildHouse(const World& world, vector<MyAction>& actions, const GameStatu
     return -1;
 }
 
-void addWorkersActions(const World& world, vector<MyAction>& actions, const GameStatus& st, int& resources) {
-    int wrkIdToBuildRanged = -1;
-    int wrkIdToBuildHouse = -1;
-    if (resources >= props.at(EntityType::RANGED_BASE).cost) {
-        wrkIdToBuildRanged = addBuildRanged(world, actions, st);
-        if (wrkIdToBuildRanged != -1)
-            resources -= props.at(EntityType::RANGED_BASE).cost;
-    }
-    if (resources >= props.at(EntityType::HOUSE).cost) {
-        wrkIdToBuildHouse = addBuildHouse(world, actions, st);
-        if (wrkIdToBuildHouse != -1)
-            resources -= props.at(EntityType::HOUSE).cost;
-    }
-
-    vector<pii> wrkList;
+void addRepairActions(const World& world, vector<MyAction>& actions, const GameStatus& st) {
     bool anyToRepair = false;
-    unordered_map<int, Cell> wrkThreat;
+    vector<pii> wrkList;
     for (const auto& wrk : world.myWorkers) {
-        if (wrk.id == wrkIdToBuildHouse || wrk.id == wrkIdToBuildRanged) continue;
-        int pr = inf;
-        for (const auto& r : world.resources)
-            pr = min(pr, dist(wrk.position, r.position));
-        for (const auto& b : world.myBuildings)
-            if (b.health < b.maxHealth) {
-                pr = min(pr, dist(wrk.position, b));
-                anyToRepair = true;
-            }
+        int pr = dRep[wrk.position.x][wrk.position.y];
+        wrkList.emplace_back(pr, wrk.id);
+    }
 
+    sort(wrkList.begin(), wrkList.end());
+    unordered_map<int, int> repairers;
+
+    for (const auto& [pr, id] : wrkList) {
+        if (pr > 1e5) break;
+        if (usedWorkers.find(id) != usedWorkers.end()) continue;
+        const auto& wrk = world.entityMap.at(id);
+
+        pair<vector<Cell>, int> pathToRep = getPathToMany(world, wrk.position, dRep);        
+        const Entity& repTarget = world.entityMap.at(world.getIdAt(pathToRep.first.back()));
+        int healthToRepair = repTarget.maxHealth - repTarget.health;
+        int currentWorkers = repairers[repTarget.id];
+        int htrwme = healthToRepair - currentWorkers * pathToRep.second;
+        if (htrwme < 0) htrwme = 0;
+        int ticksWithMe = htrwme / (currentWorkers + 1);
+
+        if (pathToRep.second < 16 && ticksWithMe >= pathToRep.second) {
+            int targetId = repTarget.id;
+            repairers[repTarget.id]++;
+            if (pathToRep.first.size() <= 2) {
+                actions.emplace_back(id, A_REPAIR, NOWHERE, targetId, Score(120, 0));
+            } else {
+                actions.emplace_back(id, A_REPAIR_MOVE, pathToRep.first[1], targetId, Score(101, 0));
+            }
+            #ifdef DEBUG
+            pathDebug[id].path = pathToRep.first;
+            pathDebug[id].length = pathToRep.second;
+            #endif
+            updateAStar(world, pathToRep.first);
+            usedWorkers.insert(id);
+            continue;
+        }
+    }
+}
+
+void addHideActions(const World& world, vector<MyAction>& actions, const GameStatus& st) {
+    for (const auto& wrk : world.myWorkers) {
+        if (usedWorkers.find(wrk.id) != usedWorkers.end()) continue;
+
+        Cell threat(-1, -1);
         for (const auto& oe : world.oppEntities) {
             if (oe.entityType == EntityType::MELEE_UNIT || oe.entityType == EntityType::RANGED_UNIT)
                 if (dist(wrk.position, oe.position) <= oe.attackRange + 2) {
-                    pr = 3;
-                    wrkThreat[wrk.id] = oe.position;
+                    threat = oe.position;
                     break;
                 }
             if (oe.entityType == EntityType::TURRET)
                 if (dist(wrk.position, oe) <= oe.attackRange) {
-                    pr = 3;
-                    wrkThreat[wrk.id] = oe.position;
+                    threat = oe.position;
                     break;
                 }
         }
 
-        wrkList.emplace_back(pr, wrk.id);
-    }
-
-    // for (const auto& [id, th] : wrkThreat)
-    //     cerr << "worker " << id << " at " << world.entityMap.at(id).position << " threatened by " << th << endl;
-
-    sort(wrkList.begin(), wrkList.end());
-
-    for (const auto& [_, id] : wrkList) {
-        const auto& wrk = world.entityMap.at(id);
-
-        if (wrkThreat.count(wrk.id)) {
-            const Cell& threat = wrkThreat[wrk.id];
+        if (threat.x != -1) {
             Cell target(-1, -1);
             forn(w, 4) {
                 const Cell nc = wrk.position ^ w;
@@ -201,36 +210,49 @@ void addWorkersActions(const World& world, vector<MyAction>& actions, const Game
                     break;
                 }
             }
-            // cerr << "hiding target for " << wrk.id << " : " << target << endl;
 
             if (target.x != -1) {
                 vector<Cell> path = {wrk.position, target};
-                actions.emplace_back(id, A_HIDE_MOVE, target, -1, Score(135, 0));
+                actions.emplace_back(wrk.id, A_HIDE_MOVE, target, -1, Score(135, 0));
                 updateAStar(world, path);
+                usedWorkers.insert(wrk.id);
+                #ifdef DEBUG
+                pathDebug[wrk.id].path = path;
+                pathDebug[wrk.id].length = 2;
+                #endif
                 continue;
             }
         }
-        
-        pair<vector<Cell>, int> pathToGo = getPathToMany(world, wrk.position, dRes);
-        // cerr << "path from " << id << " to res:";
-        // for (const Cell& c : pathToGo.first) cerr << " " << c;
-        // cerr << endl;
+    }
+}
 
-        int targetId = world.getIdAt(pathToGo.first.back());
-        if (anyToRepair) {
-            pair<vector<Cell>, int> pathToRep = getPathToMany(world, wrk.position, dRep);
-            // cerr << pathToRep.size() << endl;
-            if (pathToRep.second <= pathToGo.second + 2) {
-                targetId = world.getIdAt(pathToRep.first.back());
-                if (pathToRep.first.size() <= 2) {
-                    actions.emplace_back(id, A_REPAIR, NOWHERE, targetId, Score(120, 0));
-                } else {
-                    actions.emplace_back(id, A_REPAIR_MOVE, pathToRep.first[1], targetId, Score(101, 0));
-                }
-                updateAStar(world, pathToRep.first);
-                continue;
-            }
-        }
+void addBuildActions(const World& world, vector<MyAction>& actions, const GameStatus& st, int& resources) {
+    if (resources >= props.at(EntityType::RANGED_BASE).cost) {
+        int wrkId = addBuildRanged(world, actions, st);
+        if (wrkId != -1)
+            resources -= props.at(EntityType::RANGED_BASE).cost;
+    }
+    if (resources >= props.at(EntityType::HOUSE).cost) {
+        int wrkId = addBuildHouse(world, actions, st);
+        if (wrkId != -1)
+            resources -= props.at(EntityType::HOUSE).cost;
+    }
+}
+
+void addGatherActions(const World& world, vector<MyAction>& actions, const GameStatus& st) {
+    vector<pii> wrkList;
+    for (const auto& wrk : world.myWorkers) {
+        if (usedWorkers.find(wrk.id) != usedWorkers.end()) continue;
+        int pr = dRes[wrk.position.x][wrk.position.y];
+        wrkList.emplace_back(pr, wrk.id);
+    }
+
+    sort(wrkList.begin(), wrkList.end());
+    for (const auto& [_, id] : wrkList) {
+        const auto& wrk = world.entityMap.at(id);
+
+        pair<vector<Cell>, int> pathToGo = getPathToMany(world, wrk.position, dRes);
+        int targetId = world.getIdAt(pathToGo.first.back());        
 
         if (pathToGo.first.size() <= 2) {
             actions.emplace_back(id, A_GATHER, NOWHERE, targetId, Score(120, 0));
@@ -238,5 +260,18 @@ void addWorkersActions(const World& world, vector<MyAction>& actions, const Game
             actions.emplace_back(id, A_GATHER_MOVE, pathToGo.first[1], targetId, Score(101, 0));
         }
         updateAStar(world, pathToGo.first);
+        usedWorkers.insert(id);
+        #ifdef DEBUG
+        pathDebug[id].path = pathToGo.first;
+        pathDebug[id].length = pathToGo.second;
+        #endif
     }
+}
+
+void addWorkersActions(const World& world, vector<MyAction>& actions, const GameStatus& st, int& resources) {
+    usedWorkers.clear();
+    addRepairActions(world, actions, st);
+    addHideActions(world, actions, st);
+    addBuildActions(world, actions, st, resources);
+    addGatherActions(world, actions, st);
 }
