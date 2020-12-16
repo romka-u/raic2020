@@ -164,6 +164,7 @@ struct World {
             Entity base(123456789, 1, EntityType::BUILDER_BASE, Cell(70, 70), props.at(EntityType::BUILDER_BASE).maxHealth, true);
             base.size = 5;
             base.maxHealth = base.health;
+            base.attackRange = 0;
             if (base.playerId == myId) base.playerId++;
             newEM[base.id] = base;
 
@@ -183,6 +184,7 @@ struct World {
 
             Entity res(111222333, -1, EntityType::RESOURCE, Cell(40, 40), props.at(EntityType::RESOURCE).maxHealth, true);
             res.maxHealth = res.health;
+            res.attackRange = 0;
             res.size = 1;
             for (int z = 0; z < 80; z += 5) {
                 res.id++;
@@ -216,7 +218,6 @@ struct World {
     void update(const PlayerView& playerView) {
         myId = playerView.myId;
         tick = playerView.currentTick;
-        cerr << "============== Tick " << tick << "=============\n";
         forn(p, 5) {
             workers[p].clear();
             warriors[p].clear();

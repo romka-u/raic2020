@@ -27,7 +27,6 @@ void addWarActions(const World& world, vector<MyAction>& actions, const GameStat
 
     // warriors
     for (const auto& w : world.myWarriors) {
-        Cell target = frontTarget[w.id];
         closestDist[w.id] = inf;
 
         for (const auto& ou : world.oppEntities) {

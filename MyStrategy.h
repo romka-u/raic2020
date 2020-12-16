@@ -3,6 +3,7 @@
 #include "DebugInterface.hpp"
 #include "model/Model.hpp"
 #include "drawer.h"
+#include "mytime.h"
 #include "world.h"
 #include "game_status.h"
 #include "astar.h"
@@ -13,11 +14,17 @@ GameStatus gameStatus;
 
 class MyStrategy {
 public:
-    int prevGathered = 0;
-    MyStrategy() {}
+    int prevGathered;
+    int totalElapsed;
+    MyStrategy() { totalElapsed = prevGathered = 0; }
     ~MyStrategy() {}
 
     Action getAction(const PlayerView& playerView, DebugInterface* debugInterface) {
+        unsigned startTime = elapsed();
+        cerr << "T" << playerView.currentTick << ":";
+        #ifndef DEBUG
+        if (totalElapsed > 39456) return Action();
+        #endif
         maxDrawTick = playerView.currentTick;
         if (props.empty()) props = playerView.entityProperties;
         world.update(playerView);
@@ -29,7 +36,7 @@ public:
         gameStatus.update(world);
         updateD(world, gameStatus.resToGather);
         assignTargets(world, gameStatus);
-        
+
         TickDrawInfo& info = tickInfo[playerView.currentTick];
         #ifdef DEBUG
         info.entities = world.allEntities;
@@ -48,7 +55,6 @@ public:
         sort(actions.begin(), actions.end());
 
         unordered_set<int> usedUnits, usedResources, hiding;
-        int bestRepairScore = -1;
         vector<pair<pair<int, int>, pair<Cell, Cell>>> fmoves;
 
         auto setMove = [&fmoves](int unitId, const Cell& from, const Cell& to) {
@@ -75,8 +81,7 @@ public:
 
             if (usedUnits.find(unitId) != usedUnits.end()) continue;
             bool moved = false;
-            const int cost = props.count(etype) ? props.at(etype).cost + world.myUnitsCnt[etype] : 0;
-            
+
             switch (actionType) {
                 case A_ATTACK:
                     if (healthLeft[oid] <= 0) {
@@ -85,11 +90,12 @@ public:
                     healthLeft[oid] -= props.at(world.entityMap[unitId].entityType).attack->damage;
                     moves[unitId].attackAction = std::make_shared<AttackAction>(std::make_shared<int>(oid), nullptr);
                     info.msg[unitId] << "Attack " << oid << " at " << world.entityMap[oid].position;
+                    // cerr << unitId << " Attack " << oid << " at " << world.entityMap[oid].position << " ";
                     break;
                 case A_GATHER:
                     moves[unitId].attackAction = std::make_shared<AttackAction>(std::make_shared<int>(oid), nullptr);
                     info.msg[unitId] << "Gathers " << world.entityMap[oid].position;
-                    cerr << unitId << "Gathers " << world.entityMap[oid].position << endl;
+                    // cerr << unitId << " Gathers " << world.entityMap[oid].position << " ";
                     moved = true;
                     prevGathered++;
                     break;
@@ -109,12 +115,12 @@ public:
                     setMove(unitId, upos, pos);
                     moved = true;
                     info.msg[unitId] << "Hide to " << pos;
-                    cerr << unitId << "Hide to " << pos << endl;
+                    // cerr << unitId << " Hide to " << pos << " ";
                     break;
                 case A_BUILD:
                     moves[unitId].buildAction = std::make_shared<BuildAction>(etype, pos);
                     info.msg[unitId] << "Build [" << oid << "] at " << pos;
-                    cerr << unitId << "Build [" << oid << "] at " << pos << endl;
+                    // cerr << unitId << " Build [" << oid << "] at " << pos << " ";
                     moved = true;
                     break;
                 case A_TRAIN:
@@ -150,23 +156,23 @@ public:
 
         sort(fmoves.begin(), fmoves.end());
 
-        for (const auto [fi, se] : fmoves) {
+        for (const auto& [fi, se] : fmoves) {
             const int unitId = fi.second;
             const auto [from, to] = se;
             info.targets.emplace_back(from, to);
-            
+
             vector<Cell> path = getPathTo(world, from, to);
             #ifdef DEBUG
             pathDebug[unitId].path = path;
             pathDebug[unitId].length = -1;
-            #endif  
+            #endif
             updateAStar(world, path);
             Cell target = to;
-            
+
             if (path.size() >= 2) {
                 target = path[1];
             }
-            
+
             moves[unitId].moveAction = std::make_shared<MoveAction>(target, true, false);
             info.msg[unitId] << ", A* next: " << target;
         }
@@ -174,7 +180,9 @@ public:
         #ifdef DEBUG
         info.pathDebug = pathDebug;
         #endif
+        cerr << endl;
 
+        totalElapsed += elapsed() - startTime;
         return Action(moves);
     }
 

@@ -79,7 +79,6 @@ int main(int argc, char* argv[])
         if (!moved) {
             auto w = v.app_->activeWindow();
             if (w) {
-                QDesktopWidget *widget = QApplication::desktop();
                 auto g = QGuiApplication::screens()[1]->availableGeometry();
                 std::cerr << g.x() << " " << g.y() << std::endl;
                 w->move(g.x(), g.y());
