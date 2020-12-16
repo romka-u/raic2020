@@ -241,11 +241,15 @@ void addHideActions(const World& world, vector<MyAction>& actions, const GameSta
 
         if (threat.x != -1) {
             Cell target(-1, -1);
-            forn(w, 4) {
+            int bestScore = -1234;
+            forn(w, 5) {
                 const Cell nc = wrk.position ^ w;
-                if (nc.inside() && !world.hasNonMovable(nc) && dist(nc, threat) > dist(wrk.position, threat)) {
-                    target = nc;
-                    break;
+                if (nc.inside() && !world.hasNonMovable(nc)) {
+                    int score = dist(nc, threat) * 2 - max(nc.x, nc.y);
+                    if (score > bestScore) {
+                        bestScore = score;
+                        target = nc;
+                    }
                 }
             }
 

@@ -27,8 +27,8 @@ typedef long long ll;
 typedef unsigned long long ull;
 typedef pair<int, int> pii;
 
-const int dx[] = {-1, 0, 1, 0};
-const int dy[] = {0, -1, 0, 1};
+const int dx[] = {-1, 0, 1, 0, 0};
+const int dy[] = {0, -1, 0, 1, 0};
 
 #define sqr(x) (x) * (x)
 // #define contains(v, item) std::find(v.begin(), v.end(), item) != v.end()
