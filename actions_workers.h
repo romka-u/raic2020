@@ -12,7 +12,7 @@ bool canBuild(const World& world, const Cell& c, int sz) {
         if (!world.isEmpty(c + Cell(dx, dy)))
             return false;
     }
-    if ((c.x != 0 && c.y != 0) || sz > 3) {
+    if ((c.x != 0 && c.y != 0) || sz != 3) {
         for (int d = -1; d <= sz; d++) {
             cc = c + Cell(d, -1);
             if (cc.inside() && !world.isEmpty(cc) && world.eMap[cc.x][cc.y] < 0 && world.entityMap.at(-world.eMap[cc.x][cc.y]).playerId != -1) return false;
@@ -100,6 +100,44 @@ int addBuildRanged(const World& world, vector<MyAction>& actions, const GameStat
         return bestId;
     }
     return -1;
+}
+
+int addBuildTurret(const World& world, vector<MyAction>& actions, const GameStatus& st) {
+    if (st.needRanged != 2) return -1;
+
+    int bestScore = -inf, bestId = -1;
+    Cell bestPos;
+    for (const auto& wrk : world.myWorkers) {
+        if (usedWorkers.find(wrk.id) != usedWorkers.end()) continue;
+        
+        bool nearRes = false;
+        forn(q, 4) {
+            const Cell nc = wrk.position ^ q;
+            if (nc.inside() && world.hasNonMovable(nc) && world.entityMap.at(-world.eMap[nc.x][nc.y]).entityType == EntityType::RESOURCE) {
+                nearRes = true;
+                break;
+            }
+        }
+        if (!nearRes) continue;
+
+        const int sz = props.at(EntityType::TURRET).size;
+        for (Cell newPos : nearCells(wrk.position - Cell(sz - 1, sz - 1), sz)) {
+            if (canBuild(world, newPos, sz) && goodForTurret(newPos, sz) && noTurretAhead(world, newPos) && safeToBuild(world, newPos, sz, 12)) {
+                int score = -min(newPos.x, newPos.y);
+                if (score > bestScore) {
+                    bestId = wrk.id;
+                    bestScore = score;
+                    bestPos = newPos;
+                }
+            }
+        }
+    }
+
+    if (bestScore > -inf) {
+        actions.emplace_back(bestId, A_BUILD, bestPos, EntityType::TURRET, Score(700, bestScore));
+        return bestId;
+    }
+    return -1;                
 }
 
 int addBuildHouse(const World& world, vector<MyAction>& actions, const GameStatus& st) {
@@ -236,6 +274,11 @@ void addBuildActions(const World& world, vector<MyAction>& actions, const GameSt
         int wrkId = addBuildHouse(world, actions, st);
         if (wrkId != -1)
             resources -= props.at(EntityType::HOUSE).cost;
+    }
+    if (resources >= props.at(EntityType::TURRET).cost) {
+        int wrkId = addBuildTurret(world, actions, st);
+        if (wrkId != -1)
+            resources -= props.at(EntityType::TURRET).cost;
     }
 }
 
