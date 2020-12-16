@@ -90,14 +90,14 @@ struct GameStatus {
         resToGather.clear();
         for (const Entity& res : world.resources) {
             if (world.infMap[res.position.x][res.position.y].first != world.myId) continue;
-            bool coveredByTurret = false;
+            bool coveredByEnemy = false;
             for (const auto& oe : world.oppEntities) {
-                if (oe.entityType == EntityType::TURRET && dist(res.position, oe) < oe.attackRange) {
-                    coveredByTurret = true;
+                if ((oe.entityType == EntityType::TURRET || oe.entityType == EntityType::RANGED_UNIT) && dist(res.position, oe) < oe.attackRange) {
+                    coveredByEnemy = true;
                     break;
                 }
             }
-            if (!coveredByTurret) {
+            if (!coveredByEnemy) {
                 resToGather.push_back(res.id);
             }
         }
