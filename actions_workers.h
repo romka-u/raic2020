@@ -40,11 +40,11 @@ bool goodForTurret(const Cell& c, int sz) {
     return true;
 }
 
-bool noTurretAhead(const World& world, const Cell& c) {
+bool noTurretAheadAndBehind(const World& world, const Cell& c) {
     if (c.x < c.y) {
         int lx = max(0, c.x - 3);
         int rx = min(79, c.x + 3);
-        for (int y = c.y + 1; y < 70; y++)
+        for (int y = max(c.y - 7, 0); y < 70; y++)
             for (int x = lx; x <= rx; x++) {
                 const int id = world.eMap[x][y];
                 if (id < 0 && world.entityMap.at(-id).entityType == EntityType::TURRET && world.entityMap.at(-id).playerId == world.myId) {
@@ -54,7 +54,7 @@ bool noTurretAhead(const World& world, const Cell& c) {
     } else {
         int ly = max(0, c.y - 3);
         int ry = min(79, c.y + 3);
-        for (int x = c.x + 1; x < 70; x++)
+        for (int x = max(c.x - 7, 0); x < 70; x++)
             for (int y = ly; y <= ry; y++) {
                 const int id = world.eMap[x][y];
                 if (id < 0 && world.entityMap.at(-id).entityType == EntityType::TURRET && world.entityMap.at(-id).playerId == world.myId) {
@@ -122,7 +122,7 @@ int addBuildTurret(const World& world, vector<MyAction>& actions, const GameStat
 
         const int sz = props.at(EntityType::TURRET).size;
         for (Cell newPos : nearCells(wrk.position - Cell(sz - 1, sz - 1), sz)) {
-            if (canBuild(world, newPos, sz) && goodForTurret(newPos, sz) && noTurretAhead(world, newPos) && safeToBuild(world, newPos, sz, 12)) {
+            if (canBuild(world, newPos, sz) && goodForTurret(newPos, sz) && noTurretAheadAndBehind(world, newPos) && safeToBuild(world, newPos, sz, 12)) {
                 int score = -min(newPos.x, newPos.y);
                 if (score > bestScore) {
                     bestId = wrk.id;

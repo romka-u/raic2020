@@ -208,6 +208,9 @@ struct World {
         oppEntities.clear();
         updateEntities(playerView.players.size(), playerView.entities);
         myUnitsCnt.clear();
+        myUnitsCnt[EntityType::BUILDER_UNIT] = 0;
+        myUnitsCnt[EntityType::RANGED_UNIT] = 0;
+        myUnitsCnt[EntityType::MELEE_UNIT] = 0;
         myWorkers.clear();
         myBuildings.clear();
         myWarriors.clear();

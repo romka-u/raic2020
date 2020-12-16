@@ -1,7 +1,52 @@
 #pragma once
 #include "actions.h"
 
-void addTrainActions(const PlayerView& playerView, const World& world, vector<MyAction>& actions, const GameStatus& st) {
+void getBestWorkerTrain(const World& world, const GameStatus& st, int& buildingId, Cell& trainPos) {
+    const int myWS = world.workers[world.myId].size();
+    buildingId = -1;
+    int bestScore = -inf;
+    for (const Entity& bu : world.myBuildings) {
+        if (bu.entityType == EntityType::BUILDER_BASE
+            && !st.workersLeftToFixTurrets
+            && !needBuildArmy
+            && myWS < min(64, int(st.resToGather.size() * 0.91))) {
+            for (Cell bornPlace : nearCells(bu.position, bu.size)) {
+                if (world.isEmpty(bornPlace)) {
+                    int score = -dRes[bornPlace.x][bornPlace.y];
+                    if (score > bestScore) {
+                        bestScore = score;
+                        buildingId = bu.id;
+                        trainPos = bornPlace;
+                    }
+                }
+            }
+        }
+    }
+}
+
+void getBestRangedTrain(const World& world, const GameStatus& st, int& buildingId, Cell& trainPos) {
+    const int myWS = world.workers[world.myId].size();
+    buildingId = -1;
+    int bestScore = -inf;
+    for (const Entity& bu : world.myBuildings) {
+        if (bu.entityType == EntityType::RANGED_BASE
+            && (needBuildArmy || myWS > 32)
+            && world.warriors[world.myId].size() < 77) {
+            for (Cell bornPlace : nearCells(bu.position, bu.size)) {
+                if (world.isEmpty(bornPlace)) {
+                    int score = bornPlace.x + bornPlace.y;
+                    if (score > bestScore) {
+                        bestScore = score;
+                        buildingId = bu.id;
+                        trainPos = bornPlace;
+                    }
+                }
+            }
+        }
+    }
+}
+
+void addTrainActions(const World& world, vector<MyAction>& actions, const GameStatus& st, int& resources) {
     /*int gap = st.underAttack ? 0 : 1;
     for (const Entity& bu : world.myBuildings)
         if (!bu.active && bu.entityType == EntityType::HOUSE)
@@ -10,51 +55,31 @@ void addTrainActions(const PlayerView& playerView, const World& world, vector<My
 
     if (st.foodUsed >= st.foodLimit - gap) return;
 
+    int workerBid, rangedBid;
+    Cell workerTrainPos, rangedTrainPos;
+    getBestWorkerTrain(world, st, workerBid, workerTrainPos);
+    getBestRangedTrain(world, st, rangedBid, rangedTrainPos);
+    const int workerCost = props.at(EntityType::BUILDER_UNIT).cost + world.myUnitsCnt.at(EntityType::BUILDER_UNIT);
+    const int rangedCost = props.at(EntityType::RANGED_UNIT).cost + world.myUnitsCnt.at(EntityType::RANGED_UNIT);
+
     const int myWS = world.workers[world.myId].size();
-    for (const Entity& bu : world.myBuildings) {
-        if (bu.entityType == EntityType::BUILDER_BASE
-            && !st.workersLeftToFixTurrets
-            && (!needBuildArmy)
-            // && (myWS < world.warriors[world.myId].size() || myWS < 42)
-            && myWS < min(64, int(st.resToGather.size() * 0.91))) {
-            for (Cell bornPlace : nearCells(bu.position, bu.size)) {
-                if (world.isEmpty(bornPlace)) {
-                    // int aux = bornPlace.x + bornPlace.y;
-                    // if (world.tick < 70) aux = -aux;
-                    actions.emplace_back(bu.id, A_TRAIN, bornPlace, EntityType::BUILDER_UNIT, Score{420, -dRes[bornPlace.x][bornPlace.y]});
-                }
-            }
+    if (myWS > 42) {
+        if (resources >= workerCost && workerBid != -1) {
+            resources -= workerCost;
+            actions.emplace_back(workerBid, A_TRAIN, workerTrainPos, EntityType::BUILDER_UNIT, Score{420, 0});
         }
-        if (bu.entityType == EntityType::RANGED_BASE
-            && (playerView.players[playerView.myId - 1].resource > 100 || world.warriors[world.myId].size() < 42)
-            && (needBuildArmy || myWS > 32)
-            && world.warriors[world.myId].size() < 77) {
-            for (Cell bornPlace : nearCells(bu.position, bu.size)) {
-                if (world.isEmpty(bornPlace)) {
-                    actions.emplace_back(bu.id, A_TRAIN, bornPlace, EntityType::RANGED_UNIT, Score{myWS * 10, bornPlace.x + bornPlace.y});
-                }
-            }
+        if (resources >= rangedCost && rangedBid != -1) {
+            resources -= rangedCost;
+            actions.emplace_back(rangedBid, A_TRAIN, rangedTrainPos, EntityType::RANGED_UNIT, Score{myWS * 10, 0});
         }
-        int cntMelee = 0;
-        for (const auto& w : world.myWarriors)
-            cntMelee += w.entityType == EntityType::MELEE_UNIT;
-        if (bu.entityType == EntityType::MELEE_BASE
-            && (playerView.players[playerView.myId - 1].resource > 100 || world.warriors[world.myId].size() < 25)
-            && cntMelee < world.tick % 50 - 30
-            && !needBuildArmy && false
-            && !st.underAttack) {
-            for (Cell bornPlace : nearCells(bu.position, bu.size)) {
-                if (world.isEmpty(bornPlace)) {
-                    actions.emplace_back(bu.id, A_TRAIN, bornPlace, EntityType::MELEE_UNIT, Score{20, bornPlace.x + bornPlace.y});
-                }
-            }
+    } else {
+        if (resources >= rangedCost && rangedBid != -1) {
+            resources -= rangedCost;
+            actions.emplace_back(rangedBid, A_TRAIN, rangedTrainPos, EntityType::RANGED_UNIT, Score{myWS * 10, 0});
         }
-        /*if (bu.entityType == EntityType::MELEE_BASE && playerView.players[world.myId - 1].resource > 100) {
-            for (Cell bornPlace : nearCells(bu.position, props.at(bu.entityType).size)) {
-                if (world.isEmpty(bornPlace)) {
-                    actions.emplace_back(bi, A_TRAIN, bornPlace, EntityType::MELEE_UNIT, Score{10, bornPlace.x + bornPlace.y});
-                }
-            }
-        }*/
+        if (resources >= workerCost && workerBid != -1) {
+            resources -= workerCost;
+            actions.emplace_back(workerBid, A_TRAIN, workerTrainPos, EntityType::BUILDER_UNIT, Score{420, 0});
+        }        
     }
 }

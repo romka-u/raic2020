@@ -36,19 +36,14 @@ public:
         info.players = playerView.players;
         info.myId = playerView.myId;
         info.status = gameStatus;
-        // info.squadId = squadId;
         info.myPower = myPower;
         info.myFrontIds = myFrontIds;
         #endif
 
         vector<MyAction> actions;
+        addTrainActions(world, actions, gameStatus, resourcesLeft);
         addWorkersActions(world, actions, gameStatus, resourcesLeft);
-        // addBuildActions(playerView, world, actions, gameStatus);
-        addTrainActions(playerView, world, actions, gameStatus);
-        // addRepairActions(myId, world, actions, gameStatus);
-        // addTurretsActions(playerView, world, actions, gameStatus);
         addWarActions(world, actions, gameStatus);
-        // addGatherActions(myId, world, actions, gameStatus);
 
         sort(actions.begin(), actions.end());
 
@@ -120,14 +115,14 @@ public:
                     moved = true;
                     break;
                 case A_TRAIN:
-                    if (cost <= resourcesLeft) {
+                    // if (cost <= resourcesLeft) {
                         moves[unitId].buildAction = std::make_shared<BuildAction>(etype, pos);
-                        info.msg[unitId] << "Build/train [" << oid << "] at " << pos;
-                        resourcesLeft -= cost;
+                        info.msg[unitId] << "Train [" << oid << "] at " << pos;
+                        // resourcesLeft -= cost;
                         moved = true;
-                    } else {
-                        continue;
-                    }
+                    // } else {
+                    //     continue;
+                    // }
                     break;
                 case A_REPAIR:
                     moves[unitId].repairAction = std::make_shared<RepairAction>(oid);
