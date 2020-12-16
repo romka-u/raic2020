@@ -89,6 +89,7 @@ public:
                 case A_GATHER:
                     moves[unitId].attackAction = std::make_shared<AttackAction>(std::make_shared<int>(oid), nullptr);
                     info.msg[unitId] << "Gathers " << world.entityMap[oid].position;
+                    cerr << unitId << "Gathers " << world.entityMap[oid].position << endl;
                     moved = true;
                     prevGathered++;
                     break;
@@ -108,10 +109,12 @@ public:
                     setMove(unitId, upos, pos);
                     moved = true;
                     info.msg[unitId] << "Hide to " << pos;
+                    cerr << unitId << "Hide to " << pos << endl;
                     break;
                 case A_BUILD:
                     moves[unitId].buildAction = std::make_shared<BuildAction>(etype, pos);
                     info.msg[unitId] << "Build [" << oid << "] at " << pos;
+                    cerr << unitId << "Build [" << oid << "] at " << pos << endl;
                     moved = true;
                     break;
                 case A_TRAIN:
