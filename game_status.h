@@ -426,15 +426,17 @@ struct GameStatus {
             if (u.entityType != EntityType::MELEE_UNIT && u.entityType != EntityType::RANGED_UNIT && u.entityType != EntityType::TURRET)
                 continue;
             if (dtg[u.position.x][u.position.y] <= 19) {
-                int pwr = min(11, u.health);
+                const int pwr = min(11, u.health);
+                const int grId = borderGroup[c.x][c.y];
+                // cerr << "unit " << u.id << " at " << u.position << " adds " << pwr << " power to group " << (char)('A' + grId) << endl;
                 // if (u.entityType == EntityType::TURRET) pwr = 42;
                 if (u.playerId != world.myId) {
-                    attackersPower[borderGroup[c.x][c.y]] += pwr;
+                    attackersPower[grId] += pwr;
                     if (dtg[u.position.x][u.position.y] <= 11) {
-                        attackersPowerClose[borderGroup[c.x][c.y]] += pwr;
+                        attackersPowerClose[grId] += pwr;
                     }
                 }
-                utg[u.playerId][borderGroup[c.x][c.y]].push_back(unitId);
+                utg[u.playerId][grId].push_back(unitId);
             }
         }
     }

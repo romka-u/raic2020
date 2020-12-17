@@ -1,6 +1,33 @@
 #pragma once
 #include "actions.h"
 
+int ru[88][88], rit, rd[88][88];
+
+void resBfs(const World& world) {
+    rit++;
+    vector<Cell> q;
+    size_t qb = 0;
+    for (const auto& r : world.resources) {
+        if (r.health == r.maxHealth) {
+            ru[r.position.x][r.position.y] = rit;
+            q.push_back(r.position);
+            rd[r.position.x][r.position.y] = 0;
+        }
+    }
+
+    while (qb < q.size()) {
+        Cell cur = q[qb++];
+        forn(w, 4) {
+            const Cell nc = cur ^ w;
+            if (nc.inside() && ru[nc.x][nc.y] != rit) {
+                ru[nc.x][nc.y] = rit;
+                q.push_back(nc);
+                rd[nc.x][nc.y] = rd[cur.x][cur.y] + 1;
+            }
+        }
+    }
+}
+
 void getBestWorkerTrain(const World& world, const GameStatus& st, int& buildingId, Cell& trainPos) {
     const int myWS = world.workers[world.myId].size();
     buildingId = -1;
@@ -12,7 +39,7 @@ void getBestWorkerTrain(const World& world, const GameStatus& st, int& buildingI
             && myWS < min(64, int(st.resToGather.size() * 0.91))) {
             for (Cell bornPlace : nearCells(bu.position, bu.size)) {
                 if (world.isEmpty(bornPlace)) {
-                    int score = -dRes[bornPlace.x][bornPlace.y];
+                    int score = -rd[bornPlace.x][bornPlace.y];
                     if (score > bestScore) {
                         bestScore = score;
                         buildingId = bu.id;
@@ -24,7 +51,7 @@ void getBestWorkerTrain(const World& world, const GameStatus& st, int& buildingI
     }
 }
 
-void getBestRangedTrain(const World& world, const GameStatus& st, int& buildingId, Cell& trainPos) {
+void getBestRangedTrain(const World& world, const GameStatus& st, const Cell& closestEnemy, int& buildingId, Cell& trainPos) {
     const int myWS = world.workers[world.myId].size();
     buildingId = -1;
     int bestScore = -inf;
@@ -34,7 +61,7 @@ void getBestRangedTrain(const World& world, const GameStatus& st, int& buildingI
             && world.warriors[world.myId].size() < 77) {
             for (Cell bornPlace : nearCells(bu.position, bu.size)) {
                 if (world.isEmpty(bornPlace)) {
-                    int score = bornPlace.x + bornPlace.y;
+                    int score = -dist(bornPlace, closestEnemy);
                     if (score > bestScore) {
                         bestScore = score;
                         buildingId = bu.id;
@@ -54,11 +81,24 @@ void addTrainActions(const World& world, vector<MyAction>& actions, const GameSt
     int gap = 0;
 
     if (st.foodUsed >= st.foodLimit - gap) return;
+    resBfs(world);
+
+    int cld = inf;
+    Cell closestEnemy(70, 70);
+    for (const auto& oe : world.oppEntities) {
+        for (const auto& e : world.myBuildings) {
+            int cd = dist(oe.position, e);
+            if (cd < cld) {
+                cld = cd;
+                closestEnemy = oe.position;
+            }
+        }
+    }
 
     int workerBid, rangedBid;
     Cell workerTrainPos, rangedTrainPos;
     getBestWorkerTrain(world, st, workerBid, workerTrainPos);
-    getBestRangedTrain(world, st, rangedBid, rangedTrainPos);
+    getBestRangedTrain(world, st, closestEnemy, rangedBid, rangedTrainPos);
     const int workerCost = props.at(EntityType::BUILDER_UNIT).cost + world.myUnitsCnt.at(EntityType::BUILDER_UNIT);
     const int rangedCost = props.at(EntityType::RANGED_UNIT).cost + world.myUnitsCnt.at(EntityType::RANGED_UNIT);
 
