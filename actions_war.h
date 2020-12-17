@@ -77,12 +77,12 @@ void addWarActions(const World& world, vector<MyAction>& actions, const GameStat
             }
         }
 
-        if (!iAmOnFront || frontTarget[w.id] == Cell(7, 7)) {
-            const Cell target = frontTarget[w.id];
-            actions.emplace_back(w.id, A_MOVE, target, -1, Score(100, -dist(w.position, target)));
-            continue;
+        Cell target = frontTarget[w.id];
+        if (iAmOnFront) {
+            target = HOME;
         }
-
+        actions.emplace_back(w.id, A_MOVE, target, -1, Score(100, -dist(w.position, target)));
+/*
         const Cell target = closestEnemyCell[w.id];
         forn(e, 4) {
             const Cell nc = w.position ^ e;
@@ -92,6 +92,7 @@ void addWarActions(const World& world, vector<MyAction>& actions, const GameStat
                 }
             }
         }
+*/
     }
 
     for (const auto& t : world.myBuildings) {

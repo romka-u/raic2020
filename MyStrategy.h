@@ -23,7 +23,7 @@ public:
         unsigned startTime = elapsed();
         cerr << "T" << playerView.currentTick << ":";
         #ifndef DEBUG
-        if (totalElapsed > 39456) return Action();
+        if (totalElapsed > 38383) return Action();
         #endif
         maxDrawTick = playerView.currentTick;
         if (props.empty()) props = playerView.entityProperties;
@@ -46,6 +46,8 @@ public:
         info.myPower = myPower;
         info.myFrontIds = myFrontIds;
         #endif
+
+        // return Action();
 
         vector<MyAction> actions;
         addTrainActions(world, actions, gameStatus, resourcesLeft);

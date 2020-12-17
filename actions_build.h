@@ -125,7 +125,6 @@ void addBuildActions(const PlayerView& playerView, const World& world, vector<My
 void addTurretsActions(const PlayerView& playerView, const World& world, vector<MyAction>& actions, const GameStatus& st) {
     forn(i, KTS) {
         if (!TURRETS_CHEESE) break;
-        const Cell home(7, 7);
         if (st.ts[i].state == TS_PLANNED) {
             for (int wi : st.ts[i].repairers) {
                 const auto& w = world.entityMap.at(wi);
@@ -137,7 +136,7 @@ void addTurretsActions(const PlayerView& playerView, const World& world, vector<
                         bool isPlaceToBuild = false;
                         Score buildScore(3000, 0);
                         for (Cell newPos : nearCells(w.position - Cell(sz - 1, sz - 1), sz)) {
-                            if (canBuild(world, newPos, sz) && safeToBuild(world, newPos, sz, 7) && dist(newPos, home) > 33) {
+                            if (canBuild(world, newPos, sz) && safeToBuild(world, newPos, sz, 7) && dist(newPos, HOME) > 33) {
                                 // if (newPos.x + newPos.y == 3 && !world.hasNonMovable({0, 0})) continue;
                                 buildScore.aux = -dist(newPos, st.ts[i].target);
                                 actions.emplace_back(wi, A_BUILD, newPos, EntityType::TURRET, buildScore);
@@ -145,7 +144,7 @@ void addTurretsActions(const PlayerView& playerView, const World& world, vector<
                             }
                         }
                         if (!isPlaceToBuild) {
-                            actions.emplace_back(wi, A_MOVE, Cell{7, 7}, -1, Score(3000, 0));
+                            actions.emplace_back(wi, A_MOVE, HOME, -1, Score(3000, 0));
                         }
                         isEnemyClose = true;
                         break;

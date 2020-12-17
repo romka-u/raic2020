@@ -118,14 +118,14 @@ struct GameStatus {
         for (const auto& w : world.myWarriors)
             foodUsed += props.at(w.entityType).populationUse;
     }
-    
+
     void updateTurretsState(const World& world) {
         if (foodLimit >= 30 && TURRETS_CHEESE) {
             if (ts[0].state == TS_NOT_BUILD) {
-                ts[0].target = Cell{7, 80 - 7};
+                ts[0].target = Cell{10, 79 - 10};
                 unordered_set<int> usedW;
 
-                vector<Cell> path = getPathTo(world, Cell{10, 10}, {7, 75});
+                vector<Cell> path = getPathTo(world, HOME, {7, 75});
                 bool ok = true;
                 cerr << "path.size(): " << path.size() << endl;
                 for (const Cell& c : path) {
@@ -138,8 +138,9 @@ struct GameStatus {
                 cerr << endl;
                 if (path.size() < 10 || !ok) {
                     ts[0].state = TS_FAILED;
-                    ts[1].state = TS_FAILED;                    
+                    ts[1].state = TS_FAILED;
                 } else {
+                    ts[0].target = Cell{10, 79 - 10};
                     forn(j, 2) {
                         int bw = -1;
                         int cld = inf;
@@ -156,8 +157,7 @@ struct GameStatus {
                         usedW.insert(bw);
                     }
                     ts[0].state = TS_PLANNED;
-                    
-                    ts[1].target = Cell{80 - 7, 7};
+                    ts[1].target = Cell{79 - 10, 10};
                     forn(j, 2) {
                         int bw = -1;
                         int cld = inf;
@@ -441,7 +441,10 @@ struct GameStatus {
 
     void calcHotPoints(const World& world, vector<Cell> borderPoints[5], int groupsCnt) {
         vector<vector<Cell>> groupCells(groupsCnt), unitCloseGroupCells(groupsCnt);
+        // cerr << groupsCnt << endl;
         for (const auto& [unitId, c] : unitsToCell) {
+            // cerr << "unit" << unitId << " maps to cell " << c;
+            // cerr << ", borderGroup is " << borderGroup[c.x][c.y] << endl;
             const auto& u = world.entityMap.at(unitId);
             if (u.entityType != EntityType::MELEE_UNIT && u.entityType != EntityType::RANGED_UNIT && u.entityType != EntityType::TURRET)
                 continue;

@@ -14,6 +14,7 @@ Cell operator^(const Cell& a, int q) {
 }
 
 Cell NOWHERE{-1, -1};
+Cell HOME{10, 10};
 
 int distCell(int x1, int y1, int x2, int y2) {
     return abs(x1 - x2) + abs(y1 - y2);
@@ -127,83 +128,85 @@ struct World {
         return props.at(entityMap.at(unitId).entityType);
     }
 
+    void generateFake(int playersCnt, unordered_map<int, Entity>& newEM) {
+        Entity base(123456789, 1, EntityType::BUILDER_BASE, Cell(70, 70), props.at(EntityType::BUILDER_BASE).maxHealth, true);
+        base.size = 5;
+        base.maxHealth = base.health;
+        base.attackRange = 0;
+        if (base.playerId == myId) base.playerId++;
+        newEM[base.id] = base;
+
+        if (playersCnt > 2) {
+            base.id++;
+            base.playerId++;
+            if (base.playerId == myId) base.playerId++;
+            base.position = Cell(70, 5);
+            newEM[base.id] = base;
+
+            base.id++;
+            base.playerId++;
+            if (base.playerId == myId) base.playerId++;
+            base.position = Cell(5, 70);
+            newEM[base.id] = base;
+        }
+
+        Entity res(111222333, -1, EntityType::RESOURCE, Cell(40, 40), props.at(EntityType::RESOURCE).maxHealth, true);
+        res.maxHealth = res.health;
+        res.attackRange = 0;
+        res.size = 1;
+        for (int z = 0; z < 80; z += 5) {
+            res.id++;
+            res.position = Cell(z, 41);
+            newEM[res.id] = res;
+            res.id++;
+            res.position = Cell(41, z);
+            newEM[res.id] = res;
+
+            if (playersCnt == 2) {
+                res.id++;
+                res.position = Cell(79 - z, z);
+                newEM[res.id] = res;
+            }
+        }
+    }
+
     void updateEntities(int playersCnt, const vector<Entity>& newEntities) {
         unordered_map<int, Entity> newEM;
 
-        vector<Entity> my;
-        if (fow) {
+        if (tick == 0) {
+            bool haveEnemy = false;
+            for (const Entity& e : newEntities)
+                if (e.playerId != myId && e.playerId != -1) {
+                    haveEnemy = true;
+                    break;
+                }
+
+            if (!haveEnemy) {
+                fow = true;
+                generateFake(playersCnt, newEM);
+            }
+        } else if (fow) {
+            vector<Entity> my;
             for (const auto& e : newEntities)
                 if (e.playerId == myId) {
                     my.push_back(e);
                 }
-        }
-
-        bool haveEnemy = false;
-
-        for (const auto& [id, e] : entityMap) {
-            if (!fow) break;
-            if (!props.at(e.entityType).canMove) {
-                if (e.playerId != myId && e.playerId != -1) {
-                    haveEnemy = true;
-                }
-                
-                bool seeing = false;
-                for (const auto& me : my)
-                    if (dist(me, e) <= props.at(me.entityType).sightRange) {
-                        seeing = true;
-                        break;
+            for (const auto& [id, e] : entityMap) {
+                if (!props.at(e.entityType).canMove) {
+                    bool seeing = false;
+                    for (const auto& me : my)
+                        if (dist(me, e) <= props.at(me.entityType).sightRange) {
+                            seeing = true;
+                            break;
+                        }
+                    if (!seeing) {
+                        newEM[e.id] = e;
                     }
-                if (!seeing) {
-                    newEM[e.id] = e;
-                }
-            }
-        }
-
-        if (tick == 0 && !haveEnemy) {
-            fow = true;
-            Entity base(123456789, 1, EntityType::BUILDER_BASE, Cell(70, 70), props.at(EntityType::BUILDER_BASE).maxHealth, true);
-            base.size = 5;
-            base.maxHealth = base.health;
-            base.attackRange = 0;
-            if (base.playerId == myId) base.playerId++;
-            newEM[base.id] = base;
-
-            if (playersCnt > 2) {
-                base.id++;
-                base.playerId++;
-                if (base.playerId == myId) base.playerId++;
-                base.position = Cell(70, 5);
-                newEM[base.id] = base;
-
-                base.id++;
-                base.playerId++;
-                if (base.playerId == myId) base.playerId++;
-                base.position = Cell(5, 70);
-                newEM[base.id] = base;
-            }
-
-            Entity res(111222333, -1, EntityType::RESOURCE, Cell(40, 40), props.at(EntityType::RESOURCE).maxHealth, true);
-            res.maxHealth = res.health;
-            res.attackRange = 0;
-            res.size = 1;
-            for (int z = 0; z < 80; z += 5) {
-                res.id++;
-                res.position = Cell(z, 41);
-                newEM[res.id] = res;
-                res.id++;
-                res.position = Cell(41, z);
-                newEM[res.id] = res;
-
-                if (playersCnt == 2) {
-                    res.id++;
-                    res.position = Cell(79 - z, z);
-                    newEM[res.id] = res;
                 }
             }
         }
 
         entityMap = std::move(newEM);
-
         for (const auto& e : newEntities) {
             entityMap[e.id] = e;
         }
@@ -248,7 +251,7 @@ struct World {
                     oppEntities.push_back(e);
                 } else {
                     myUnitsCnt[e.entityType]++;
-                }                
+                }
                 if (e.entityType == EntityType::BUILDER_UNIT) {
                     workers[pid].push_back(eid);
                     if (pid == myId) myWorkers.push_back(e);
