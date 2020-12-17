@@ -57,46 +57,18 @@ void addWarActions(const World& world, vector<MyAction>& actions, const GameStat
 
     for (const auto& w : world.myWarriors) {
         if (willAttack.find(w.id) != willAttack.end()) continue;
-        const int myCld = closestDist.at(w.id);
-
-        bool iAmOnFront = myCld < 8 && w.entityType != EntityType::MELEE_UNIT;
-        for (const auto& at : st.buildingAttackers)
-            if (at.position == closestEnemyCell[w.id]) {
-                iAmOnFront = false;
-                break;
-            }
-        if (iAmOnFront) {
-            for (int wi : world.warriors[world.myId]) {
-                if (wi == w.id) continue;
-                const auto& wu = world.entityMap.at(wi);
-                if (dist(w.position, wu.position) <= 5)
-                    if (closestDist[wi] <= myCld) {
-                        iAmOnFront = false;
-                        break;
-                    }
-            }
-        }
-
         Cell target = frontTarget[w.id];
-        if (iAmOnFront) {
-            target = HOME;
+        int mainScore = 100;
+        if (frontMoves.find(w.id) != frontMoves.end() /* && target != HOME*/) {
+            target = w.position ^ frontMoves[w.id];
+            mainScore = 120;
         }
-        actions.emplace_back(w.id, A_MOVE, target, -1, Score(100, -dist(w.position, target)));
-/*
-        const Cell target = closestEnemyCell[w.id];
-        forn(e, 4) {
-            const Cell nc = w.position ^ e;
-            if (nc.inside() && !world.hasNonMovable(nc)) {
-                if (dist(nc, target) > myCld) {
-                    actions.emplace_back(w.id, A_MOVE, nc, -1, Score(110 + (world.eMap[nc.x][nc.y] == 0), 0));
-                }
-            }
-        }
-*/
+        
+        actions.emplace_back(w.id, A_MOVE, target, -1, Score(mainScore, -dist(w.position, target)));
     }
 
     for (const auto& t : world.myBuildings) {
-        if (t.entityType != EntityType::TURRET) continue;
+        if (t.entityType != EntityType::TURRET || !t.active) continue;
 
         for (const auto& ou : world.oppEntities) {
             if (dist(ou, t) <= t.attackRange) {

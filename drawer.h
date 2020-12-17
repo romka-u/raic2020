@@ -28,6 +28,7 @@ struct TickDrawInfo {
     unordered_set<int> myFrontIds;
     vector<int> myPower;
     unordered_map<int, PathDebug> pathDebug;
+    unordered_map<int, int> frontMoves;
 };
 
 #ifdef DEBUG
@@ -56,7 +57,7 @@ const int SZ = 100;
 TickDrawInfo tickInfo[1010];
 int currentDrawTick, maxDrawTick;
 Vec2Float clickedPointWorld, clickedPointScreen;
-bool drawMyField, drawOppField, drawTargets, drawInfMap, colorBySquads, drawBorderGroups;
+bool drawMyField, drawOppField, drawTargets, drawInfMap, drawFrontMoves, drawBorderGroups;
 
 
 #ifdef DEBUG
@@ -155,6 +156,23 @@ void drawTargetsLines(const Targets& targets) {
                      (p.second.x + 0.5) * SZ, (p.second.y + 0.5) * SZ);
     }
 }
+
+void drawFrontMovesLines(const vector<Entity>& allEntities, const unordered_map<int, int>& frontMoves) {
+    unordered_map<int, Cell> pos;
+    v.p.setPen(QPen(QColor(128, 32, 224), 16));
+    for (const auto& e : allEntities) {
+        pos[e.id] = e.position;       
+    }
+
+    for (const auto& [id, w] : frontMoves) {
+        const Cell& from = pos[id];
+        const Cell to = from ^ w;
+
+        v.p.drawLine((from.x + 0.5) * SZ, (from.y + 0.5) * SZ,
+                     (to.x + 0.5) * SZ, (to.y + 0.5) * SZ);
+    }
+}
+
 
 void drawBarsWithDeltas(
         unordered_map<EntityType, int> cnt[4],
@@ -288,16 +306,6 @@ void draw() {
                 v.p.setPen(palePen);
             }
 
-            /*if (colorBySquads) {
-                if (info.squadId.count(e.id)) {
-                    v.p.setBrush(brushesPerPlayer[info.squadId.at(e.id)]);
-                    v.p.setPen(pensPerPlayer[info.squadId.at(e.id)]);
-                } else {
-                    v.p.setBrush(paleBrush);
-                    v.p.setPen(palePen);
-                }
-            }*/
-
             v.p.drawRect((pos.x + 0.05) * SZ, (pos.y + 0.05) * SZ, (e.size - 0.1) * SZ, (e.size - 0.1) * SZ);
 
             v.p.setBrush(blackBrush);
@@ -325,6 +333,7 @@ void draw() {
     if (drawMyField) drawUnderAttack(info, eMap, QColor(0, 255, 0, 64), [&info](int id) { return id == info.myId; });
     if (drawTargets) drawTargetsLines(info.targets);
     if (drawInfMap) drawInfMapOverlay(info.entities, eMap);
+    if (drawFrontMoves) drawFrontMovesLines(info.entities, info.frontMoves);
     if (drawBorderGroups) drawBorderGroupsInfo(info.entities, info.status);
 
     if (currentDrawTick > 0) {

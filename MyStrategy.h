@@ -36,6 +36,7 @@ public:
         gameStatus.update(world);
         updateD(world, gameStatus.resToGather);
         assignTargets(world, gameStatus);
+        assignFrontMoves(world, gameStatus);
 
         TickDrawInfo& info = tickInfo[playerView.currentTick];
         #ifdef DEBUG
@@ -45,6 +46,7 @@ public:
         info.status = gameStatus;
         info.myPower = myPower;
         info.myFrontIds = myFrontIds;
+        info.frontMoves = frontMoves;
         #endif
 
         // return Action();
