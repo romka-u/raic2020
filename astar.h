@@ -113,6 +113,7 @@ vector<Cell> getPathTo(const World& world, const Cell& from, const Cell& to) {
         QItem cur = queue.top();
         queue.pop();
 
+        int stepCost = 1;
         if (um[cur.c.x][cur.c.y] != uit) {
             Cell cc = cur.c;
             um[cc.x][cc.y] = uit;
@@ -130,7 +131,11 @@ vector<Cell> getPathTo(const World& world, const Cell& from, const Cell& to) {
             }
 
             if (world.hasNonMovable(cc)) {
-                continue;
+                if (world.hasResourceAt(cc)) {
+                    stepCost = 5;
+                } else {
+                    continue;
+                }
             }
         } else {
             continue;
@@ -138,7 +143,7 @@ vector<Cell> getPathTo(const World& world, const Cell& from, const Cell& to) {
 
         forn(w, 4) {
             Cell nc = cur.c ^ w;
-            int nf = cur.f + 1;
+            int nf = cur.f + stepCost;
             if (cur.d < D) {
                 if (busyForAStar[nc.x][nc.y][cur.d + 1] == astick/* || foreverStuck[nc.x][nc.y]*/) nf += 7;
                 if (moveUsed[nc.x][nc.y][cur.d + 1][w ^ 2] == astick) nf += 7;

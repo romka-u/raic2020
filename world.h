@@ -97,19 +97,20 @@ struct World {
     vector<int> workers[5];
     vector<int> warriors[5];
     vector<int> buildings[5];
-    vector<int> resourceIds;
     vector<Entity> resources;
     vector<Entity> oppEntities, allEntities;
     vector<Entity> myBuildings, myWarriors, myWorkers;
     unordered_map<int, int> staying;
     unordered_map<EntityType, int> myUnitsCnt;
     int eMap[88][88];
+    int resAtTick[88][88];
     pii infMap[88][88];
     int myId, tick;
     bool fow;
 
     World() {
         fow = false;
+        memset(resAtTick, 0xff, sizeof(resAtTick));
     }
 
     bool isEmpty(const Cell& c) const {
@@ -122,6 +123,10 @@ struct World {
 
     int getIdAt(const Cell& c) const {
         return abs(eMap[c.x][c.y]);
+    }
+
+    bool hasResourceAt(const Cell& c) const {
+        return resAtTick[c.x][c.y] == tick;
     }
 
     EntityProperties& P(int unitId) const {
@@ -227,7 +232,6 @@ struct World {
             buildings[p].clear();
         }
         resources.clear();
-        resourceIds.clear();
         oppEntities.clear();
         updateEntities(playerView.players.size(), playerView.entities);
         myUnitsCnt.clear();
@@ -270,7 +274,7 @@ struct World {
             } else {
                 assert(e.entityType == EntityType::RESOURCE);
                 resources.push_back(e);
-                resourceIds.push_back(eid);
+                resAtTick[e.position.x][e.position.y] = tick;
             }
         }
 

@@ -73,7 +73,7 @@ int main(int argc, char* argv[])
         clickedPointScreen = Vec2Float(sx, sy);
     });
 
-    bool moved = false;
+    bool moved = true;
     while (running || !exited) {
         if (!moved) {
             auto w = v.app_->activeWindow();
