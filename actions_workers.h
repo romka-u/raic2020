@@ -4,7 +4,7 @@
 
 unordered_set<int> usedWorkers;
 
-bool canBuild(const World& world, const Cell& c, int sz) {
+bool canBuild(const World& world, const Cell& c, int sz, bool checkBorder) {
     if (!c.inside()) return false;
     Cell cc = c + Cell(sz - 1, sz - 1);
     if (!cc.inside()) return false;
@@ -12,7 +12,7 @@ bool canBuild(const World& world, const Cell& c, int sz) {
         if (!world.isEmpty(c + Cell(dx, dy)))
             return false;
     }
-    if ((c.x != 0 && c.y != 0) || sz != 3) {
+    if (((c.x != 0 && c.y != 0) || sz != 3) && checkBorder) {
         for (int d = -1; d <= sz; d++) {
             cc = c + Cell(d, -1);
             if (cc.inside() && !world.isEmpty(cc) && world.eMap[cc.x][cc.y] < 0 && world.entityMap.at(-world.eMap[cc.x][cc.y]).playerId != -1) return false;
@@ -74,7 +74,7 @@ bool safeToBuild(const World& world, const Cell& c, int sz, int arb) {
     return true;
 }
 
-int addBuildRanged(const World& world, vector<MyAction>& actions, const GameStatus& st) {
+int addBuildRanged(const World& world, vector<MyAction>& actions, const GameStatus& st, bool checkBorder) {
     if (st.needRanged != 1) return -1;
 
     int bestScore = -inf, bestId = -1;
@@ -84,7 +84,7 @@ int addBuildRanged(const World& world, vector<MyAction>& actions, const GameStat
 
         const int sz = props.at(EntityType::RANGED_BASE).size;
         for (Cell newPos : nearCells(wrk.position - Cell(sz - 1, sz - 1), sz)) {
-            if (canBuild(world, newPos, sz) && safeToBuild(world, newPos, sz, 15)) {
+            if (canBuild(world, newPos, sz, checkBorder) && safeToBuild(world, newPos, sz, 15)) {
                 int score = newPos.x + newPos.y;
                 if (score > bestScore) {
                     bestScore = score;
@@ -122,7 +122,7 @@ int addBuildTurret(const World& world, vector<MyAction>& actions, const GameStat
 
         const int sz = props.at(EntityType::TURRET).size;
         for (Cell newPos : nearCells(wrk.position - Cell(sz - 1, sz - 1), sz)) {
-            if (canBuild(world, newPos, sz) && goodForTurret(newPos, sz) && noTurretAheadAndBehind(world, newPos) && safeToBuild(world, newPos, sz, 12)) {
+            if (canBuild(world, newPos, sz, true) && goodForTurret(newPos, sz) && noTurretAheadAndBehind(world, newPos) && safeToBuild(world, newPos, sz, 12)) {
                 int score = -min(newPos.x, newPos.y);
                 if (score > bestScore) {
                     bestId = wrk.id;
@@ -140,7 +140,7 @@ int addBuildTurret(const World& world, vector<MyAction>& actions, const GameStat
     return -1;
 }
 
-int addBuildHouse(const World& world, vector<MyAction>& actions, const GameStatus& st) {
+int addBuildHouse(const World& world, vector<MyAction>& actions, const GameStatus& st, bool checkBorder) {
     int bestScore = -inf, bestId = -1;
     Cell bestPos;
 
@@ -149,7 +149,11 @@ int addBuildHouse(const World& world, vector<MyAction>& actions, const GameStatu
         if (b.entityType == EntityType::HOUSE && !b.active)
             housesInProgress++;
 
-    if (housesInProgress > 0) return -1;
+    if (st.needRanged == 2) {
+        if (housesInProgress > 1) return -1;
+    } else {
+        if (housesInProgress > 0) return -1;
+    }
 
     for (const auto& wrk : world.myWorkers) {
         if (st.foodLimit >= st.foodUsed + 15 || st.foodLimit >= 145 || st.needRanged == 1)
@@ -158,7 +162,7 @@ int addBuildHouse(const World& world, vector<MyAction>& actions, const GameStatu
 
         const int sz = props.at(EntityType::HOUSE).size;
         for (Cell newPos : nearCells(wrk.position - Cell(sz - 1, sz - 1), sz)) {
-            if (canBuild(world, newPos, sz) && safeToBuild(world, newPos, sz, 10)) {
+            if (canBuild(world, newPos, sz, checkBorder) && safeToBuild(world, newPos, sz, 10)) {
                 // if (newPos.x + newPos.y == 3 && !world.hasNonMovable({0, 0})) continue;
                 int score = (newPos.x == 0) * 1000 + (newPos.y == 0) * 1000 - newPos.x - newPos.y;
                 if (score > bestScore) {
@@ -269,15 +273,17 @@ void addHideActions(const World& world, vector<MyAction>& actions, const GameSta
 }
 
 void addBuildActions(const World& world, vector<MyAction>& actions, const GameStatus& st, int& resources) {
-    if (resources >= props.at(EntityType::RANGED_BASE).cost) {
-        int wrkId = addBuildRanged(world, actions, st);
+    const int rbc = props.at(EntityType::RANGED_BASE).cost;
+    if (resources >= rbc) {
+        int wrkId = addBuildRanged(world, actions, st, resources < rbc * 1.64);
         if (wrkId != -1)
-            resources -= props.at(EntityType::RANGED_BASE).cost;
+            resources -= rbc;
     }
-    if (resources >= props.at(EntityType::HOUSE).cost) {
-        int wrkId = addBuildHouse(world, actions, st);
+    const int hbc = props.at(EntityType::HOUSE).cost;
+    if (resources >= hbc) {
+        int wrkId = addBuildHouse(world, actions, st, resources < hbc * 1.64 || st.needRanged == 2);
         if (wrkId != -1)
-            resources -= props.at(EntityType::HOUSE).cost;
+            resources -= hbc;
     }
     if (resources >= props.at(EntityType::TURRET).cost) {
         int wrkId = addBuildTurret(world, actions, st);

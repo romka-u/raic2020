@@ -184,14 +184,13 @@ public:
         #ifdef DEBUG
         info.pathDebug = pathDebug;
         #endif
-        cerr << endl;
 
         totalElapsed += elapsed() - startTime;
+        cerr << " " << totalElapsed << endl;
+
         return Action(moves);
     }
 
     void debugUpdate(const PlayerView& playerView, DebugInterface& debugInterface) {
-        // currentDrawTick = playerView.currentTick;
-        // cerr << "currentDrawTick: " << currentDrawTick << endl;
     }
 };
