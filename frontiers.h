@@ -156,7 +156,9 @@ void assignTargets(const World& world, const GameStatus& st) {
     for (int freeId : freeWarriors) {
         const Cell c = st.unitsToCell.at(freeId);
         int grId = st.borderGroup[c.x][c.y];
+        // cerr << "cell " << c << ", grId: " << grId << " ";
         unitsByFront[grId].push_back(freeId);
+        frontTarget[freeId] = st.hotPoints[grId];
         setClosestTarget(world.entityMap.at(freeId), oppUnitsByGroup[grId]);
         // cerr << "[C] front target of " << freeId << " set to " << frontTarget[freeId] << endl;
         // myPower[st.borderGroup[c.x][c.y]] += 10;
