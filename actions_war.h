@@ -63,6 +63,9 @@ void addWarActions(const World& world, vector<MyAction>& actions, const GameStat
             target = w.position ^ frontMoves[w.id];
             mainScore = 120;
         }
+        if (target == w.position && world.myWarriors.size() >= 7) {
+            target = Cell(68, 68);
+        }
         
         actions.emplace_back(w.id, A_MOVE, target, -1, Score(mainScore, -dist(w.position, target)));
     }
