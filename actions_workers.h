@@ -149,11 +149,11 @@ int addBuildHouse(const World& world, vector<MyAction>& actions, const GameStatu
         if (b.entityType == EntityType::HOUSE && !b.active)
             housesInProgress++;
 
-    if (st.needRanged == 2) {
-        if (housesInProgress > 1) return -1;
-    } else {
+    // if (st.needRanged == 2) {
+    //     if (housesInProgress > 1) return -1;
+    // } else {
         if (housesInProgress > 0) return -1;
-    }
+    // }
 
     for (const auto& wrk : world.myWorkers) {
         if (st.foodLimit >= st.foodUsed + 15 || st.foodLimit >= 145 || st.needRanged == 1)
