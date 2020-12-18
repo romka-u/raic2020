@@ -56,6 +56,15 @@ void assignTargets(const World& world, const GameStatus& st) {
         return;
     }
 
+    unordered_map<int, vector<Entity>> oppUnitsByGroup;
+    for (const auto& [unitId, cell] : st.unitsToCell) {
+        const auto& u = world.entityMap.at(unitId);
+        if (u.playerId != world.myId) {
+            const int grId = st.borderGroup[cell.x][cell.y];
+            oppUnitsByGroup[grId].push_back(u);
+        }
+    }
+
     unordered_map<int, vector<pii>> myFronts;
     myFrontIds.clear();
     unordered_set<int> nearBaseFrontIds;
@@ -95,10 +104,12 @@ void assignTargets(const World& world, const GameStatus& st) {
                 mpwc += min(11, u.health);
             }
             frontTarget[u.id] = st.unitsToCell.at(u.id);
-            // cerr << "[A] front target of " << u.id << " set to " << frontTarget[u.id] << endl;
             if (st.dtg[u.position.x][u.position.y] <= 6) {
                 setClosestTarget(u, world.oppEntities);
+            } else {
+                setClosestTarget(u, oppUnitsByGroup[gr]);
             }
+            // cerr << "[A] front target of " << u.id << " set to " << frontTarget[u.id] << endl;
             unitsByFront[gr].push_back(u.id);
             i++;
         }
@@ -133,8 +144,9 @@ void assignTargets(const World& world, const GameStatus& st) {
         const auto& u = world.entityMap.at(id);
         if (freeWarriors.find(id) == freeWarriors.end()) continue;
         if (myPower[gr] < st.attackersPower[gr]) {
-            myPower[gr] += min(11, u.health);;
+            myPower[gr] += min(11, u.health);
             frontTarget[id] = st.hotPoints[gr];
+            setClosestTarget(u, oppUnitsByGroup[gr]);
             // cerr << "[B] front target of " << id << " set to " << frontTarget[id] << endl;
             unitsByFront[gr].push_back(id);
             freeWarriors.erase(id);
@@ -145,7 +157,7 @@ void assignTargets(const World& world, const GameStatus& st) {
         const Cell c = st.unitsToCell.at(freeId);
         int grId = st.borderGroup[c.x][c.y];
         unitsByFront[grId].push_back(freeId);
-        frontTarget[freeId] = c; // getNextTarget(world, world.entityMap.at(freeId).position);
+        setClosestTarget(world.entityMap.at(freeId), oppUnitsByGroup[grId]);
         // cerr << "[C] front target of " << freeId << " set to " << frontTarget[freeId] << endl;
         // myPower[st.borderGroup[c.x][c.y]] += 10;
     }
@@ -174,12 +186,6 @@ void assignTargets(const World& world, const GameStatus& st) {
             }
         }
     }
-    /*
-    for (const auto& w : world.myWarriors) {
-        assert(frontTarget.count(w.id));
-        cerr << w.id << "->" << frontTarget[w.id] << endl;
-    }
-    */
 }
 
 void fillCanMove(const vector<Entity>& my, const vector<Entity>& opp, vector<bool>& myCanMove) {
