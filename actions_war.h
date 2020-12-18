@@ -50,6 +50,7 @@ void addWarActions(const World& world, vector<MyAction>& actions, const GameStat
                 if (ou.entityType == EntityType::HOUSE) score = 188;
                 if (ou.entityType == EntityType::RANGED_BASE || ou.entityType == EntityType::MELEE_BASE || ou.entityType == EntityType::BUILDER_BASE) score = 150;
                 actions.emplace_back(w.id, A_ATTACK, ou.position, ou.id, Score(score - movableBonus * 30, -ou.health * 1e6 + ou.id));
+                // cerr << w.id << "@" << w.position << " can attack " << ou.id << "@" << ou.position << " - score " << actions.back().score << endl;
                 willAttack.insert(w.id);
             }
         }
@@ -63,7 +64,7 @@ void addWarActions(const World& world, vector<MyAction>& actions, const GameStat
             target = w.position ^ frontMoves[w.id];
             mainScore = 120;
         }
-        if (target == w.position && world.myWarriors.size() >= 7) {
+        if (st.unitsToCell.find(w.id) == st.unitsToCell.end()) {
             target = Cell(68, 68);
         }
         

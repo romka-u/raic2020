@@ -23,7 +23,7 @@ public:
         unsigned startTime = elapsed();
         cerr << "T" << playerView.currentTick << ":";
         #ifndef DEBUG
-        if (totalElapsed > 38383) return Action();
+        if (totalElapsed > 35353) return Action();
         #endif
         maxDrawTick = playerView.currentTick;
         if (props.empty()) props = playerView.entityProperties;
