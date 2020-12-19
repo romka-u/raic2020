@@ -450,7 +450,7 @@ struct GameStatus {
             const auto& u = world.entityMap.at(unitId);
             if (u.entityType != EntityType::MELEE_UNIT && u.entityType != EntityType::RANGED_UNIT && u.entityType != EntityType::TURRET)
                 continue;
-            int grId = borderGroup[c.x][c.y];
+            int grId = min(borderGroup[c.x][c.y], groupsCnt - 1);
             unitCloseGroupCells[grId].push_back(c);
         }
         for (int p = 1; p <= 4; p++)
