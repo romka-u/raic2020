@@ -104,7 +104,7 @@ void addTrainActions(const World& world, vector<MyAction>& actions, const GameSt
 
     const int myWS = world.workers[world.myId].size();
     if (myWS > 42 || !st.enemiesCloseToBase.empty()) {
-        if (resources >= workerCost && workerBid != -1 && !st.underAttack) {
+        if (resources >= workerCost && workerBid != -1 && st.enemiesCloseToBase.empty()) {
             resources -= workerCost;
             actions.emplace_back(workerBid, A_TRAIN, workerTrainPos, EntityType::BUILDER_UNIT, Score{420, 0});
         }
@@ -117,7 +117,7 @@ void addTrainActions(const World& world, vector<MyAction>& actions, const GameSt
             resources -= rangedCost;
             actions.emplace_back(rangedBid, A_TRAIN, rangedTrainPos, EntityType::RANGED_UNIT, Score{myWS * 10, 0});
         }
-        if (resources >= workerCost && workerBid != -1 && !st.underAttack) {
+        if (resources >= workerCost && workerBid != -1 && st.enemiesCloseToBase.empty()) {
             resources -= workerCost;
             actions.emplace_back(workerBid, A_TRAIN, workerTrainPos, EntityType::BUILDER_UNIT, Score{420, 0});
         }        
