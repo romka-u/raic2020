@@ -334,7 +334,8 @@ void addTurretsActions(const World& world, vector<MyAction>& actions, const Game
     }
 
     sort(wrkList.begin(), wrkList.end());
-    for (const auto& [_, id] : wrkList) {
+    for (const auto& [pr, id] : wrkList) {
+        if (pr > 1e5) break;
         const auto& wrk = world.entityMap.at(id);
 
         pair<vector<Cell>, int> pathToGo = getPathToMany(world, wrk.position, dTur);

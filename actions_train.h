@@ -38,7 +38,7 @@ void getBestWorkerTrain(const World& world, const GameStatus& st, int& buildingI
             && !needBuildArmy
             && myWS < min(64, int(st.resToGather.size() * 0.91))) {
             for (Cell bornPlace : nearCells(bu.position, bu.size)) {
-                if (world.isEmpty(bornPlace)) {
+                if (bornPlace.inside() && world.isEmpty(bornPlace)) {
                     int score = -rd[bornPlace.x][bornPlace.y];
                     if (score > bestScore) {
                         bestScore = score;
@@ -60,7 +60,7 @@ void getBestRangedTrain(const World& world, const GameStatus& st, const Cell& cl
             && (needBuildArmy || myWS > 32)
             && world.warriors[world.myId].size() < 77) {
             for (Cell bornPlace : nearCells(bu.position, bu.size)) {
-                if (world.isEmpty(bornPlace)) {
+                if (bornPlace.inside() && world.isEmpty(bornPlace)) {
                     int score = -dist(bornPlace, closestEnemy);
                     if (score > bestScore) {
                         bestScore = score;
