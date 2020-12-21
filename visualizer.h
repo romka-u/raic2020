@@ -118,10 +118,10 @@ protected:
         } else if (event->key() == Qt::Key_Down || event->key() == Qt::Key_J) {
             movey += MOVE_COEFF / scaley;
         } else if (event->key() == Qt::Key_0) {
-            scalex = 0.12;
-            scaley = -0.12;
-            movex = 4500;
-            movey = 3500;
+            scalex = 0.1;
+            scaley = -0.1;
+            movex = 6543;
+            movey = 2626;
         }
 
         // std::cerr << movex << " " << movey << " " << scalex << " " << scaley << std::endl;
@@ -152,10 +152,10 @@ private:
 
     static constexpr double SCALE_COEFF = 1.08;
     static constexpr double MOVE_COEFF = 10;
-    double scalex = 0.12;
-    double scaley = -0.12;
-    double movex = 4500;
-    double movey = 3500;
+    double scalex = 0.1;
+    double scaley = -0.1;
+    double movex = 6543;
+    double movey = 2626;
     bool paused_ = false;
 
     std::function<void(const QMouseEvent&, double, double)> onMouseClick_;
@@ -267,11 +267,9 @@ public:
     }
 
     ~RenderCycle() {
-        // std::cerr << "RC" << std::endl;
         visualizer_->p.end();
         visualizer_->widget_->repaint();
         visualizer_->process();
-        // std::cerr << "RCe" << std::endl;
     }
 
 private:

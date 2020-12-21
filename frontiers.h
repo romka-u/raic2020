@@ -212,7 +212,7 @@ void fillMovesAttack(const World& world, const vector<Entity>& my, const vector<
         int cld = inf;
         Cell ct;
         for (const auto& oe : opp) {
-            int cd = dist(my[i].position, oe) * dir;
+            int cd = dist(my[i].position, oe);
             if (cd < cld) {
                 cld = cd;
                 ct = oe.position;
@@ -221,7 +221,7 @@ void fillMovesAttack(const World& world, const vector<Entity>& my, const vector<
         
         forn(w, 4) {
             const Cell nc = my[i].position ^ w;
-            if (nc.inside() && !world.hasNonMovable(nc) && dist(nc, ct) < dist(my[i].position, ct)) {
+            if (nc.inside() && !world.hasNonMovable(nc) && dist(nc, ct) * dir < dist(my[i].position, ct) * dir) {
                 myMoves[i] = w;
                 break;
             }
@@ -457,8 +457,6 @@ void bfBattle(const World& world, const vector<Entity>& tobf) {
         b2 = optimizeMovesVec(world, my, opp, myMovesBack, oppMovesVariants, myCanMove);
     }
 
-    if (b2 < b1) myMoves = myMovesBack;
-
     // cerr << "after optimizations:\n";
     // cerr << "my:\n";
     // forn(i, my.size()) cerr << " " << my[i].id << my[i].position << "->" << myMoves[i]; cerr << " - score " << b1 << endl;
@@ -466,6 +464,8 @@ void bfBattle(const World& world, const vector<Entity>& tobf) {
     // cerr << "opp:\n";
     // for (const auto& om : oppMovesVariants)
     //     forn(i, opp.size()) cerr << " " << opp[i].id << opp[i].position << "->" << om[i]; cerr << endl;
+
+    if (b2 < b1) myMoves = myMovesBack;
 
     // cerr << "Score: " << getScore(my, opp, myMoves, oppMoves) << endl;
 
