@@ -118,7 +118,7 @@ int addBuildTurret(const World& world, vector<MyAction>& actions, const GameStat
                 break;
             }
         }
-        if (!nearRes) continue;
+        /* if (!nearRes) */ continue;
 
         const int sz = props.at(EntityType::TURRET).size;
         for (Cell newPos : nearCells(wrk.position - Cell(sz - 1, sz - 1), sz)) {
@@ -149,14 +149,15 @@ int addBuildHouse(const World& world, vector<MyAction>& actions, const GameStatu
         if (b.entityType == EntityType::HOUSE && !b.active)
             housesInProgress++;
 
-    // if (st.needRanged == 2) {
-    //     if (housesInProgress > 1) return -1;
-    // } else {
+    if (st.needRanged == 2 && world.finals) {
+        if (housesInProgress > 1) return -1;
+    } else {
         if (housesInProgress > 0) return -1;
-    // }
+    }
 
+    const int MAX_FL = world.finals ? 170 : 145;
     for (const auto& wrk : world.myWorkers) {
-        if (st.foodLimit >= st.foodUsed + 15 || st.foodLimit >= 145 || st.needRanged == 1)
+        if (st.foodLimit >= st.foodUsed + 15 || st.foodLimit >= MAX_FL || st.needRanged == 1)
             break;
         if (usedWorkers.find(wrk.id) != usedWorkers.end()) continue;
 

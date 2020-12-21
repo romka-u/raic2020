@@ -106,10 +106,11 @@ struct World {
     int resAtTick[88][88];
     pii infMap[88][88];
     int myId, tick;
-    bool fow;
+    bool fow, finals;
 
     World() {
         fow = false;
+        finals = false;
         memset(resAtTick, 0xff, sizeof(resAtTick));
     }
 
@@ -188,6 +189,9 @@ struct World {
 
             if (!haveEnemy) {
                 fow = true;
+                if (playersCnt == 2) {
+                    finals = true;
+                }
                 generateFake(playersCnt, newEM);
             }
         } else if (fow) {

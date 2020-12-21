@@ -32,11 +32,12 @@ void getBestWorkerTrain(const World& world, const GameStatus& st, int& buildingI
     const int myWS = world.workers[world.myId].size();
     buildingId = -1;
     int bestScore = -inf;
+    const int WORKERS_LIMIT = world.finals ? 81 : 64;
     for (const Entity& bu : world.myBuildings) {
         if (bu.entityType == EntityType::BUILDER_BASE
             && !st.workersLeftToFixTurrets
             && !needBuildArmy
-            && myWS < min(64, int(st.resToGather.size() * 0.91))) {
+            && myWS < min(WORKERS_LIMIT, int(st.resToGather.size() * 0.91))) {
             for (Cell bornPlace : nearCells(bu.position, bu.size)) {
                 if (bornPlace.inside() && world.isEmpty(bornPlace)) {
                     int score = -rd[bornPlace.x][bornPlace.y];
@@ -55,10 +56,11 @@ void getBestRangedTrain(const World& world, const GameStatus& st, const Cell& cl
     const int myWS = world.workers[world.myId].size();
     buildingId = -1;
     int bestScore = -inf;
+    const int WARRIORS_LIMIT = world.finals ? 88 : 77;
     for (const Entity& bu : world.myBuildings) {
         if (bu.entityType == EntityType::RANGED_BASE
             && (needBuildArmy || myWS > 32)
-            && world.warriors[world.myId].size() < 77) {
+            && world.warriors[world.myId].size() < WARRIORS_LIMIT) {
             for (Cell bornPlace : nearCells(bu.position, bu.size)) {
                 if (bornPlace.inside() && world.isEmpty(bornPlace)) {
                     int score = -dist(bornPlace, closestEnemy);
