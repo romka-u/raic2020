@@ -318,7 +318,7 @@ Score getScore(const vector<Entity>& my, const vector<Entity>& opp,
     doAttack(my, opp, myMoves, oppMoves, myPos, oppPos, oppHealth);
     doAttack(opp, my, oppMoves, myMoves, oppPos, myPos, myHealth);
 
-    Score res(getKillScore(opp, oppHealth) - getKillScore(my, myHealth), 0);
+    Score res(getKillScore(opp, oppHealth) * 10 - getKillScore(my, myHealth) * 11, 0);
     forn(i, my.size()) {
         const Cell& cur = myPos[i];
         int cld = inf;
@@ -425,6 +425,11 @@ void bfBattle(const World& world, const vector<Entity>& tobf) {
 
     vector<vector<int>> oppMovesVariants;
     oppMovesVariants.push_back(oppMoves);
+    vector<int> dirMoves(opp.size());
+    forn(w, 5) {
+        forn(e, opp.size()) dirMoves[e] = w;
+        oppMovesVariants.push_back(dirMoves);
+    }
 
     forn(it, 5) {
         // cerr << ">> OPT my\n";
