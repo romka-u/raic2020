@@ -32,7 +32,7 @@ void getBestWorkerTrain(const World& world, const GameStatus& st, int& buildingI
     const int myWS = world.workers[world.myId].size();
     buildingId = -1;
     int bestScore = -inf;
-    const int WORKERS_LIMIT = world.finals ? 81 : 64;
+    const int WORKERS_LIMIT = world.finals ? 91 : 64;
     for (const Entity& bu : world.myBuildings) {
         if (bu.entityType == EntityType::BUILDER_BASE
             && !st.workersLeftToFixTurrets
@@ -56,7 +56,7 @@ void getBestRangedTrain(const World& world, const GameStatus& st, const Cell& cl
     const int myWS = world.workers[world.myId].size();
     buildingId = -1;
     int bestScore = -inf;
-    const int WARRIORS_LIMIT = world.finals ? 88 : 77;
+    const int WARRIORS_LIMIT = world.finals ? 111 : 77;
     for (const Entity& bu : world.myBuildings) {
         if (bu.entityType == EntityType::RANGED_BASE
             && (needBuildArmy || myWS > 32)
@@ -105,7 +105,7 @@ void addTrainActions(const World& world, vector<MyAction>& actions, const GameSt
     const int rangedCost = props.at(EntityType::RANGED_UNIT).cost + world.myUnitsCnt.at(EntityType::RANGED_UNIT);
 
     const int myWS = world.workers[world.myId].size();
-    if (myWS > 42 || !st.enemiesCloseToBase.empty()) {
+    if (myWS <= 42 && st.enemiesCloseToBase.empty()) {
         if (resources >= workerCost && workerBid != -1 && st.enemiesCloseToBase.empty()) {
             resources -= workerCost;
             actions.emplace_back(workerBid, A_TRAIN, workerTrainPos, EntityType::BUILDER_UNIT, Score{420, 0});

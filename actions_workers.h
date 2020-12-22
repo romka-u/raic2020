@@ -155,7 +155,7 @@ int addBuildHouse(const World& world, vector<MyAction>& actions, const GameStatu
         if (housesInProgress > 0) return -1;
     }
 
-    const int MAX_FL = world.finals ? 170 : 145;
+    const int MAX_FL = world.finals ? 200 : 145;
     for (const auto& wrk : world.myWorkers) {
         if (st.foodLimit >= st.foodUsed + 15 || st.foodLimit >= MAX_FL || st.needRanged == 1)
             break;

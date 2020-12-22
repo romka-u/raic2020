@@ -289,7 +289,8 @@ int getPosScore(const vector<Entity>& my, Cell myPos[1010]) {
 }
 
 Score getScore(const vector<Entity>& my, const vector<Entity>& opp,
-               const vector<int>& myMoves, const vector<int>& oppMoves) {
+               const vector<int>& myMoves, const vector<int>& oppMoves,
+               bool isFinals) {
     pit++;
     forn(i, my.size()) {
         myPos[i] = my[i].position ^ myMoves[i];
@@ -318,7 +319,8 @@ Score getScore(const vector<Entity>& my, const vector<Entity>& opp,
     doAttack(my, opp, myMoves, oppMoves, myPos, oppPos, oppHealth);
     doAttack(opp, my, oppMoves, myMoves, oppPos, myPos, myHealth);
 
-    Score res(getKillScore(opp, oppHealth) * 10 - getKillScore(my, myHealth) * 11, 0);
+    const int MY_KILL_COEFF = isFinals ? 11 : 10;
+    Score res(getKillScore(opp, oppHealth) * 10 - getKillScore(my, myHealth) * MY_KILL_COEFF, 0);
     forn(i, my.size()) {
         const Cell& cur = myPos[i];
         int cld = inf;
@@ -350,7 +352,7 @@ Score getScore(const vector<Entity>& my, const vector<Entity>& opp,
 
 void optimizeMoves(const World& world, const vector<Entity>& my, const vector<Entity>& opp,
                    vector<int>& myMoves, const vector<int>& oppMoves, const vector<bool>& myCanMove) {
-    Score score = getScore(my, opp, myMoves, oppMoves);
+    Score score = getScore(my, opp, myMoves, oppMoves, world.finals);
     forn(i, my.size())
         if (myCanMove[i]) {
             forn(w, 5) {
@@ -359,7 +361,7 @@ void optimizeMoves(const World& world, const vector<Entity>& my, const vector<En
                 if (nc.inside() && !world.hasNonMovable(nc)) {
                     int was = myMoves[i];
                     myMoves[i] = w;
-                    const Score cs = getScore(my, opp, myMoves, oppMoves);
+                    const Score cs = getScore(my, opp, myMoves, oppMoves, world.finals);
                     // cerr << "  trying " << i << " go to " << w << " - score " << cs << endl;
                     if (cs < score) { // operator< overloaded to select best
                         score = cs;
@@ -375,7 +377,7 @@ Score optimizeMovesVec(const World& world, const vector<Entity>& my, const vecto
                       vector<int>& myMoves, const vector<vector<int>>& oppMovesVariants, const vector<bool>& myCanMove) {
     Score score(inf);
     for (const auto& om : oppMovesVariants)
-        score = max(score, getScore(my, opp, myMoves, om));
+        score = max(score, getScore(my, opp, myMoves, om, world.finals));
     forn(i, my.size())
         if (myCanMove[i]) {
             forn(w, 5) {
@@ -386,7 +388,7 @@ Score optimizeMovesVec(const World& world, const vector<Entity>& my, const vecto
                     myMoves[i] = w;
                     Score cs(inf);
                     for (const auto& om : oppMovesVariants)
-                        cs = max(cs, getScore(my, opp, myMoves, om));
+                        cs = max(cs, getScore(my, opp, myMoves, om, world.finals));
                     if (cs < score) { // operator< overloaded to select best
                         score = cs;
                     } else {
