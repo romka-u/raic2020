@@ -571,7 +571,10 @@ void bfBattle(const World& world, const vector<Entity>& tobf) {
     }
     #endif
 
-    if (b2 < b1) myMoves = myMovesBack;
+    if (b2 < b1) {
+        myMoves = myMovesBack;
+        b1 = b2;
+    }
 
     forn(w, 5) {
         forn(e, my.size()) {
@@ -587,6 +590,7 @@ void bfBattle(const World& world, const vector<Entity>& tobf) {
         if (b2 < b1) {
             cerr << "B" << w << "!";
             myMoves = myMovesBack;
+            b1 = b2;
         }
     }
 
