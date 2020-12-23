@@ -233,17 +233,19 @@ int upos[82][82], pit;
 void doAttack(const vector<Entity>& my, const vector<Entity>& opp,
               const vector<int>& myMoves, const vector<int>& oppMoves,
               Cell myPos[1010], Cell oppPos[1010],
-              int oppHealth[1010]) {
+              int oppHealth[1010], bool verbose=false) {
     forn(i, my.size()) {
         if (myMoves[i] != 4) {
             forn(j, opp.size())
                 if (oppHealth[j] > 0) {
                     if (oppMoves[j] == 4) {
+                        // if (verbose) cerr << i << " to " << j << " : " << dist(myPos[i], opp[j]) << endl;
                         if (dist(myPos[i], opp[j]) <= my[i].attackRange) {
                             oppHealth[j] -= 5;
                             break;
                         }
                     } else {
+                        // if (verbose) cerr << i << " to " << j << " : " << dist(myPos[i], oppPos[j]) << endl;
                         if (dist(myPos[i], oppPos[j]) <= my[i].attackRange) {
                             oppHealth[j] -= 5;
                             break;
@@ -254,11 +256,13 @@ void doAttack(const vector<Entity>& my, const vector<Entity>& opp,
             forn(j, opp.size())
                 if (oppHealth[j] > 0) {
                     if (oppMoves[j] == 4) {
+                        // if (verbose) cerr << i << " to " << j << " : " << dist(my[i], opp[j]) << endl;
                         if (dist(my[i], opp[j]) <= my[i].attackRange) {
                             oppHealth[j] -= 5;
                             break;
                         }
                     } else {
+                        // if (verbose) cerr << i << " to " << j << " : " << dist(oppPos[j], my[i]) << endl;
                         if (dist(oppPos[j], my[i]) <= my[i].attackRange) {
                             oppHealth[j] -= 5;
                             break;
@@ -292,7 +296,7 @@ int getSumHealth(const vector<Entity>& my, int myHealth[1010]) {
 
 Score getScore(const vector<Entity>& my, const vector<Entity>& opp,
                const vector<int>& myMoves, const vector<int>& oppMoves,
-               bool isFinals) {
+               bool isFinals, bool verbose=false) {
     pit++;
     forn(i, my.size()) {
         myPos[i] = my[i].position ^ myMoves[i];
@@ -318,13 +322,21 @@ Score getScore(const vector<Entity>& my, const vector<Entity>& opp,
         upos[oppPos[i].x][oppPos[i].y] = pit;
     }
 
-    doAttack(my, opp, myMoves, oppMoves, myPos, oppPos, oppHealth);
-    doAttack(opp, my, oppMoves, myMoves, oppPos, myPos, myHealth);
+    doAttack(my, opp, myMoves, oppMoves, myPos, oppPos, oppHealth, verbose);
+    doAttack(opp, my, oppMoves, myMoves, oppPos, myPos, myHealth, verbose);
+    if (verbose) {
+        cerr << "\nmy"; forn(i, my.size()) cerr << "|" << myHealth[i];
+        cerr << " - opp"; forn(i, opp.size()) cerr << "|" << oppHealth[i];
+        cerr << "\n";
+    }
 
     const int sumMyHealth = getSumHealth(my, myHealth);
     const int sumOppHealth = getSumHealth(opp, oppHealth);
 
     const int MY_KILL_COEFF = (isFinals && sumMyHealth <= sumOppHealth) ? 11 : 10;
+    if (verbose) {
+        cerr << getKillScore(opp, oppHealth) << "*10 - " << getKillScore(my, myHealth) << "*11 =";
+    }
     Score res(getKillScore(opp, oppHealth) * 10 - getKillScore(my, myHealth) * MY_KILL_COEFF, 0);
     forn(i, my.size()) {
         const Cell& cur = myPos[i];
@@ -456,10 +468,27 @@ void bfBattle(const World& world, const vector<Entity>& tobf) {
     myMoves.resize(my.size());
     oppMoves.resize(opp.size());
 
+    sort(my.begin(), my.end(), [](const Entity& a, const Entity& b)
+         { return a.health != b.health ? a.health < b.health : a.id < b.id; });
+    sort(opp.begin(), opp.end(), [](const Entity& a, const Entity& b)
+         { return a.health != b.health ? a.health < b.health : a.id < b.id; });
+
     vector<bool> myCanMove(my.size(), false);
     vector<bool> oppCanMove(opp.size(), false);
     fillCanMove(my, opp, myCanMove);
     fillCanMove(opp, my, oppCanMove);
+
+    #ifdef BF
+    cerr << "After initial shooting:\n";
+    cerr << "my:";
+    forn(i, my.size()) {
+        cerr << "  " << my[i].id << my[i].position << ", hp " << my[i].health << ", can move: " << myCanMove[i] << endl;
+    }
+    cerr << "opp:";
+    forn(i, opp.size()) {
+        cerr << "  " << opp[i].id << opp[i].position << ", hp " << opp[i].health << ", can move: " << oppCanMove[i] << endl;
+    }
+    #endif
 
     fillMovesAttack(world, my, opp, myMoves, myCanMove);
     fillMovesAttack(world, opp, my, oppMoves, oppCanMove);
@@ -471,7 +500,7 @@ void bfBattle(const World& world, const vector<Entity>& tobf) {
         forn(e, opp.size()) {
             dirMoves[e] = w;
             const Cell nc = opp[e].position ^ w;
-            if (!nc.inside() || world.hasNonMovable(nc)) {
+            if (!nc.inside() || world.hasNonMovable(nc) || !oppCanMove[e]) {
                 dirMoves[e] = 4;
             }
         }
@@ -513,6 +542,11 @@ void bfBattle(const World& world, const vector<Entity>& tobf) {
     
     vector<int> myMovesBack(my.size(), 4);
     fillMovesAttack(world, my, opp, myMovesBack, myCanMove, -1);
+    #ifdef BF
+    cerr << "movesBack before opt:";
+    forn(i, my.size()) cerr << " " << my[i].id << my[i].position << "->" << myMovesBack[i];
+    cerr << endl;
+    #endif
     forn(it, 5) {
         b2 = optimizeMovesVec(world, my, opp, myMovesBack, oppMovesVariants, myCanMove);
     }
@@ -522,10 +556,18 @@ void bfBattle(const World& world, const vector<Entity>& tobf) {
     cerr << "my:\n";
     forn(i, my.size()) cerr << " " << my[i].id << my[i].position << "->" << myMoves[i]; cerr << " - score " << b1 << endl;
     forn(i, my.size()) cerr << " " << my[i].id << my[i].position << "->" << myMovesBack[i]; cerr << " - score " << b2 << endl;
-    cerr << "opp:\n";
+    
+    cerr << "=============== myMovesBack option =====================\n";
     for (const auto& om : oppMovesVariants) {
+        cerr << "vs ";
         forn(i, opp.size()) cerr << " " << opp[i].id << opp[i].position << "->" << om[i];
-        cerr << endl;
+        cerr << " - score " << getScore(my, opp, myMovesBack, om, world.finals, true) << endl;
+    }
+    cerr << "=============== myMoves option =====================\n";
+    for (const auto& om : oppMovesVariants) {
+        cerr << "vs ";
+        forn(i, opp.size()) cerr << " " << opp[i].id << opp[i].position << "->" << om[i];
+        cerr << " - score " << getScore(my, opp, myMoves, om, world.finals, true) << endl;
     }
     #endif
 
