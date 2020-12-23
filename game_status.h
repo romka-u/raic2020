@@ -40,6 +40,12 @@ struct GameStatus {
     vector<Cell> hotPoints;
     int needRanged;
     int borderGroup[82][82], ubg[82][82], dtg[82][82], ubit;
+    int prevOppResources;
+
+    GameStatus() {
+        prevOppResources = 0;
+        needRanged = 0;
+    }
 
     void updateTurretsInDanger(const World& world) {
         turretsInDanger.clear();
@@ -220,7 +226,7 @@ struct GameStatus {
                         const int w1 = ts[i].repairers.empty() ? -1 : ts[i].repairers.back();
                         const Cell& pos1 = world.entityMap.at(w1).position;
                         int cld = inf;
-                        int cw = -1;                    
+                        int cw = -1;
                         for (int wi : world.workers[world.myId])
                             if (wi != w1) {
                                 const int cd = dist(world.entityMap.at(wi).position, pos1);
@@ -264,7 +270,7 @@ struct GameStatus {
     void calcUnitsToCell(const World& world, vector<Cell> borderPoints[5]) {
         vector<Cell> q;
         size_t qb = 0;
-        
+
         for (int p = 1; p <= 4; p++) {
             for (const Cell& c : borderPoints[p]) {
                 q.emplace_back(c);
@@ -473,7 +479,7 @@ struct GameStatus {
             }
         }
     }
-    
+
     void updateHotPoints(const World& world) {
         vector<Cell> borderPoints[5];
         ubit++;
@@ -487,7 +493,7 @@ struct GameStatus {
         calcHotPoints(world, borderPoints, groupsCnt);
     }
 
-    void update(const World& world) {
+    void update(const World& world, const PlayerView& playerView) {
         updateTurretsInDanger(world);
         updateUnderAttack(world);
         updateResToGather(world);
@@ -496,14 +502,26 @@ struct GameStatus {
         if (!world.finals)
             updateHotPoints(world);
 
-        needRanged = 0;
-        if (world.myWorkers.size() >= 16) {
-            needRanged = 1;
-            for (const auto& b : world.myBuildings)
-                if (b.entityType == EntityType::RANGED_BASE && b.playerId == world.myId) {
-                    needRanged = 2;
-                    break;
+        if (needRanged == 2) needRanged = 0;
+        for (const auto& b : world.myBuildings)
+            if (b.entityType == EntityType::RANGED_BASE && b.playerId == world.myId) {
+                needRanged = 2;
+                break;
+            }
+
+        if (needRanged < 2) {
+            if (world.finals) {
+                const int oppId = 3 - world.myId;
+                const int oppResources = playerView.players[oppId - 1].resource;
+                if (oppResources < prevOppResources - 300 || world.myWorkers.size() >= 42 || world.tick > 357) {
+                    needRanged = 1;
                 }
+                prevOppResources = oppResources;
+            } else {
+                if (world.myWorkers.size() >= 16) {
+                    needRanged = 1;
+                }
+            }
         }
     }
 };

@@ -33,7 +33,7 @@ public:
         int myId = playerView.myId;
         std::unordered_map<int, EntityAction> moves;
         clearAStar();
-        gameStatus.update(world);
+        gameStatus.update(world, playerView);
         updateD(world, gameStatus.resToGather);
         if (world.finals) {
             assignFinalsTargets(world, gameStatus);   
