@@ -421,8 +421,10 @@ void bfBattle(const World& world, const vector<Entity>& tobf) {
     cerr << "> bfBattle " << my.size() << " vs " << opp.size() << endl;
     #endif
 
-    sort(my.begin(), my.end(), [](const Entity& a, const Entity& b) { return a.health < b.health; });
-    sort(opp.begin(), opp.end(), [](const Entity& a, const Entity& b) { return a.health < b.health; });
+    sort(my.begin(), my.end(), [](const Entity& a, const Entity& b)
+         { return a.health != b.health ? a.health < b.health : a.id < b.id; });
+    sort(opp.begin(), opp.end(), [](const Entity& a, const Entity& b)
+         { return a.health != b.health ? a.health < b.health : a.id < b.id; });
 
     ubf++;
     for (const auto& me : my)
@@ -501,7 +503,7 @@ void bfBattle(const World& world, const vector<Entity>& tobf) {
     }
 
     #ifdef BF
-    cerr << "opp moves variants: " << oppMovesVariants.size() << endl;
+    cerr << "opp moves variants count: " << oppMovesVariants.size() << endl;
     #endif
 
     Score b1, b2;
@@ -586,8 +588,41 @@ void assignFrontMoves(const World& world, const GameStatus& st) {
     }
 }
 
+struct TargetCand {
+    int dist;
+    int myId, oppId;
+    TargetCand(int a, int b, int c): dist(a), myId(b), oppId(c) {}
+};
+bool operator<(const TargetCand& a, const TargetCand& b) {
+    return a.dist < b.dist;
+}
+
 void assignFinalsTargets(const World& world, const GameStatus& st) {
+    vector<TargetCand> cand;
     frontTarget.clear();
     for (const auto& w : world.myWarriors)
-        frontTarget[w.id] = Cell(77, 77);
+        for (const auto& oe : world.oppEntities) {
+            cand.emplace_back(dist(w.position, oe), w.id, oe.id);
+        }
+    sort(cand.begin(), cand.end());
+
+    unordered_set<int> usedMy;
+    unordered_map<int, int> usedOpp;
+
+    for (const auto& c : cand) {
+        int myId = c.myId;
+        int oppId = c.oppId;
+        if (usedMy.find(myId) == usedMy.end()) {
+            int& uo = usedOpp[oppId];
+            if (uo < 2) {
+                uo++;
+                usedMy.insert(myId);
+                frontTarget[myId] = world.entityMap.at(oppId).position;
+            }
+        }
+    }
+
+    for (const auto& w : world.myWarriors)
+        if (usedMy.find(w.id) == usedMy.end())
+            frontTarget[w.id] = Cell(77, 77);
 }
