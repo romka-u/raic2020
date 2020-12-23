@@ -573,6 +573,23 @@ void bfBattle(const World& world, const vector<Entity>& tobf) {
 
     if (b2 < b1) myMoves = myMovesBack;
 
+    forn(w, 5) {
+        forn(e, my.size()) {
+            myMovesBack[e] = w;
+            const Cell nc = my[e].position ^ w;
+            if (!nc.inside() || world.hasNonMovable(nc) || !myCanMove[e]) {
+                myMovesBack[e] = 4;
+            }
+        }
+        forn(it, 5) {
+            b2 = optimizeMovesVec(world, my, opp, myMovesBack, oppMovesVariants, myCanMove);
+        }
+        if (b2 < b1) {
+            cerr << "B" << w << "!";
+            myMoves = myMovesBack;
+        }
+    }
+
     forn(i, my.size())
         frontMoves[my[i].id] = myMoves[i];
     forn(i, opp.size())

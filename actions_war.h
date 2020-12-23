@@ -60,15 +60,33 @@ void addWarActions(const World& world, vector<MyAction>& actions, const GameStat
         if (willAttack.find(w.id) != willAttack.end()) continue;
         Cell target = frontTarget[w.id];
         int mainScore = 100;
+        bool attackingResource = false;
         if (frontMoves.find(w.id) != frontMoves.end() /* && target != HOME*/) {
             target = w.position ^ frontMoves[w.id];
             mainScore = 120;
+            if (target == w.position) {
+                int cld = inf;
+                Entity cl;
+                for (const auto& r : world.resources) {
+                    const int cd = dist(w.position, r.position);
+                    if (cd < cld) {
+                        cld = cd;
+                        cl = r;
+                    }
+                }
+                if (cld <= w.attackRange) {
+                    actions.emplace_back(w.id, A_ATTACK, cl.position, cl.id, Score(123, 0));
+                    attackingResource = true;
+                }
+            }
         }
-        if (st.unitsToCell.find(w.id) == st.unitsToCell.end() && !world.finals) {
-            target = Cell(68, 68);
+
+        if (!attackingResource) {
+            if (st.unitsToCell.find(w.id) == st.unitsToCell.end() && !world.finals) {
+                target = Cell(68, 68);
+            }
+            actions.emplace_back(w.id, A_MOVE, target, -1, Score(mainScore, -dist(w.position, target)));
         }
-        
-        actions.emplace_back(w.id, A_MOVE, target, -1, Score(mainScore, -dist(w.position, target)));
     }
 
     for (const auto& t : world.myBuildings) {

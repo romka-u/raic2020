@@ -190,7 +190,7 @@ int addBuildHouse(const World& world, vector<MyAction>& actions, const GameStatu
         if (b.entityType == EntityType::HOUSE && !b.active)
             housesInProgress++;
 
-    if (st.needRanged == 2 && world.finals) {
+    if (world.finals) {
         if (housesInProgress > 1) return -1;
     } else {
         if (housesInProgress > 0) return -1;
