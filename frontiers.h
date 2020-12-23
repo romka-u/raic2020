@@ -429,7 +429,13 @@ void bfBattle(const World& world, const vector<Entity>& tobf) {
     oppMovesVariants.push_back(oppMoves);
     vector<int> dirMoves(opp.size());
     forn(w, 5) {
-        forn(e, opp.size()) dirMoves[e] = w;
+        forn(e, opp.size()) {
+            dirMoves[e] = w;
+            const Cell nc = opp[e].position ^ w;
+            if (!nc.inside() || world.hasNonMovable(nc)) {
+                dirMoves[e] = 4;
+            }
+        }
         oppMovesVariants.push_back(dirMoves);
     }
 
