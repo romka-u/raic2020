@@ -3,8 +3,53 @@
 #include "actions.h"
 
 unordered_set<int> usedWorkers;
+int uwit;
+int uw[88][88];
 
-bool canBuild(const World& world, const Cell& c, int sz, bool checkBorder) {
+int workerCellsReachableUWPrefilled(const World& world) {
+    if (world.myWorkers.empty()) return 0;
+    for (const auto& b : world.myBuildings)
+        forn(x, b.size) forn(y, b.size)
+            uw[b.position.x + x][b.position.y + y] = uwit;
+    for (const auto& r : world.resources)
+        uw[r.position.x][r.position.y] = uwit;
+
+    vector<Cell> q;
+    q.push_back(world.myWorkers.front().position);
+    uw[q.back().x][q.back().y] = uwit;
+    size_t qb = 0;
+
+    int maxx = -1, maxy = -1;
+    for (const auto& w : world.myWorkers) {
+        if (w.position.x > maxx) maxx = w.position.x;
+        if (w.position.y > maxy) maxy = w.position.y;
+    }
+    maxx += 4;
+    maxy += 4;
+    
+    while (qb < q.size()) {
+        const Cell cur = q[qb++];
+        forn(w, 4) {
+            const Cell nc = cur ^ w;
+            if (nc.inside() && nc.x <= maxx && nc.y <= maxy && uw[nc.x][nc.y] != uwit) {
+                uw[nc.x][nc.y] = uwit;
+                q.push_back(nc);
+            }
+        }
+    }
+    return q.size();
+}
+
+bool workersAreOk(const World& world, const Cell& c, int sz, int wasReachable) {
+    uwit++;
+    forn(x, sz) forn(y, sz) {
+        uw[c.x + x][c.y + y] = uwit;
+    }
+    const int curReachable = workerCellsReachableUWPrefilled(world);
+    return curReachable >= wasReachable - sz * sz - 5;
+}
+
+bool canBuild(const World& world, const Cell& c, int sz, int wasReachable) {
     if (!c.inside()) return false;
     Cell cc = c + Cell(sz - 1, sz - 1);
     if (!cc.inside()) return false;
@@ -12,28 +57,9 @@ bool canBuild(const World& world, const Cell& c, int sz, bool checkBorder) {
         if (!world.isEmpty(c + Cell(dx, dy)))
             return false;
     }
-    if (((c.x != 0 && c.y != 0) || sz != 3) && checkBorder) {
-        for (int d = -1; d <= sz; d++) {
-            cc = c + Cell(d, -1);
-            if (cc.inside() && !world.isEmpty(cc) && world.eMap[cc.x][cc.y] < 0 && world.entityMap.at(-world.eMap[cc.x][cc.y]).playerId != -1) return false;
-            cc = c + Cell(-1, d);
-            if (cc.inside() && !world.isEmpty(cc) && world.eMap[cc.x][cc.y] < 0 && world.entityMap.at(-world.eMap[cc.x][cc.y]).playerId != -1) return false;
-            cc = c + Cell(d, sz);
-            if (cc.inside() && !world.isEmpty(cc) && world.eMap[cc.x][cc.y] < 0 && world.entityMap.at(-world.eMap[cc.x][cc.y]).playerId != -1) return false;
-            cc = c + Cell(sz, d);
-            if (cc.inside() && !world.isEmpty(cc) && world.eMap[cc.x][cc.y] < 0 && world.entityMap.at(-world.eMap[cc.x][cc.y]).playerId != -1) return false;
-        }
-    }
-    return true;
+    return workersAreOk(world, c, sz, wasReachable);
 }
-/*
-bool goodForHouse(const Cell& c, int sz) {
-    if (c.x == 0) return c.y % sz == 1;
-    if (c.y == 0) return c.x % sz == 1;
-    if (c.x < sz || c.y < sz) return false;
-    return (c.x % (sz + 2) == 1 || c.x == 3) && (c.y % (sz + 2) == 1 || c.y == 3);
-}
-*/
+
 bool goodForTurret(const Cell& c, int sz) {
     if (c.x < 27 && c.y < 27) return false;
     // if (c.x % 3 != 0 || c.y % 3 != 0) return false;
@@ -79,12 +105,19 @@ int addBuildRanged(const World& world, vector<MyAction>& actions, const GameStat
 
     int bestScore = -inf, bestId = -1;
     Cell bestPos;
+    const int sz = props.at(EntityType::RANGED_BASE).size;
+    unordered_map<Cell, bool> checkedPos;
+    uwit++;
+    const int wasReachable = workerCellsReachableUWPrefilled(world);
+
     for (const auto& wrk : world.myWorkers) {
         if (usedWorkers.find(wrk.id) != usedWorkers.end()) continue;
-
-        const int sz = props.at(EntityType::RANGED_BASE).size;
+        
         for (Cell newPos : nearCells(wrk.position - Cell(sz - 1, sz - 1), sz)) {
-            if (canBuild(world, newPos, sz, checkBorder) && safeToBuild(world, newPos, sz, 15)) {
+            if (checkedPos.find(newPos) == checkedPos.end()) {
+                checkedPos[newPos] = canBuild(world, newPos, sz, wasReachable);
+            }
+            if (checkedPos[newPos] && safeToBuild(world, newPos, sz, 15)) {
                 int score = newPos.x + newPos.y;
                 if (score > bestScore) {
                     bestScore = score;
@@ -107,6 +140,11 @@ int addBuildTurret(const World& world, vector<MyAction>& actions, const GameStat
 
     int bestScore = -inf, bestId = -1;
     Cell bestPos;
+    const int sz = props.at(EntityType::RANGED_BASE).size;
+    unordered_map<Cell, bool> checkedPos;
+    uwit++;
+    const int wasReachable = workerCellsReachableUWPrefilled(world);
+
     for (const auto& wrk : world.myWorkers) {
         if (usedWorkers.find(wrk.id) != usedWorkers.end()) continue;
 
@@ -122,7 +160,10 @@ int addBuildTurret(const World& world, vector<MyAction>& actions, const GameStat
 
         const int sz = props.at(EntityType::TURRET).size;
         for (Cell newPos : nearCells(wrk.position - Cell(sz - 1, sz - 1), sz)) {
-            if (canBuild(world, newPos, sz, true) && goodForTurret(newPos, sz) && noTurretAheadAndBehind(world, newPos) && safeToBuild(world, newPos, sz, 12)) {
+            if (checkedPos.find(newPos) == checkedPos.end()) {
+                checkedPos[newPos] = canBuild(world, newPos, sz, wasReachable);
+            }
+            if (checkedPos[newPos] && goodForTurret(newPos, sz) && noTurretAheadAndBehind(world, newPos) && safeToBuild(world, newPos, sz, 12)) {
                 int score = -min(newPos.x, newPos.y);
                 if (score > bestScore) {
                     bestId = wrk.id;
@@ -154,6 +195,10 @@ int addBuildHouse(const World& world, vector<MyAction>& actions, const GameStatu
     } else {
         if (housesInProgress > 0) return -1;
     }
+    const int sz = props.at(EntityType::HOUSE).size;
+    unordered_map<Cell, bool> checkedPos;
+    uwit++;
+    const int wasReachable = workerCellsReachableUWPrefilled(world);
 
     const int MAX_FL = world.finals ? 200 : 145;
     for (const auto& wrk : world.myWorkers) {
@@ -161,9 +206,11 @@ int addBuildHouse(const World& world, vector<MyAction>& actions, const GameStatu
             break;
         if (usedWorkers.find(wrk.id) != usedWorkers.end()) continue;
 
-        const int sz = props.at(EntityType::HOUSE).size;
         for (Cell newPos : nearCells(wrk.position - Cell(sz - 1, sz - 1), sz)) {
-            if (canBuild(world, newPos, sz, checkBorder) && safeToBuild(world, newPos, sz, 10)) {
+            if (checkedPos.find(newPos) == checkedPos.end()) {
+                checkedPos[newPos] = canBuild(world, newPos, sz, wasReachable);
+            }
+            if (checkedPos[newPos] && safeToBuild(world, newPos, sz, 10)) {
                 // if (newPos.x + newPos.y == 3 && !world.hasNonMovable({0, 0})) continue;
                 int score = (newPos.x == 0) * 1000 + (newPos.y == 0) * 1000 - newPos.x - newPos.y;
                 if (score > bestScore) {
