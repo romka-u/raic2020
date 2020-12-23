@@ -109,7 +109,7 @@ void assignTargets(const World& world, const GameStatus& st) {
             } else {
                 setClosestTarget(u, oppUnitsByGroup[gr]);
             }
-            // cerr << "[A] front target of " << u.id << " set to " << frontTarget[u.id] << endl;
+            cerr << "[A] front target of " << u.id << " set to " << frontTarget[u.id] << endl;
             unitsByFront[gr].push_back(u.id);
             i++;
         }
@@ -147,7 +147,7 @@ void assignTargets(const World& world, const GameStatus& st) {
             myPower[gr] += min(11, u.health);
             frontTarget[id] = st.hotPoints[gr];
             setClosestTarget(u, oppUnitsByGroup[gr]);
-            // cerr << "[B] front target of " << id << " set to " << frontTarget[id] << endl;
+            cerr << "[B] front target of " << id << " set to " << frontTarget[id] << endl;
             unitsByFront[gr].push_back(id);
             freeWarriors.erase(id);
         }
@@ -160,25 +160,27 @@ void assignTargets(const World& world, const GameStatus& st) {
         unitsByFront[grId].push_back(freeId);
         frontTarget[freeId] = st.hotPoints[grId];
         setClosestTarget(world.entityMap.at(freeId), oppUnitsByGroup[grId]);
-        // cerr << "[C] front target of " << freeId << " set to " << frontTarget[freeId] << endl;
+        cerr << "[C] front target of " << freeId << " set to " << frontTarget[freeId] << endl;
         // myPower[st.borderGroup[c.x][c.y]] += 10;
     }
 
-    forn(i, st.attackersPower.size())
-        if (myPower[i] == st.attackersPower[i] && myPower[i] == 0 && world.tick < 400 && world.myWarriors.size() < 7) {
-            if (!unitsByFront[i].empty()) {
-                Cell center(0, 0);
-                const auto& vu = unitsByFront.at(i);
-                for (int id : vu) {
-                    const auto& u = world.entityMap.at(id);
-                    center = center + u.position;
+    if (!world.finals) {
+        forn(i, st.attackersPower.size())
+            if (myPower[i] == st.attackersPower[i] && myPower[i] == 0 && world.tick < 400 && world.myWarriors.size() < 7) {
+                if (!unitsByFront[i].empty()) {
+                    Cell center(0, 0);
+                    const auto& vu = unitsByFront.at(i);
+                    for (int id : vu) {
+                        const auto& u = world.entityMap.at(id);
+                        center = center + u.position;
+                    }
+                    center = Cell(center.x / vu.size(), center.y / vu.size());
+                    // cerr << "Front " << i << "; 0 vs 0, center " << center << " of " << vu.size() << " units\n";
+                    for (int id : vu)
+                        frontTarget[id] = center;
                 }
-                center = Cell(center.x / vu.size(), center.y / vu.size());
-                // cerr << "Front " << i << "; 0 vs 0, center " << center << " of " << vu.size() << " units\n";
-                for (int id : vu)
-                    frontTarget[id] = center;
             }
-        }
+    }
 
     needBuildArmy = false;
     if (!st.enemiesCloseToBase.empty()) {
@@ -190,18 +192,12 @@ void assignTargets(const World& world, const GameStatus& st) {
     }
 }
 
+int ubf, isShooting[100010];
+
 void fillCanMove(const vector<Entity>& my, const vector<Entity>& opp, vector<bool>& myCanMove) {
     forn(i, my.size()) {
         bool canMove = props.at(my[i].entityType).canMove;
-        if (canMove) {
-            for (const auto& oe : opp) {
-                if (dist(my[i].position, oe) <= my[i].attackRange) {
-                    canMove = false;
-                    break;
-                }
-            }
-        }
-        myCanMove[i] = canMove;
+        myCanMove[i] = canMove && isShooting[my[i].id] != ubf;
     }
 }
 
@@ -288,6 +284,12 @@ int getPosScore(const vector<Entity>& my, Cell myPos[1010]) {
     return res;
 }
 
+int getSumHealth(const vector<Entity>& my, int myHealth[1010]) {
+    int res = 0;
+    forn(i, my.size()) res += myHealth[i];
+    return res;
+}
+
 Score getScore(const vector<Entity>& my, const vector<Entity>& opp,
                const vector<int>& myMoves, const vector<int>& oppMoves,
                bool isFinals) {
@@ -319,7 +321,10 @@ Score getScore(const vector<Entity>& my, const vector<Entity>& opp,
     doAttack(my, opp, myMoves, oppMoves, myPos, oppPos, oppHealth);
     doAttack(opp, my, oppMoves, myMoves, oppPos, myPos, myHealth);
 
-    const int MY_KILL_COEFF = isFinals ? 11 : 10;
+    const int sumMyHealth = getSumHealth(my, myHealth);
+    const int sumOppHealth = getSumHealth(opp, oppHealth);
+
+    const int MY_KILL_COEFF = (isFinals && sumMyHealth <= sumOppHealth) ? 11 : 10;
     Score res(getKillScore(opp, oppHealth) * 10 - getKillScore(my, myHealth) * MY_KILL_COEFF, 0);
     forn(i, my.size()) {
         const Cell& cur = myPos[i];
@@ -400,6 +405,8 @@ Score optimizeMovesVec(const World& world, const vector<Entity>& my, const vecto
     return score;
 }
 
+// #define BF
+
 void bfBattle(const World& world, const vector<Entity>& tobf) {
     vector<Entity> my, opp;
     for (const auto& e : tobf)
@@ -410,18 +417,48 @@ void bfBattle(const World& world, const vector<Entity>& tobf) {
         }
 
     if (my.empty()) return;
-    // cerr << "> bfBattle " << my.size() << " vs " << opp.size() << endl;
+    #ifdef BF
+    cerr << "> bfBattle " << my.size() << " vs " << opp.size() << endl;
+    #endif
 
     sort(my.begin(), my.end(), [](const Entity& a, const Entity& b) { return a.health < b.health; });
     sort(opp.begin(), opp.end(), [](const Entity& a, const Entity& b) { return a.health < b.health; });
+
+    ubf++;
+    for (const auto& me : my)
+        for (const auto& oe : opp) {
+            const int cd = dist(me, oe);
+            if (cd <= me.attackRange) isShooting[me.id] = ubf;
+            if (cd <= oe.attackRange) isShooting[oe.id] = ubf;
+        }
+
+    vector<int> myMoves(my.size(), 4);
+    vector<int> oppMoves(opp.size(), 4);
+    forn(i, my.size()) { myHealth[i] = my[i].health; myPos[i] = my[i].position; }
+    forn(i, opp.size()) { oppHealth[i] = opp[i].health; oppPos[i] = opp[i].position; }
+    doAttack(my, opp, myMoves, oppMoves, myPos, oppPos, oppHealth);
+    doAttack(opp, my, oppMoves, myMoves, oppPos, myPos, myHealth);
+    vector<Entity> nmy, nopp;
+    forn(i, my.size())
+        if (myHealth[i] > 0) {
+            nmy.push_back(my[i]);
+            nmy.back().health = myHealth[i];
+        }
+    forn(i, opp.size())
+        if (oppHealth[i] > 0) {
+            nopp.push_back(opp[i]);
+            nopp.back().health = oppHealth[i];
+        }
+    my = std::move(nmy);
+    opp = std::move(nopp);
+    myMoves.resize(my.size());
+    oppMoves.resize(opp.size());
 
     vector<bool> myCanMove(my.size(), false);
     vector<bool> oppCanMove(opp.size(), false);
     fillCanMove(my, opp, myCanMove);
     fillCanMove(opp, my, oppCanMove);
 
-    vector<int> myMoves(my.size(), 4);
-    vector<int> oppMoves(opp.size(), 4);
     fillMovesAttack(world, my, opp, myMoves, myCanMove);
     fillMovesAttack(world, opp, my, oppMoves, oppCanMove);
 
@@ -440,12 +477,18 @@ void bfBattle(const World& world, const vector<Entity>& tobf) {
     }
 
     forn(it, 5) {
-        // cerr << ">> OPT my\n";
+        #ifdef BF
+        cerr << ">> OPT my\n";
+        #endif
         optimizeMoves(world, my, opp, myMoves, oppMoves, myCanMove);
-        // cerr << "after opt:"; forn(i, my.size()) cerr << " " << my[i].id << my[i].position << "->" << myMoves[i]; cerr << endl;
-        // cerr << ">> OPT opp\n";
+        #ifdef BF
+        cerr << "after opt:"; forn(i, my.size()) cerr << " " << my[i].id << my[i].position << "->" << myMoves[i]; cerr << endl;
+        cerr << ">> OPT opp\n";
+        #endif
         optimizeMoves(world, opp, my, oppMoves, myMoves, oppCanMove);
-        // cerr << "after opt:"; forn(i, opp.size()) cerr << " " << opp[i].id << opp[i].position << "->" << oppMoves[i]; cerr << endl;
+        #ifdef BF
+        cerr << "after opt:"; forn(i, opp.size()) cerr << " " << opp[i].id << opp[i].position << "->" << oppMoves[i]; cerr << endl;
+        #endif
         bool ok = true;
         for (const auto& v : oppMovesVariants)
             if (v == oppMoves) {
@@ -457,7 +500,9 @@ void bfBattle(const World& world, const vector<Entity>& tobf) {
         }
     }
 
-    // cerr << "opp moves variants: " << oppMovesVariants.size() << endl;
+    #ifdef BF
+    cerr << "opp moves variants: " << oppMovesVariants.size() << endl;
+    #endif
 
     Score b1, b2;
     forn(it, 5) {
@@ -470,17 +515,19 @@ void bfBattle(const World& world, const vector<Entity>& tobf) {
         b2 = optimizeMovesVec(world, my, opp, myMovesBack, oppMovesVariants, myCanMove);
     }
 
-    // cerr << "after optimizations:\n";
-    // cerr << "my:\n";
-    // forn(i, my.size()) cerr << " " << my[i].id << my[i].position << "->" << myMoves[i]; cerr << " - score " << b1 << endl;
-    // forn(i, my.size()) cerr << " " << my[i].id << my[i].position << "->" << myMovesBack[i]; cerr << " - score " << b2 << endl;
-    // cerr << "opp:\n";
-    // for (const auto& om : oppMovesVariants)
-    //     forn(i, opp.size()) cerr << " " << opp[i].id << opp[i].position << "->" << om[i]; cerr << endl;
+    #ifdef BF
+    cerr << "after optimizations:\n";
+    cerr << "my:\n";
+    forn(i, my.size()) cerr << " " << my[i].id << my[i].position << "->" << myMoves[i]; cerr << " - score " << b1 << endl;
+    forn(i, my.size()) cerr << " " << my[i].id << my[i].position << "->" << myMovesBack[i]; cerr << " - score " << b2 << endl;
+    cerr << "opp:\n";
+    for (const auto& om : oppMovesVariants) {
+        forn(i, opp.size()) cerr << " " << opp[i].id << opp[i].position << "->" << om[i];
+        cerr << endl;
+    }
+    #endif
 
     if (b2 < b1) myMoves = myMovesBack;
-
-    // cerr << "Score: " << getScore(my, opp, myMoves, oppMoves) << endl;
 
     forn(i, my.size())
         frontMoves[my[i].id] = myMoves[i];
@@ -537,4 +584,10 @@ void assignFrontMoves(const World& world, const GameStatus& st) {
         for (int x : q) tobf.push_back(warEntities[x]);
         bfBattle(world, tobf);
     }
+}
+
+void assignFinalsTargets(const World& world, const GameStatus& st) {
+    frontTarget.clear();
+    for (const auto& w : world.myWarriors)
+        frontTarget[w.id] = Cell(77, 77);
 }

@@ -35,7 +35,11 @@ public:
         clearAStar();
         gameStatus.update(world);
         updateD(world, gameStatus.resToGather);
-        assignTargets(world, gameStatus);
+        if (world.finals) {
+            assignFinalsTargets(world, gameStatus);   
+        } else {
+            assignTargets(world, gameStatus);
+        }
         assignFrontMoves(world, gameStatus);
 
         TickDrawInfo& info = tickInfo[playerView.currentTick];
@@ -165,20 +169,24 @@ public:
             const auto [from, to] = se;
             info.targets.emplace_back(from, to);
 
-            vector<Cell> path = getPathTo(world, from, to);
-            #ifdef DEBUG
-            pathDebug[unitId].path = path;
-            pathDebug[unitId].length = -1;
-            #endif
-            updateAStar(world, path);
-            Cell target = to;
+            vector<Cell> path = {from};
+            if (frontTarget.count(unitId) && dist(from, to) == 1) {
+                path = {from, to};
+                moves[unitId].moveAction = std::make_shared<MoveAction>(to, true, false);
+                info.msg[unitId] << ", by frontTarget";
+            } else {
+                path = getPathTo(world, from, to);
 
-            if (path.size() >= 2) {
-                target = path[1];
+                #ifdef DEBUG
+                pathDebug[unitId].path = path;
+                pathDebug[unitId].length = -1;
+                #endif
+                Cell target = path.size() >= 2 ? path[1] : to;
+
+                moves[unitId].moveAction = std::make_shared<MoveAction>(target, true, false);
+                info.msg[unitId] << ", A* next: " << target;
             }
-
-            moves[unitId].moveAction = std::make_shared<MoveAction>(target, true, false);
-            info.msg[unitId] << ", A* next: " << target;
+            updateAStar(world, path);            
         }
 
         #ifdef DEBUG

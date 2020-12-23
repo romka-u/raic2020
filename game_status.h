@@ -493,7 +493,8 @@ struct GameStatus {
         updateResToGather(world);
         updateFoodLimit(world);
         updateTurretsState(world);
-        updateHotPoints(world);
+        if (!world.finals)
+            updateHotPoints(world);
 
         needRanged = 0;
         if (world.myWorkers.size() >= 16) {

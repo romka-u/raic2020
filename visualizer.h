@@ -120,7 +120,7 @@ protected:
         } else if (event->key() == Qt::Key_0) {
             scalex = 0.1;
             scaley = -0.1;
-            movex = 6543;
+            movex = 6789;
             movey = 2626;
         }
 
@@ -154,7 +154,7 @@ private:
     static constexpr double MOVE_COEFF = 10;
     double scalex = 0.1;
     double scaley = -0.1;
-    double movex = 6543;
+    double movex = 6789;
     double movey = 2626;
     bool paused_ = false;
 

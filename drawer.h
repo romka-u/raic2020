@@ -72,12 +72,12 @@ void drawTriangle(double x1, double y1, double x2, double y2, double x3, double 
 void drawBars(unordered_map<EntityType, int> cnt[4], int yOffset, const string& label, EntityType et, vector<int> plus={}, vector<int> minus={}) {
     v.p.setPen(whitePen);
     v.p.setFont(f20);
-    v.p.drawText(1150, yOffset + 10, QString(label.c_str()));
+    v.p.drawText(950, yOffset + 10, QString(label.c_str()));
 
     int mx = 1;
     forn(p, 4) mx = max(mx, cnt[p][et]);
-    const int L = 1292;
-    const int MAXW = 1650 - L;
+    const int L = 1091;
+    const int MAXW = 1379 - L;
     forn(p, 4) {
         v.p.setPen(pensPerPlayer[p]);
         v.p.setBrush(brushesPerPlayer[p]);
@@ -113,12 +113,12 @@ void drawBars(unordered_map<EntityType, int> cnt[4], int yOffset, const string& 
 void drawDoubleBars(unordered_map<EntityType, int> cnt[4], int yOffset, const string& label, EntityType et1, EntityType et2) {
     v.p.setFont(f20);
     v.p.setPen(whitePen);
-    v.p.drawText(1150, yOffset + 10, QString(label.c_str()));
+    v.p.drawText(950, yOffset + 10, QString(label.c_str()));
 
     int mx = 1;
     forn(p, 4) mx = max(mx, cnt[p][et2]);
-    const int L = 1292;
-    const int MAXW = 1650 - L;
+    const int L = 1091;
+    const int MAXW = 1379 - L;
     forn(p, 4) {
         v.p.setPen(pensPerPlayer[p]);
         v.p.setBrush(brushesPerPlayerAlpha[p]);
@@ -355,7 +355,7 @@ void draw() {
 
     v.p.setBrush(blackBrush);
     v.p.setPen(blackPen);
-    v.p.drawRect(1133, 0, 777, 1111);
+    v.p.drawRect(911, 0, 777, 1111);
 
     char buf[77];
 
@@ -411,7 +411,7 @@ void draw() {
     v.p.setFont(f20);
     v.p.setPen(whitePen);
     sprintf(buf, "Tick: %d / %d", currentDrawTick, maxDrawTick);
-    v.p.drawText(1379, 25, QString(buf));
+    v.p.drawText(1248, 25, QString(buf));
 
     v.p.setFont(f12);
     forn(i, info.status.attackersPower.size()) {

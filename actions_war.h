@@ -64,7 +64,7 @@ void addWarActions(const World& world, vector<MyAction>& actions, const GameStat
             target = w.position ^ frontMoves[w.id];
             mainScore = 120;
         }
-        if (st.unitsToCell.find(w.id) == st.unitsToCell.end()) {
+        if (st.unitsToCell.find(w.id) == st.unitsToCell.end() && !world.finals) {
             target = Cell(68, 68);
         }
         
