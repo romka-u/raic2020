@@ -105,7 +105,8 @@ void addTrainActions(const World& world, vector<MyAction>& actions, const GameSt
     const int rangedCost = props.at(EntityType::RANGED_UNIT).cost + world.myUnitsCnt.at(EntityType::RANGED_UNIT);
 
     const int myWS = world.workers[world.myId].size();
-    if (myWS <= 42 && st.enemiesCloseToBase.empty()) {
+    const int WS_LIM = world.finals ? 64 : 42;
+    if (myWS <= WS_LIM && st.enemiesCloseToBase.empty()) {
         if (resources >= workerCost && workerBid != -1 && st.enemiesCloseToBase.empty()) {
             resources -= workerCost;
             actions.emplace_back(workerBid, A_TRAIN, workerTrainPos, EntityType::BUILDER_UNIT, Score{420, 0});
