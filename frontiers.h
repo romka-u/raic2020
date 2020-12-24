@@ -360,8 +360,11 @@ Score getScore(const vector<Entity>& my, const vector<Entity>& opp,
                     shots += (my[i].health + 4) / 5;
                 }
             if (shots * cntInRange / 2 * 5 < oe.health) {
-                res.main -= cntInRange * 10;
+                res.main -= cntInRange * 100;
             }
+            // if (verbose) {
+            //     cerr << cntInRange << "," << shots << " vs " << oe.health << endl;
+            // }
         }
 
     return res;
