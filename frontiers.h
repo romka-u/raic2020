@@ -735,6 +735,7 @@ bool operator<(const TargetCand& a, const TargetCand& b) {
 
 void assignFinalsTargets(const World& world, const GameStatus& st) {
     vector<TargetCand> cand;
+    needBuildArmy = false;
     frontTarget.clear();
     for (const auto& w : world.myWarriors)
         for (const auto& oe : world.oppEntities) {
