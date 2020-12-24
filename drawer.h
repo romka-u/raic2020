@@ -29,6 +29,7 @@ struct TickDrawInfo {
     vector<int> myPower;
     unordered_map<int, PathDebug> pathDebug;
     unordered_map<int, int> frontMoves;
+    Targets attackTargets;
 };
 
 #ifdef DEBUG
@@ -146,6 +147,14 @@ void drawUnderAttack(const TickDrawInfo& info, int eMap[88][88], const QColor& c
                     v.p.drawRect(x * SZ, y * SZ, SZ, SZ);
                 }
             }
+    }
+}
+
+void drawAttackTargets(const Targets& targets) {
+    v.p.setPen(QPen(QColor(192, 0, 0), 12));
+    for (const auto& p : targets) {
+        v.p.drawLine((p.first.x + 0.5) * SZ, (p.first.y + 0.5) * SZ,
+                     (p.second.x + 0.5) * SZ, (p.second.y + 0.5) * SZ);
     }
 }
 
@@ -332,6 +341,7 @@ void draw() {
     if (drawOppField) drawUnderAttack(info, eMap, QColor(255, 0, 0, 64), [&info](int id) { return id != info.myId; });
     if (drawMyField) drawUnderAttack(info, eMap, QColor(0, 255, 0, 64), [&info](int id) { return id == info.myId; });
     if (drawTargets) drawTargetsLines(info.targets);
+    drawAttackTargets(info.attackTargets);
     if (drawInfMap) drawInfMapOverlay(info.entities, eMap);
     if (drawFrontMoves) drawFrontMovesLines(info.entities, info.frontMoves);
     if (drawBorderGroups) drawBorderGroupsInfo(info.entities, info.status);

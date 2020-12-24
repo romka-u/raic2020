@@ -44,6 +44,7 @@ public:
 
         TickDrawInfo& info = tickInfo[playerView.currentTick];
         #ifdef DEBUG
+        pathDebug.clear();
         info.entities = world.allEntities;
         info.players = playerView.players;
         info.myId = playerView.myId;
@@ -51,6 +52,9 @@ public:
         info.myPower = myPower;
         info.myFrontIds = myFrontIds;
         info.frontMoves = frontMoves;
+        info.attackTargets.clear();
+        for (const auto& [fi, ti] : attackTarget)
+            info.attackTargets.emplace_back(world.entityMap.at(fi).position, world.entityMap.at(ti).position);
         #endif
 
         // return Action();

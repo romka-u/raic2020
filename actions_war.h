@@ -21,37 +21,28 @@ void addWarActions(const World& world, vector<MyAction>& actions, const GameStat
         }
     }
 
-    unordered_map<int, int> closestDist;
-    unordered_map<int, Cell> closestEnemyCell;
     unordered_set<int> willAttack;
 
     // warriors
     for (const auto& w : world.myWarriors) {
-        closestDist[w.id] = inf;
-
-        for (const auto& ou : world.oppEntities) {
-            // int movableBonus = ou.entityType == EntityType::RANGED_UNIT || ou.entityType == EntityType::MELEE_UNIT;
-            // if (world.staying.count(ou.id) && world.staying.at(ou.id) > 4) movableBonus = 0;
-            int movableBonus = 0;
-            int cd = dist(w.position, ou);
-            if ((ou.entityType == EntityType::RANGED_UNIT || ou.entityType == EntityType::TURRET) && cd < closestDist[w.id]) {
-                closestDist[w.id] = cd;
-                closestEnemyCell[w.id] = ou.position;
-            }
-            if (cd <= w.attackRange + movableBonus) {
-                if (movableBonus && hasEnemyInRange(ou, world.allEntities)) {
-                    movableBonus = 0;
-                    if (cd > ou.attackRange) continue;
+        if (attackTarget.find(w.id) != attackTarget.end()) {
+            const auto& ou = world.entityMap.at(attackTarget[w.id]);
+            actions.emplace_back(w.id, A_ATTACK, ou.position, ou.id, Score(222, 0));
+            willAttack.insert(w.id);
+        } else {
+            for (const auto& ou : world.oppEntities) {
+                int cd = dist(w.position, ou);
+                if (cd <= w.attackRange) {
+                    int score = 200;
+                    if (ou.entityType == EntityType::MELEE_UNIT && dist(w.position, ou.position) > 1) score = 197;
+                    if (ou.entityType == EntityType::BUILDER_UNIT) score = 194;
+                    if (ou.entityType == EntityType::TURRET) score = 190;
+                    if (ou.entityType == EntityType::HOUSE) score = 188;
+                    if (ou.entityType == EntityType::RANGED_BASE || ou.entityType == EntityType::MELEE_BASE || ou.entityType == EntityType::BUILDER_BASE) score = 150;
+                    actions.emplace_back(w.id, A_ATTACK, ou.position, ou.id, Score(score, -ou.health * 1e6 + ou.id));
+                    // cerr << w.id << "@" << w.position << " can attack " << ou.id << "@" << ou.position << " - score " << actions.back().score << endl;
+                    willAttack.insert(w.id);
                 }
-                int score = 200;
-                if (ou.entityType == EntityType::MELEE_UNIT && dist(w.position, ou.position) > 1) score = 197;
-                if (ou.entityType == EntityType::BUILDER_UNIT) score = 194;
-                if (ou.entityType == EntityType::TURRET) score = 190;
-                if (ou.entityType == EntityType::HOUSE) score = 188;
-                if (ou.entityType == EntityType::RANGED_BASE || ou.entityType == EntityType::MELEE_BASE || ou.entityType == EntityType::BUILDER_BASE) score = 150;
-                actions.emplace_back(w.id, A_ATTACK, ou.position, ou.id, Score(score - movableBonus * 30, -ou.health * 1e6 + ou.id));
-                // cerr << w.id << "@" << w.position << " can attack " << ou.id << "@" << ou.position << " - score " << actions.back().score << endl;
-                willAttack.insert(w.id);
             }
         }
     }
