@@ -685,7 +685,29 @@ void assignFinalsTargets(const World& world, const GameStatus& st) {
         }
     }
 
+    vector<pair<Cell, int>> freeWarriors;
     for (const auto& w : world.myWarriors)
-        if (usedMy.find(w.id) == usedMy.end())
-            frontTarget[w.id] = Cell(77, 77);
+        if (usedMy.find(w.id) == usedMy.end()) {
+            freeWarriors.emplace_back(w.position, w.id);
+        }
+
+    sort(freeWarriors.begin(), freeWarriors.end(),
+         [](const pair<Cell, int>& a, const pair<Cell, int>& b)
+         { return a.first.x - a.first.y < b.first.x - b.first.y; });
+
+    const int H = freeWarriors.size() / 2;
+    forn(i, H) {
+        const auto& [pos, id] = freeWarriors[i];
+        if (pos.x >= 42 && pos.y >= 70)
+            frontTarget[id] = Cell(77, 77);
+        else
+            frontTarget[id] = Cell(max(pos.x, 42), 77);
+    }        
+    for (size_t i = H; i < freeWarriors.size(); i++) {
+        const auto& [pos, id] = freeWarriors[i];
+        if (pos.y >= 42 && pos.x >= 70)
+            frontTarget[id] = Cell(77, 77);
+        else
+            frontTarget[id] = Cell(77, max(pos.y, 42)); 
+    }
 }
