@@ -23,7 +23,7 @@ public:
         unsigned startTime = elapsed();
         cerr << "T" << playerView.currentTick << ":";
         #ifndef DEBUG
-        if (totalElapsed > 35353) return Action();
+        if (totalElapsed > 37373) return Action();
         #endif
         maxDrawTick = playerView.currentTick;
         if (props.empty()) props = playerView.entityProperties;
@@ -175,9 +175,10 @@ public:
 
             vector<Cell> path = {from};
             if (frontTarget.count(unitId) && dist(from, to) == 1) {
-                path = {from, to};
+                if (to != from) path = {from, to};
                 moves[unitId].moveAction = std::make_shared<MoveAction>(to, true, false);
                 info.msg[unitId] << ", by frontTarget";
+                // cerr << "set path for " << unitId << " - no A*\n";
             } else {
                 path = getPathTo(world, from, to);
 
@@ -189,6 +190,7 @@ public:
 
                 moves[unitId].moveAction = std::make_shared<MoveAction>(target, true, false);
                 info.msg[unitId] << ", A* next: " << target;
+                // cerr << "set path for " << unitId << " with A*\n";
             }
             updateAStar(world, path);            
         }

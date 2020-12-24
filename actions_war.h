@@ -55,7 +55,7 @@ void addWarActions(const World& world, vector<MyAction>& actions, const GameStat
         if (frontMoves.find(w.id) != frontMoves.end() /* && target != HOME*/) {
             target = w.position ^ frontMoves[w.id];
             mainScore = 120;
-            if (target == w.position) {
+            if (target == w.position && w.entityType == EntityType::RANGED_UNIT) {
                 int cld = inf;
                 Entity cl;
                 for (const auto& r : world.resources) {
@@ -65,7 +65,7 @@ void addWarActions(const World& world, vector<MyAction>& actions, const GameStat
                         cl = r;
                     }
                 }
-                if (cld <= w.attackRange) {
+                if (cld <= 2) {
                     actions.emplace_back(w.id, A_ATTACK, cl.position, cl.id, Score(123, 0));
                     attackingResource = true;
                 }

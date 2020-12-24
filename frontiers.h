@@ -408,7 +408,7 @@ Score getScore(const vector<Entity>& my, const vector<Entity>& opp,
     }
 
     for (const auto& oe : opp)
-        if (oe.entityType == EntityType::TURRET) {
+        if (oe.entityType == EntityType::TURRET && oe.active) {
             int cntInRange = 0;
             int shots = 0;
             forn(i, my.size())
@@ -570,10 +570,18 @@ void bfBattle(const World& world, const vector<Entity>& tobf) {
                 dirMoves[e] = 4;
             }
         }
-        oppMovesVariants.push_back(dirMoves);
+        bool ok = true;
+        for (const auto& v : oppMovesVariants)
+            if (v == dirMoves) {
+                ok = false;
+                break;
+            }
+        if (ok) {
+            oppMovesVariants.push_back(dirMoves);
+        }
     }
 
-    forn(it, 5) {
+    forn(it, 4) {
         #ifdef BF
         cerr << ">> OPT my\n";
         #endif
@@ -650,9 +658,13 @@ void bfBattle(const World& world, const vector<Entity>& tobf) {
                 myMovesBack[e] = 4;
             }
         }
-        forn(it, 5) {
+        forn(it, 4) {
             b2 = optimizeMovesVec(world, my, opp, myMovesBack, oppMovesVariants, myCanMove);
         }
+        #ifdef BF
+        cerr << "after opt moves to " << w << ":"
+        forn(i, my.size()) cerr << " " << my[i].id << my[i].position << "->" << myMovesBack[i]; cerr << " - score " << b2 << endl;
+        #endif
         if (b2 < b1) {
             cerr << "B" << w << "!";
             myMoves = myMovesBack;
@@ -739,6 +751,8 @@ void assignFinalsTargets(const World& world, const GameStatus& st) {
     frontTarget.clear();
     for (const auto& w : world.myWarriors)
         for (const auto& oe : world.oppEntities) {
+            if (w.position.y > 64 && oe.position.y < 64) continue;
+            if (w.position.x > 64 && oe.position.x < 64) continue;
             cand.emplace_back(dist(w.position, oe), w.id, oe.id);
         }
     sort(cand.begin(), cand.end());
