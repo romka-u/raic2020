@@ -243,7 +243,7 @@ void doDamage(const vector<Entity>& my, const vector<Entity>& opp,
         const int j = myTarget[i];
         if (j == -1) continue;
         oppHealth[j] = max(0, oppHealth[j] - 5);
-        if (myMoves[i] != 4) {
+        /*if (myMoves[i] != 4) {
             if (oppMoves[j] == 4) {
                 assert(dist(myPos[i], opp[j]) <= my[i].attackRange);
             } else {
@@ -255,7 +255,7 @@ void doDamage(const vector<Entity>& my, const vector<Entity>& opp,
             } else {
                 assert(dist(oppPos[j], my[i]) <= my[i].attackRange);
             }
-        }
+        }*/
     }
 }
 
@@ -273,7 +273,7 @@ vector<int> rpt[1010];
 void doAttack(const vector<Entity>& my, const vector<Entity>& opp,
               const vector<int>& myMoves, const vector<int>& oppMoves,
               Cell myPos[1010], Cell oppPos[1010],
-              int oppHealth[1010]) {
+              int oppHealth[1010], int iters) {
     uiti++;
     forn(i, opp.size()) { idToInd[opp[i].id] = i; iti[opp[i].id] = uiti; }
     forn(i, my.size()) {
@@ -309,13 +309,17 @@ void doAttack(const vector<Entity>& my, const vector<Entity>& opp,
         if (rpt[i].empty()) {
             myTarget[i] = -1;
         } else {
-            myTarget[i] = rpt[i][i % rpt[i].size()];
+            int c = rpt[i][i % rpt[i].size()];
+            forn(j, rpt[i].size())
+                if (oppHealth[c] > oppHealth[rpt[i][j]])
+                    c = rpt[i][j];
+            myTarget[i] = c;
         }
 
     forn(q, opp.size()) ohb[q] = oppHealth[q];
     doDamage(my, opp, myMoves, oppMoves, myPos, oppPos, myTarget, ohb);
     int best = getKillScore(opp, ohb);
-    forn(it, 5) {
+    forn(it, iters) {
         forn(i, my.size())
             forn(j, rpt[i].size()) {
                 int was = myTarget[i];
@@ -374,8 +378,9 @@ Score getScore(const vector<Entity>& my, const vector<Entity>& opp,
         upos[oppPos[i].x][oppPos[i].y] = pit;
     }
 
-    doAttack(my, opp, myMoves, oppMoves, myPos, oppPos, oppHealth);
-    doAttack(opp, my, oppMoves, myMoves, oppPos, myPos, myHealth);
+    const int iters = my.size() > 10 ? 1 : 2;
+    doAttack(my, opp, myMoves, oppMoves, myPos, oppPos, oppHealth, iters);
+    doAttack(opp, my, oppMoves, myMoves, oppPos, myPos, myHealth, iters);
     if (verbose) {
         cerr << "\nmy"; forn(i, my.size()) cerr << "|" << myHealth[i];
         cerr << " - opp"; forn(i, opp.size()) cerr << "|" << oppHealth[i];
@@ -505,12 +510,14 @@ void bfBattle(const World& world, const vector<Entity>& tobf) {
     vector<int> oppMoves(opp.size(), 4);
     forn(i, my.size()) { myHealth[i] = my[i].health; myPos[i] = my[i].position; }
     forn(i, opp.size()) { oppHealth[i] = opp[i].health; oppPos[i] = opp[i].position; }
-    doAttack(my, opp, myMoves, oppMoves, myPos, oppPos, oppHealth);
+
+    const int iters = max(2, 7 - int(my.size()) / 4);
+    doAttack(my, opp, myMoves, oppMoves, myPos, oppPos, oppHealth, iters);
     forn(i, my.size())
         if (myTarget[i] != -1) {
             attackTarget[my[i].id] = opp[myTarget[i]].id;
         }
-    doAttack(opp, my, oppMoves, myMoves, oppPos, myPos, myHealth);
+    doAttack(opp, my, oppMoves, myMoves, oppPos, myPos, myHealth, iters);
     vector<Entity> nmy, nopp;
     forn(i, my.size())
         if (myHealth[i] > 0) {
