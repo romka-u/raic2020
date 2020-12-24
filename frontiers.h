@@ -214,7 +214,7 @@ void fillMovesAttack(const World& world, const vector<Entity>& my, const vector<
                 ct = oe.position;
             }
         }
-        
+
         forn(w, 4) {
             const Cell nc = my[i].position ^ w;
             if (nc.inside() && !world.hasNonMovable(nc) && dist(nc, ct) * dir < dist(my[i].position, ct) * dir) {
@@ -542,7 +542,7 @@ void bfBattle(const World& world, const vector<Entity>& tobf) {
     forn(it, 5) {
         b1 = optimizeMovesVec(world, my, opp, myMoves, oppMovesVariants, myCanMove);
     }
-    
+
     vector<int> myMovesBack(my.size(), 4);
     fillMovesAttack(world, my, opp, myMovesBack, myCanMove, -1);
     #ifdef BF
@@ -559,7 +559,7 @@ void bfBattle(const World& world, const vector<Entity>& tobf) {
     cerr << "my:\n";
     forn(i, my.size()) cerr << " " << my[i].id << my[i].position << "->" << myMoves[i]; cerr << " - score " << b1 << endl;
     forn(i, my.size()) cerr << " " << my[i].id << my[i].position << "->" << myMovesBack[i]; cerr << " - score " << b2 << endl;
-    
+
     cerr << "=============== myMovesBack option =====================\n";
     for (const auto& om : oppMovesVariants) {
         cerr << "vs ";
@@ -701,16 +701,16 @@ void assignFinalsTargets(const World& world, const GameStatus& st) {
     const int H = freeWarriors.size() / 2;
     forn(i, H) {
         const auto& [pos, id] = freeWarriors[i];
-        if (pos.x >= 42 && pos.y >= 70)
+        if (pos.x >= 19 && pos.y >= 70)
             frontTarget[id] = Cell(77, 77);
         else
-            frontTarget[id] = Cell(max(pos.x, 42), 77);
-    }        
+            frontTarget[id] = Cell(max(pos.x, 19), 77);
+    }
     for (size_t i = H; i < freeWarriors.size(); i++) {
         const auto& [pos, id] = freeWarriors[i];
-        if (pos.y >= 42 && pos.x >= 70)
+        if (pos.y >= 19 && pos.x >= 70)
             frontTarget[id] = Cell(77, 77);
         else
-            frontTarget[id] = Cell(77, max(pos.y, 42)); 
+            frontTarget[id] = Cell(77, max(pos.y, 19));
     }
 }
