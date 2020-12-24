@@ -100,6 +100,22 @@ bool safeToBuild(const World& world, const Cell& c, int sz, int arb) {
     return true;
 }
 
+int cellsNear(const World& world, const Cell& c, int sz) {
+    int res = 0;
+    Cell cc;
+    for (int d = -1; d <= sz; d++) {
+        cc = c + Cell(d, -1);
+        res += (cc.inside() && !world.isEmpty(cc) && world.eMap[cc.x][cc.y] < 0 && world.entityMap.at(-world.eMap[cc.x][cc.y]).playerId != -1);
+        cc = c + Cell(-1, d);
+        res += (cc.inside() && !world.isEmpty(cc) && world.eMap[cc.x][cc.y] < 0 && world.entityMap.at(-world.eMap[cc.x][cc.y]).playerId != -1);
+        cc = c + Cell(d, sz);
+        res += (cc.inside() && !world.isEmpty(cc) && world.eMap[cc.x][cc.y] < 0 && world.entityMap.at(-world.eMap[cc.x][cc.y]).playerId != -1);
+        cc = c + Cell(sz, d);
+        res += (cc.inside() && !world.isEmpty(cc) && world.eMap[cc.x][cc.y] < 0 && world.entityMap.at(-world.eMap[cc.x][cc.y]).playerId != -1);
+    }
+    return res;
+}
+
 int addBuildRanged(const World& world, vector<MyAction>& actions, const GameStatus& st, bool checkBorder) {
     if (st.needRanged != 1) return -1;
 
@@ -118,7 +134,7 @@ int addBuildRanged(const World& world, vector<MyAction>& actions, const GameStat
                 checkedPos[newPos] = canBuild(world, newPos, sz, wasReachable);
             }
             if (checkedPos[newPos] && safeToBuild(world, newPos, sz, 15)) {
-                int score = newPos.x + newPos.y;
+                int score = newPos.x + newPos.y - cellsNear(world, newPos, sz) * 4;
                 if (score > bestScore) {
                     bestScore = score;
                     bestPos = newPos;
@@ -213,6 +229,7 @@ int addBuildHouse(const World& world, vector<MyAction>& actions, const GameStatu
             if (checkedPos[newPos] && safeToBuild(world, newPos, sz, 10)) {
                 // if (newPos.x + newPos.y == 3 && !world.hasNonMovable({0, 0})) continue;
                 int score = (newPos.x == 0) * 1000 + (newPos.y == 0) * 1000 - newPos.x - newPos.y;
+                if (newPos.x > 0 && newPos.y > 0) score -= cellsNear(world, newPos, sz) * 5;
                 if (score > bestScore) {
                     bestScore = score;
                     bestPos = newPos;
