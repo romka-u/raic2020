@@ -61,7 +61,7 @@ bool canBuild(const World& world, const Cell& c, int sz, int wasReachable) {
 }
 
 bool goodForTurret(const Cell& c, int sz) {
-    if (c.x < 27 && c.y < 27) return false;
+    if (c.x < 42 && c.y < 42) return false;
     // if (c.x % 3 != 0 || c.y % 3 != 0) return false;
     return true;
 }
@@ -152,7 +152,7 @@ int addBuildRanged(const World& world, vector<MyAction>& actions, const GameStat
 }
 
 int addBuildTurret(const World& world, vector<MyAction>& actions, const GameStatus& st) {
-    if (st.needRanged != 2) return -1;
+    if (st.needRanged != 2 || true) return -1;
 
     int bestScore = -inf, bestId = -1;
     Cell bestPos;
