@@ -370,7 +370,7 @@ Score getScore(const vector<Entity>& my, const vector<Entity>& opp,
             if (upos[myPos[i].x][myPos[i].y] == pit) {
                 myPos[i] = my[i].position;
                 upos[myPos[i].x][myPos[i].y] = pit;
-            }            
+            }
         }
         forn(i, opp.size()) {
             if (upos[oppPos[i].x][oppPos[i].y] == pit) {

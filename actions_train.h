@@ -111,8 +111,8 @@ void addTrainActions(const World& world, vector<MyAction>& actions, const GameSt
         workerBid = -1;
 
     const int WS_FIRST_LIM = world.finals ? 64 : 42;
-    bool workerFirst = (myWS <= WS_FIRST_LIM || world.tick % 8 == 0) && st.enemiesCloseToBase.empty();
-    
+    bool workerFirst = (myWS <= WS_FIRST_LIM || world.tick % 4 == 0) && st.enemiesCloseToBase.empty();
+
     if (workerFirst) {
         if (resources >= workerCost && workerBid != -1) {
             resources -= workerCost;
@@ -130,6 +130,6 @@ void addTrainActions(const World& world, vector<MyAction>& actions, const GameSt
         if (resources >= workerCost && workerBid != -1) {
             resources -= workerCost;
             actions.emplace_back(workerBid, A_TRAIN, workerTrainPos, EntityType::BUILDER_UNIT, Score{420, 0});
-        }        
+        }
     }
 }
