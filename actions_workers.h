@@ -68,8 +68,8 @@ bool goodForTurret(const Cell& c, int sz) {
 
 bool noTurretAheadAndBehind(const World& world, const Cell& c) {
     if (c.x < c.y) {
-        int lx = max(0, c.x - 3);
-        int rx = min(79, c.x + 3);
+        int lx = max(0, c.x - 7);
+        int rx = min(79, c.x + 7);
         for (int y = max(c.y - 7, 0); y < 70; y++)
             for (int x = lx; x <= rx; x++) {
                 const int id = world.eMap[x][y];
@@ -78,8 +78,8 @@ bool noTurretAheadAndBehind(const World& world, const Cell& c) {
                 }
             }
     } else {
-        int ly = max(0, c.y - 3);
-        int ry = min(79, c.y + 3);
+        int ly = max(0, c.y - 7);
+        int ry = min(79, c.y + 7);
         for (int x = max(c.x - 7, 0); x < 70; x++)
             for (int y = ly; y <= ry; y++) {
                 const int id = world.eMap[x][y];
@@ -172,7 +172,7 @@ int addBuildTurret(const World& world, vector<MyAction>& actions, const GameStat
                 break;
             }
         }
-        /* if (!nearRes) */ continue;
+        if (!nearRes) continue;
 
         const int sz = props.at(EntityType::TURRET).size;
         for (Cell newPos : nearCells(wrk.position - Cell(sz - 1, sz - 1), sz)) {
