@@ -29,15 +29,10 @@ void resBfs(const World& world) {
 }
 
 void getBestWorkerTrain(const World& world, const GameStatus& st, int& buildingId, Cell& trainPos) {
-    const int myWS = world.workers[world.myId].size();
     buildingId = -1;
     int bestScore = -inf;
-    const int WORKERS_LIMIT = world.finals ? 91 : 64;
     for (const Entity& bu : world.myBuildings) {
-        if (bu.entityType == EntityType::BUILDER_BASE
-            && !st.workersLeftToFixTurrets
-            && !needBuildArmy
-            && myWS < min(WORKERS_LIMIT, int(st.resToGather.size() * 0.91))) {
+        if (bu.entityType == EntityType::BUILDER_BASE) {
             for (Cell bornPlace : nearCells(bu.position, bu.size)) {
                 if (bornPlace.inside() && world.isEmpty(bornPlace)) {
                     int score = -rd[bornPlace.x][bornPlace.y];
@@ -53,14 +48,10 @@ void getBestWorkerTrain(const World& world, const GameStatus& st, int& buildingI
 }
 
 void getBestRangedTrain(const World& world, const GameStatus& st, const Cell& closestEnemy, int& buildingId, Cell& trainPos) {
-    const int myWS = world.workers[world.myId].size();
     buildingId = -1;
     int bestScore = -inf;
-    const int WARRIORS_LIMIT = world.finals ? 111 : 77;
     for (const Entity& bu : world.myBuildings) {
-        if (bu.entityType == EntityType::RANGED_BASE
-            && (needBuildArmy || myWS > 32)
-            && world.warriors[world.myId].size() < WARRIORS_LIMIT) {
+        if (bu.entityType == EntityType::RANGED_BASE) {
             for (Cell bornPlace : nearCells(bu.position, bu.size)) {
                 if (bornPlace.inside() && world.isEmpty(bornPlace)) {
                     int score = -dist(bornPlace, closestEnemy);
@@ -105,22 +96,38 @@ void addTrainActions(const World& world, vector<MyAction>& actions, const GameSt
     const int rangedCost = props.at(EntityType::RANGED_UNIT).cost + world.myUnitsCnt.at(EntityType::RANGED_UNIT);
 
     const int myWS = world.workers[world.myId].size();
-    const int WS_LIM = world.finals ? 64 : 42;
-    if (myWS <= WS_LIM && st.enemiesCloseToBase.empty()) {
-        if (resources >= workerCost && workerBid != -1 && st.enemiesCloseToBase.empty()) {
+    const int WARRIORS_LIMIT = world.finals ? 111 : 77;
+    const int WORKERS_LIMIT = world.finals ? 91 : 64;
+
+    if (!needBuildArmy && myWS < 32 && resources < 100)
+        rangedBid = -1;
+    if (world.warriors[world.myId].size() >= WARRIORS_LIMIT)
+        rangedBid = -1;
+
+    if (st.workersLeftToFixTurrets
+        || needBuildArmy
+        || myWS >= min(WORKERS_LIMIT, int(st.resToGather.size() * 0.95))
+        || !st.enemiesCloseToBase.empty())
+        workerBid = -1;
+
+    const int WS_FIRST_LIM = world.finals ? 64 : 42;
+    bool workerFirst = (myWS <= WS_FIRST_LIM || world.tick % 16 == 0) && st.enemiesCloseToBase.empty();
+    
+    if (workerFirst) {
+        if (resources >= workerCost && workerBid != -1) {
             resources -= workerCost;
             actions.emplace_back(workerBid, A_TRAIN, workerTrainPos, EntityType::BUILDER_UNIT, Score{420, 0});
         }
         if (resources >= rangedCost && rangedBid != -1) {
             resources -= rangedCost;
-            actions.emplace_back(rangedBid, A_TRAIN, rangedTrainPos, EntityType::RANGED_UNIT, Score{myWS * 10, 0});
+            actions.emplace_back(rangedBid, A_TRAIN, rangedTrainPos, EntityType::RANGED_UNIT, Score{410, 0});
         }
     } else {
         if (resources >= rangedCost && rangedBid != -1) {
             resources -= rangedCost;
-            actions.emplace_back(rangedBid, A_TRAIN, rangedTrainPos, EntityType::RANGED_UNIT, Score{myWS * 10, 0});
+            actions.emplace_back(rangedBid, A_TRAIN, rangedTrainPos, EntityType::RANGED_UNIT, Score{430, 0});
         }
-        if (resources >= workerCost && workerBid != -1 && st.enemiesCloseToBase.empty()) {
+        if (resources >= workerCost && workerBid != -1) {
             resources -= workerCost;
             actions.emplace_back(workerBid, A_TRAIN, workerTrainPos, EntityType::BUILDER_UNIT, Score{420, 0});
         }        
