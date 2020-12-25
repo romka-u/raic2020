@@ -107,11 +107,13 @@ struct World {
     pii infMap[88][88];
     int myId, tick;
     bool fow, finals;
+    bool seen[88][88];
 
     World() {
         fow = false;
         finals = false;
         memset(resAtTick, 0xff, sizeof(resAtTick));
+        memset(seen, 0, sizeof(seen));
     }
 
     bool isEmpty(const Cell& c) const {
@@ -196,10 +198,25 @@ struct World {
             }
         } else if (fow) {
             vector<Entity> my;
-            for (const auto& e : newEntities)
+            Entity res(333555777, -1, EntityType::RESOURCE, Cell(40, 40), props.at(EntityType::RESOURCE).maxHealth, true);
+            res.maxHealth = res.health;
+            res.attackRange = 0;
+            res.size = 1;
+            res.id += tick * 1000;
+
+            for (const auto& e : newEntities) {
                 if (e.playerId == myId) {
                     my.push_back(e);
                 }
+                if (e.playerId == -1 && !seen[e.position.x][e.position.y]) {
+                    seen[e.position.x][e.position.y] = true;
+                    if (e.position.x + e.position.y < 79) {
+                        res.id++;
+                        res.position = Cell(79 - e.position.x, 79 - e.position.y);
+                        newEM[res.id] = res;
+                    }
+                }
+            }
             for (const auto& [id, e] : entityMap) {
                 if (!props.at(e.entityType).canMove) {
                     bool seeing = false;

@@ -103,7 +103,7 @@ void clearAStar() {
     astick++;
 }
 
-vector<Cell> getPathTo(const World& world, const Cell& from, const Cell& to) {
+vector<Cell> getPathTo(const World& world, const Cell& from, const Cell& to, int throughCost=4) {
     if (from == to) return {from};
     MyQueue queue;
     queue.push(QItem{0, hManh(from, to), 0, hMax(from, to), from});
@@ -132,7 +132,7 @@ vector<Cell> getPathTo(const World& world, const Cell& from, const Cell& to) {
 
             if (world.hasNonMovable(cc)) {
                 if (world.hasResourceAt(cc)) {
-                    stepCost = 4;
+                    stepCost = throughCost;
                 } else {
                     continue;
                 }

@@ -201,7 +201,15 @@ public:
                 info.msg[unitId] << ", by frontTarget";
                 // cerr << "set path for " << unitId << " - no A*\n";
             } else {
-                path = getPathTo(world, from, to);
+                bool isRep = false;
+                if (TURRETS_CHEESE) {
+                    for (int wi : gameStatus.ts.repairers)
+                        if (unitId == wi) {
+                            isRep = true;
+                            break;
+                        }
+                }
+                path = getPathTo(world, from, to, isRep ? 8 : 4);
 
                 #ifdef DEBUG
                 pathDebug[unitId].path = path;
@@ -209,11 +217,8 @@ public:
                 #endif
                 Cell target = path.size() >= 2 ? path[1] : to;
 
-                if (world.hasNonMovable(target)) { 
-                    for (int wi : gameStatus.ts.repairers)
-                        if (unitId == wi) {
-                            gameStatus.ts.failedToFindPath = true;
-                        }
+                if (world.hasNonMovable(target) && isRep) { 
+                    gameStatus.ts.failedToFindPath = true;
                 }
 
                 moves[unitId].moveAction = std::make_shared<MoveAction>(target, true, false);
