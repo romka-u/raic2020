@@ -1,7 +1,7 @@
 #pragma once
 #include "actions.h"
 
-const vector<Cell> horse = {
+const vector<Cell> horseRaw = {
     {1,16},
     {2,12},
     {2,13},
@@ -183,45 +183,27 @@ const vector<Cell> horse = {
 
 void addHorseActions(const World& world, vector<MyAction>& actions, const GameStatus& st) {
     const Cell offset(45, 79);
-    /*vector<pair<int, pair<int, Cell>>> cand;
-    for (const auto& w : world.myWarriors)
-        for (const Cell& c : horse) {
-            Cell rc(offset.x + c.x, offset.y - c.y);
-            cand.emplace_back(dist(w.position, rc), make_pair(w.id, rc));
-        }
-            
-    for (const auto& w : world.myWorkers)
-        for (const Cell& c : horse) {
-            Cell rc(offset.x + c.x, offset.y - c.y);
-            cand.emplace_back(dist(w.position, rc), make_pair(w.id, rc));
-        }
-
-    sort(cand.begin(), cand.end());
-
-    
-    unordered_set<Cell> uc;
-    for (const auto& [_, p] : cand) {
-        const auto& [id, c] = p;
-        if (uw.find(id) == uw.end() && uc.find(c) == uc.end()) {
-            uw.insert(id);
-            uc.insert(c);
-            actions.emplace_back(id, A_MOVE, c, -1, Score(777));
-        }
-    }*/
-    vector<pair<int, int>> cand;
+    vector<pair<int, int>> participants;
+    vector<Cell> horse;
+    for (const Cell& c : horseRaw) {
+        Cell rc(offset.x + c.x, offset.y - c.y);
+        if (world.myId == 2)
+            rc = Cell(124 - rc.x, 125 - rc.y);
+        horse.push_back(rc);
+    }
     for (const auto& w : world.myWarriors) {
-        cand.emplace_back((80 - w.position.x) * 100 + w.position.y, w.id);
+        participants.emplace_back(-w.position.x * 100 - w.position.y, w.id);
     }
     for (const auto& w : world.myWorkers) {
-        cand.emplace_back((80 - w.position.x) * 100 + w.position.y, w.id);
+        participants.emplace_back(-w.position.x * 100 - w.position.y, w.id);
     }
-    sort(cand.begin(), cand.end());
+    sort(participants.begin(), participants.end());
+    sort(horse.begin(), horse.end(), [](const Cell& a, const Cell& b) { return b < a; });
 
     unordered_set<int> uw;
     forn(i, horse.size()) {
-        Cell rc(offset.x + horse[horse.size() - 1 - i].x, offset.y - horse[horse.size() - 1 - i].y);
-        uw.insert(cand[i].second);
-        actions.emplace_back(cand[i].second, A_MOVE, rc, -1, Score(777));
+        actions.emplace_back(participants[i].second, A_MOVE, horse[i], -1, Score(777));
+        uw.insert(participants[i].second);
     }
             
     for (const auto& w : world.myWarriors)

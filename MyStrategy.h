@@ -69,7 +69,7 @@ public:
 
         vector<MyAction> actions;
         if (weWin(world)) {
-            if (world.myWarriors.size() + world.myWorkers.size() < horse.size()) {
+            if (world.myWarriors.size() + world.myWorkers.size() < horseRaw.size()) {
                 addTrainActions(world, actions, gameStatus, resourcesLeft);
                 addWorkersActions(world, actions, gameStatus, resourcesLeft);
                 for (const auto& w : world.myWarriors)
