@@ -34,7 +34,7 @@ int uit;
 int busyForAStar[80][80][D + 1];
 int foreverStuck[80][80];
 int moveUsed[80][80][D + 1][4];
-int dRes[82][82], dRep[82][82], dTur[82][82];
+int dRes[82][82], dRep[82][82], dTur[82][82], enemyZone[82][82];
 int astick;
 
 void goBfs(const World& world, vector<Cell>& q, int d[82][82]) {
@@ -97,6 +97,20 @@ void updateD(const World& world, const vector<int>& resToGather) {
     }
 
     goBfs(world, q, dTur);
+
+    memset(enemyZone, 0, sizeof(enemyZone));
+    for (const auto& e : world.oppEntities) {
+        if (e.entityType == EntityType::RANGED_UNIT || e.entityType == EntityType::MELEE_UNIT || e.entityType == EntityType::TURRET) {
+            const int Q = (e.entityType != EntityType::TURRET) * 2;
+            for (int x = e.position.x - e.attackRange - Q; x <= e.position.x + Q + e.size - 1 + e.attackRange; x++)
+                for (int y = e.position.y - e.attackRange - Q; y <= e.position.y + Q + e.size - 1 + e.attackRange; y++) {
+                    Cell nc(x, y);
+                    if (nc.inside() && dist(nc, e) <= e.attackRange + Q) {
+                        enemyZone[nc.x][nc.y]++;
+                    }
+                }
+        }
+    }
 }
 
 void clearAStar() {
@@ -197,6 +211,7 @@ pair<vector<Cell>, int> getPathToMany(const World& world, const Cell& from, int 
                 if (busyForAStar[nc.x][nc.y][cur.d + 1] == astick/* || foreverStuck[nc.x][nc.y] == astick*/) nf += 91;
                 if (moveUsed[nc.x][nc.y][cur.d + 1][w ^ 2] == astick) nf += 91;
             }
+            nf += enemyZone[nc.x][nc.y] * 160;
             if (nc.inside()) {
                 queue.push(QItem{nf, d[nc.x][nc.y], cur.d + 1, 0, nc, cur.c});
             }
