@@ -797,6 +797,8 @@ bool operator<(const TargetCand& a, const TargetCand& b) {
     return a.dist < b.dist;
 }
 
+unordered_set<int> flankers;
+
 void assignFinalsTargets(const World& world, const GameStatus& st) {
     vector<TargetCand> cand;
     needBuildArmy = false;
@@ -900,16 +902,20 @@ void assignFinalsTargets(const World& world, const GameStatus& st) {
     const int H = freeWarriors.size() / 2;
     forn(i, H) {
         const auto& [pos, id] = freeWarriors[i];
-        if (pos.x >= 19 && pos.y >= 70)
+        if ((pos.x >= 19 && pos.y >= 70) || flankers.count(id)) {
             frontTarget[id] = Cell(77, 77);
-        else
+            flankers.insert(id);
+        } else {
             frontTarget[id] = Cell(max(pos.x, 19), 77);
+        }
     }
     for (size_t i = H; i < freeWarriors.size(); i++) {
         const auto& [pos, id] = freeWarriors[i];
-        if (pos.y >= 19 && pos.x >= 70)
+        if ((pos.y >= 19 && pos.x >= 70) || flankers.count(id)) {
             frontTarget[id] = Cell(77, 77);
-        else
+            flankers.insert(id);
+        } else {
             frontTarget[id] = Cell(77, max(pos.y, 19));
+        }
     }
 }
