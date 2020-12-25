@@ -172,7 +172,7 @@ struct GameStatus {
                 memset(dBase, 0, sizeof(dBase));
                 uit++;
                 vector<Cell> q;
-                q.emplace_back(79, 79);
+                q.emplace_back(77, 77);
                 goBfs(world, q, dBase);
                 unordered_set<int> usedW;
                 forn(it, 4) {
@@ -181,6 +181,7 @@ struct GameStatus {
                         if (usedW.find(w.id) == usedW.end()) {
                             int cd = dBase[w.position.x][w.position.y];
                             if (cd == 0) {
+                                // cerr << "fail because cd = 0\n";
                                 ts.state = TS_FAILED;
                                 break;
                             }
@@ -229,6 +230,7 @@ struct GameStatus {
         if (ts.state == TS_FAILED) {
             ts.repairers.clear();
         }
+        // cerr << "ts.state = " << ts.state << endl;
     }
 
     bool calcBorderPoints(const World& world, vector<Cell> borderPoints[5]) {
