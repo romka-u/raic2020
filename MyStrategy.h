@@ -19,8 +19,12 @@ public:
     MyStrategy() { totalElapsed = prevGathered = 0; }
     ~MyStrategy() {}
 
-    bool weWin(const World& world) const {
+    bool weWin(const World& world, const PlayerView& playerView) const {
         if (world.oppEntities.size() > 4) return false;
+        forn(p, playerView.players.size()) {
+            if (p + 1 != world.myId && playerView.players[p].score >= playerView.players[world.myId - 1].score)
+                return false;
+        }
         for (const auto& e : world.oppEntities)
             if (e.entityType != EntityType::HOUSE && e.entityType != EntityType::BUILDER_UNIT)
                 return false;
@@ -68,7 +72,7 @@ public:
         // return Action();
 
         vector<MyAction> actions;
-        if (weWin(world)) {
+        if (weWin(world, playerView)) {
             if (world.myWarriors.size() + world.myWorkers.size() < horseRaw.size()) {
                 addTrainActions(world, actions, gameStatus, resourcesLeft);
                 addWorkersActions(world, actions, gameStatus, resourcesLeft);

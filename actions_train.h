@@ -107,11 +107,11 @@ void addTrainActions(const World& world, vector<MyAction>& actions, const GameSt
     if (st.workersLeftToFixTurrets
         || needBuildArmy
         || myWS >= min(WORKERS_LIMIT, int(st.resToGather.size() * 0.95))
-        || !st.enemiesCloseToBase.empty())
+        || !st.closeToBaseIds.empty())
         workerBid = -1;
 
     const int WS_FIRST_LIM = world.finals ? 64 : 42;
-    bool workerFirst = (myWS <= WS_FIRST_LIM || world.tick % 4 == 0) && st.enemiesCloseToBase.empty();
+    bool workerFirst = (myWS <= WS_FIRST_LIM || world.tick % 4 == 0) && st.closeToBaseIds.empty();
 
     if (workerFirst) {
         if (resources >= workerCost && workerBid != -1) {

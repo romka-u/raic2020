@@ -186,7 +186,7 @@ void assignTargets(const World& world, const GameStatus& st) {
     }
 
     needBuildArmy = false;
-    if (!st.enemiesCloseToBase.empty()) {
+    if (!st.closeToBaseIds.empty()) {
         for (int grId : myFrontIds) {
             if (myPower[grId] < st.attackersPower[grId] && st.attackersPowerClose[grId] != 0) {
                 needBuildArmy = true;
@@ -464,8 +464,9 @@ Score getScore(const vector<Entity>& my, const vector<Entity>& opp,
 }
 
 void optimizeMoves(const World& world, const vector<Entity>& my, const vector<Entity>& opp,
-                   vector<int>& myMoves, const vector<int>& oppMoves, const vector<bool>& myCanMove) {
-    Score score = getScore(my, opp, myMoves, oppMoves, world.finals);
+                   vector<int>& myMoves, const vector<int>& oppMoves, const vector<bool>& myCanMove,
+                   bool nearBaseBattle) {
+    Score score = getScore(my, opp, myMoves, oppMoves, world.finals && !nearBaseBattle);
     forn(i, my.size())
         if (myCanMove[i]) {
             forn(w, 5) {
@@ -474,8 +475,7 @@ void optimizeMoves(const World& world, const vector<Entity>& my, const vector<En
                 if (nc.inside() && !world.hasNonMovable(nc)) {
                     int was = myMoves[i];
                     myMoves[i] = w;
-                    const Score cs = getScore(my, opp, myMoves, oppMoves, world.finals);
-                    // cerr << "  trying " << i << " go to " << w << " - score " << cs << endl;
+                    const Score cs = getScore(my, opp, myMoves, oppMoves, world.finals && !nearBaseBattle);
                     if (cs < score) { // operator< overloaded to select best
                         score = cs;
                     } else {
@@ -487,10 +487,11 @@ void optimizeMoves(const World& world, const vector<Entity>& my, const vector<En
 }
 
 Score optimizeMovesVec(const World& world, const vector<Entity>& my, const vector<Entity>& opp,
-                      vector<int>& myMoves, const vector<vector<int>>& oppMovesVariants, const vector<bool>& myCanMove) {
+                      vector<int>& myMoves, const vector<vector<int>>& oppMovesVariants, const vector<bool>& myCanMove,
+                      bool nearBaseBattle) {
     Score score(inf);
     for (const auto& om : oppMovesVariants)
-        score = max(score, getScore(my, opp, myMoves, om, world.finals));
+        score = max(score, getScore(my, opp, myMoves, om, world.finals && !nearBaseBattle));
     forn(i, my.size())
         if (myCanMove[i]) {
             forn(w, 5) {
@@ -501,7 +502,7 @@ Score optimizeMovesVec(const World& world, const vector<Entity>& my, const vecto
                     myMoves[i] = w;
                     Score cs(inf);
                     for (const auto& om : oppMovesVariants)
-                        cs = max(cs, getScore(my, opp, myMoves, om, world.finals));
+                        cs = max(cs, getScore(my, opp, myMoves, om, world.finals && !nearBaseBattle));
                     if (cs < score) { // operator< overloaded to select best
                         score = cs;
                     } else {
@@ -515,7 +516,7 @@ Score optimizeMovesVec(const World& world, const vector<Entity>& my, const vecto
 
 // #define BF
 
-void bfBattle(const World& world, const vector<Entity>& tobf) {
+void bfBattle(const World& world, const GameStatus& st, const vector<Entity>& tobf) {
     vector<Entity> my, opp;
     for (const auto& e : tobf)
         if (e.playerId == world.myId) {
@@ -528,6 +529,13 @@ void bfBattle(const World& world, const vector<Entity>& tobf) {
     #ifdef BF
     cerr << "> bfBattle " << my.size() << " vs " << opp.size() << endl;
     #endif
+
+    bool nearBaseBattle = false;
+    for (const Entity& e : opp)
+        if (st.closeToBaseIds.count(e.id)) {
+            nearBaseBattle = true;
+            break;
+        }
 
     sort(my.begin(), my.end(), [](const Entity& a, const Entity& b)
          { return a.health != b.health ? a.health < b.health : a.id < b.id; });
@@ -547,12 +555,12 @@ void bfBattle(const World& world, const vector<Entity>& tobf) {
     forn(i, my.size()) { myHealth[i] = my[i].health; myPos[i] = my[i].position; }
     forn(i, opp.size()) { oppHealth[i] = opp[i].health; oppPos[i] = opp[i].position; }
 
-    doAttack(my, opp, myMoves, oppMoves, myPos, oppPos, oppHealth);
+    doAttack(my, opp, myMoves, oppMoves, myPos, oppPos, oppHealth, nearBaseBattle);
     forn(i, my.size())
         if (myTarget[i] != -1) {
             attackTarget[my[i].id] = opp[myTarget[i]].id;
         }
-    doAttack(opp, my, oppMoves, myMoves, oppPos, myPos, myHealth);
+    doAttack(opp, my, oppMoves, myMoves, oppPos, myPos, myHealth, nearBaseBattle);
     vector<Entity> nmy, nopp;
     forn(i, my.size())
         if (myHealth[i] > 0) {
@@ -620,12 +628,12 @@ void bfBattle(const World& world, const vector<Entity>& tobf) {
         #ifdef BF
         cerr << ">> OPT my\n";
         #endif
-        optimizeMoves(world, my, opp, myMoves, oppMoves, myCanMove);
+        optimizeMoves(world, my, opp, myMoves, oppMoves, myCanMove, nearBaseBattle);
         #ifdef BF
         cerr << "after opt:"; forn(i, my.size()) cerr << " " << my[i].id << my[i].position << "->" << myMoves[i]; cerr << endl;
         cerr << ">> OPT opp\n";
         #endif
-        optimizeMoves(world, opp, my, oppMoves, myMoves, oppCanMove);
+        optimizeMoves(world, opp, my, oppMoves, myMoves, oppCanMove, nearBaseBattle);
         #ifdef BF
         cerr << "after opt:"; forn(i, opp.size()) cerr << " " << opp[i].id << opp[i].position << "->" << oppMoves[i]; cerr << endl;
         #endif
@@ -646,7 +654,7 @@ void bfBattle(const World& world, const vector<Entity>& tobf) {
 
     Score b1, b2;
     forn(it, 5) {
-        b1 = optimizeMovesVec(world, my, opp, myMoves, oppMovesVariants, myCanMove);
+        b1 = optimizeMovesVec(world, my, opp, myMoves, oppMovesVariants, myCanMove, nearBaseBattle);
     }
 
     vector<int> myMovesBack(my.size(), 4);
@@ -657,7 +665,7 @@ void bfBattle(const World& world, const vector<Entity>& tobf) {
     cerr << endl;
     #endif
     forn(it, 5) {
-        b2 = optimizeMovesVec(world, my, opp, myMovesBack, oppMovesVariants, myCanMove);
+        b2 = optimizeMovesVec(world, my, opp, myMovesBack, oppMovesVariants, myCanMove, nearBaseBattle);
     }
 
     #ifdef BF
@@ -694,7 +702,7 @@ void bfBattle(const World& world, const vector<Entity>& tobf) {
             }
         }
         forn(it, 4) {
-            b2 = optimizeMovesVec(world, my, opp, myMovesBack, oppMovesVariants, myCanMove);
+            b2 = optimizeMovesVec(world, my, opp, myMovesBack, oppMovesVariants, myCanMove, nearBaseBattle);
         }
         #ifdef BF
         cerr << "after opt moves to " << w << ":"
@@ -767,7 +775,7 @@ void assignFrontMoves(const World& world, const GameStatus& st) {
             for (int j : g[x])
                 possibleTargets[ent.id].push_back(warEntities[j].id);
         }
-        bfBattle(world, tobf);
+        bfBattle(world, st, tobf);
     }
 }
 

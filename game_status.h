@@ -32,7 +32,8 @@ struct GameStatus {
     TurretStatus ts[KTS];
     int initialTurretId;
     bool workersLeftToFixTurrets;
-    vector<Entity> buildingAttackers, enemiesCloseToBase;
+    vector<Entity> buildingAttackers;
+    unordered_set<int> closeToBaseIds;
     unordered_set<int> turretsInDanger;
     unordered_map<int, Cell> unitsToCell;
     unordered_map<int, vector<int>> utg[5];
@@ -63,7 +64,7 @@ struct GameStatus {
     void updateUnderAttack(const World& world) {
         underAttack = false;
         buildingAttackers.clear();
-        enemiesCloseToBase.clear();
+        closeToBaseIds.clear();
         for (int p = 1; p <= 4; p++) {
             if (p == world.myId) continue;
             for (int wi : world.warriors[p]) {
@@ -76,14 +77,14 @@ struct GameStatus {
                         pushedBA = true;
                     }
                     if (dist(w.position, b) <= w.attackRange + 7 && !pushedCB) {
-                        enemiesCloseToBase.push_back(w);
+                        closeToBaseIds.insert(w.id);
                         pushedCB = true;
                     }
                 }
                 if (!pushedCB) {
                     for (const Entity& wrk : world.myWorkers) {
                         if (dist(w.position, wrk.position) <= w.attackRange + 2 && !pushedCB) {
-                            enemiesCloseToBase.push_back(w);
+                            closeToBaseIds.insert(w.id);
                             pushedCB = true;
                         }
                     }
