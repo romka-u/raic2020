@@ -46,7 +46,7 @@ bool workersAreOk(const World& world, const Cell& c, int sz, int wasReachable) {
         uw[c.x + x][c.y + y] = uwit;
     }
     const int curReachable = workerCellsReachableUWPrefilled(world);
-    return curReachable >= wasReachable - sz * sz - 5;
+    return curReachable >= wasReachable - sz * sz - 2;
 }
 
 bool canBuild(const World& world, const Cell& c, int sz, int wasReachable) {
@@ -218,7 +218,7 @@ int addBuildHouse(const World& world, vector<MyAction>& actions, const GameStatu
 
     const int MAX_FL = world.finals ? 200 : 145;
     for (const auto& wrk : world.myWorkers) {
-        if (st.foodLimit >= st.foodUsed + 15 || st.foodLimit >= MAX_FL || st.needRanged == 1)
+        if (st.foodLimit >= st.foodUsed + 10 || st.foodLimit >= MAX_FL || st.needRanged == 1)
             break;
         if (usedWorkers.find(wrk.id) != usedWorkers.end()) continue;
 
