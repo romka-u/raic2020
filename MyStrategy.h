@@ -154,19 +154,17 @@ public:
                     moved = true;
                     break;
                 case A_TRAIN:
-                    // if (cost <= resourcesLeft) {
-                        moves[unitId].buildAction = std::make_shared<BuildAction>(etype, pos);
-                        info.msg[unitId] << "Train [" << oid << "] at " << pos;
-                        // resourcesLeft -= cost;
-                        moved = true;
-                    // } else {
-                    //     continue;
-                    // }
+                    moves[unitId].buildAction = std::make_shared<BuildAction>(etype, pos);
+                    info.msg[unitId] << "Train [" << oid << "] at " << pos;
+                    moved = true;
                     break;
                 case A_REPAIR:
                     moves[unitId].repairAction = std::make_shared<RepairAction>(oid);
                     info.msg[unitId] << "Repair " << oid;
                     moved = true;
+                    #ifdef DEBUG
+                    info.repairTargets.emplace_back(upos, world.entityMap[oid].position);
+                    #endif
                     break;
                 case A_REPAIR_MOVE:
                     moves[unitId].moveAction = std::make_shared<MoveAction>(pos, true, false);

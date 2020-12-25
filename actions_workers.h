@@ -263,6 +263,23 @@ void addRepairActions(const World& world, vector<MyAction>& actions, const GameS
         if (usedWorkers.find(id) != usedWorkers.end()) continue;
         const auto& wrk = world.entityMap.at(id);
 
+        bool repairing = false;
+        forn(w, 4) {
+            const Cell nc = wrk.position ^ w;
+            if (nc.inside() && world.eMap[nc.x][nc.y] > 0) {
+                const Entity& cand = world.entityMap.at(world.eMap[nc.x][nc.y]);
+                if (cand.health == 5) {
+                    actions.emplace_back(id, A_REPAIR, NOWHERE, cand.id, Score(240, 0));
+                    updateAStar(world, {wrk.position});
+                    usedWorkers.insert(id);
+                    repairing = true;
+                    break;
+                }
+            }            
+        }
+
+        if (repairing) continue;
+
         pair<vector<Cell>, int> pathToRep = getPathToMany(world, wrk.position, dRep);
         const Entity& repTarget = world.entityMap.at(world.getIdAt(pathToRep.first.back()));
         int healthToRepair = repTarget.maxHealth - repTarget.health;
@@ -271,7 +288,7 @@ void addRepairActions(const World& world, vector<MyAction>& actions, const GameS
         if (htrwme < 0) htrwme = 0;
         int ticksWithMe = htrwme / (currentWorkers + 1);
 
-        if (pathToRep.second < 16 && ticksWithMe >= pathToRep.second) {
+        if (pathToRep.second < 19 && ticksWithMe >= (pathToRep.second + 1) / 2) {
             int targetId = repTarget.id;
             repairers[repTarget.id]++;
             if (pathToRep.first.size() <= 2) {

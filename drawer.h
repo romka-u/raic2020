@@ -29,7 +29,7 @@ struct TickDrawInfo {
     vector<int> myPower;
     unordered_map<int, PathDebug> pathDebug;
     unordered_map<int, int> frontMoves;
-    Targets attackTargets;
+    Targets attackTargets, repairTargets;
 };
 
 #ifdef DEBUG
@@ -157,6 +157,15 @@ void drawAttackTargets(const Targets& targets) {
                      (p.second.x + 0.5) * SZ, (p.second.y + 0.5) * SZ);
     }
 }
+
+void drawRepairTargets(const Targets& targets) {
+    v.p.setPen(QPen(QColor(0, 192, 0), SZ/3));
+    for (const auto& p : targets) {
+        v.p.drawLine((p.first.x + 0.5) * SZ, (p.first.y + 0.5) * SZ,
+                     (p.second.x + 0.5) * SZ, (p.second.y + 0.5) * SZ);
+    }
+}
+
 
 void drawTargetsLines(const Targets& targets) {
     v.p.setPen(QPen(QColor(222, 222, 222, 222), 8));
@@ -342,6 +351,7 @@ void draw() {
     if (drawMyField) drawUnderAttack(info, eMap, QColor(0, 255, 0, 64), [&info](int id) { return id == info.myId; });
     if (drawTargets) drawTargetsLines(info.targets);
     drawAttackTargets(info.attackTargets);
+    drawRepairTargets(info.repairTargets);
     if (drawInfMap) drawInfMapOverlay(info.entities, eMap);
     if (drawFrontMoves) drawFrontMovesLines(info.entities, info.frontMoves);
     if (drawBorderGroups) drawBorderGroupsInfo(info.entities, info.status);
@@ -378,28 +388,28 @@ void draw() {
             W = max(W, 24 + int(info.msg.at(clickedEntity->id).str().size()) * 7);
         }
         QPainterPath path;
-        path.addRoundedRect(QRectF(clickedPointScreen.x, clickedPointScreen.y - H - 5, W, H), 10, 10);
+        path.addRoundedRect(QRectF(clickedPointScreen.x + 100, clickedPointScreen.y - H - 5, W, H), 10, 10);
         v.p.fillPath(path, balloonBrush);
 
         v.p.setFont(f12);
         v.p.setPen(blackPen);
         sprintf(buf, "Cell (%d, %d)", clickedCell.x, clickedCell.y);
-        v.p.drawText(clickedPointScreen.x + 10, clickedPointScreen.y - H + 12, QString(buf));
+        v.p.drawText(clickedPointScreen.x + 100 + 10, clickedPointScreen.y - H + 12, QString(buf));
 
         if (clickedEntity->playerId != -1)
             v.p.setPen(pensPerPlayer[clickedEntity->playerId - 1]);
         
         sprintf(buf, "%s Id: %d, HP %d/%d", ename[clickedEntity->entityType].c_str(),
                 clickedEntity->id, clickedEntity->health, clickedEntity->maxHealth);
-        v.p.drawText(clickedPointScreen.x + 10, clickedPointScreen.y - H + 24, QString(buf));
+        v.p.drawText(clickedPointScreen.x + 100 + 10, clickedPointScreen.y - H + 24, QString(buf));
 
         if (info.pathDebug.count(clickedEntity->id)) {
             sprintf(buf, "A* length: %d", info.pathDebug.at(clickedEntity->id).length);
-            v.p.drawText(clickedPointScreen.x + 10, clickedPointScreen.y - H + 36, QString(buf));
+            v.p.drawText(clickedPointScreen.x + 100 + 10, clickedPointScreen.y - H + 36, QString(buf));
         }
 
         if (info.msg.count(clickedEntity->id))
-            v.p.drawText(clickedPointScreen.x + 10, clickedPointScreen.y - H + 48,
+            v.p.drawText(clickedPointScreen.x + 100 + 10, clickedPointScreen.y - H + 48,
                          QString(info.msg.at(clickedEntity->id).str().c_str()));
     }    
 
