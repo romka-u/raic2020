@@ -181,37 +181,46 @@ const vector<Cell> horseRaw = {
     {31,17}
 };
 
-void addHorseActions(const World& world, vector<MyAction>& actions, const GameStatus& st) {
-    const Cell offset(45, 79);
-    vector<pair<int, int>> participants;
-    vector<Cell> horse;
-    for (const Cell& c : horseRaw) {
-        Cell rc(offset.x + c.x, offset.y - c.y);
-        if (world.myId == 2)
-            rc = Cell(124 - rc.x, 125 - rc.y);
-        horse.push_back(rc);
-    }
-    for (const auto& w : world.myWarriors) {
-        participants.emplace_back(-w.position.x * 100 - w.position.y, w.id);
-    }
-    for (const auto& w : world.myWorkers) {
-        participants.emplace_back(-w.position.x * 100 - w.position.y, w.id);
-    }
-    sort(participants.begin(), participants.end());
-    sort(horse.begin(), horse.end(), [](const Cell& a, const Cell& b) { return b < a; });
+unordered_map<int, Cell> horseTargets;
 
-    unordered_set<int> uw;
-    forn(i, horse.size()) {
-        actions.emplace_back(participants[i].second, A_MOVE, horse[i], -1, Score(777));
-        uw.insert(participants[i].second);
+void addHorseActions(const World& world, vector<MyAction>& actions, const GameStatus& st) {
+    if (world.tick % 19 == 0) horseTargets.clear();
+    if (horseTargets.empty()) {
+        const Cell offset(45, 79);
+        vector<pair<int, int>> participants;
+        vector<Cell> horse;
+        for (const Cell& c : horseRaw) {
+            Cell rc(offset.x + c.x, offset.y - c.y);
+            if (world.myId == 2)
+                rc = Cell(124 - rc.x, 125 - rc.y);
+            horse.push_back(rc);
+        }
+        for (const auto& w : world.myWarriors) {
+            participants.emplace_back(-w.position.x * 100 - w.position.y, w.id);
+        }
+        for (const auto& w : world.myWorkers) {
+            participants.emplace_back(-w.position.x * 100 - w.position.y, w.id);
+        }
+        sort(participants.begin(), participants.end());
+        sort(horse.begin(), horse.end(), [](const Cell& a, const Cell& b) { return b < a; });
+
+        unordered_set<int> uw;
+        forn(i, horse.size()) {
+            horseTargets[participants[i].second] = horse[i];
+            uw.insert(participants[i].second);
+        }
+                
+        for (const auto& w : world.myWarriors)
+            if (uw.find(w.id) == uw.end()) {
+                horseTargets[w.id] = Cell(0, 0);
+            }
+        for (const auto& w : world.myWorkers)
+            if (uw.find(w.id) == uw.end()) {
+                horseTargets[w.id] = Cell(0, 0);
+            }
     }
-            
-    for (const auto& w : world.myWarriors)
-        if (uw.find(w.id) == uw.end()) {
-            actions.emplace_back(w.id, A_MOVE, Cell(0, 0), -1, Score(777));
-        }
-    for (const auto& w : world.myWorkers)
-        if (uw.find(w.id) == uw.end()) {
-            actions.emplace_back(w.id, A_MOVE, Cell(0, 0), -1, Score(777));
-        }
+
+    for (const auto& [id, c] : horseTargets) {
+        actions.emplace_back(id, A_MOVE, c, -1, Score(777));
+    }
 }

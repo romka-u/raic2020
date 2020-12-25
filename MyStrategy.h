@@ -72,7 +72,7 @@ public:
         // return Action();
 
         vector<MyAction> actions;
-        if (weWin(world, playerView)) {
+        if (world.finals && weWin(world, playerView)) {
             if (world.myWarriors.size() + world.myWorkers.size() < horseRaw.size()) {
                 addTrainActions(world, actions, gameStatus, resourcesLeft);
                 addWorkersActions(world, actions, gameStatus, resourcesLeft);

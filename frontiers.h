@@ -112,7 +112,7 @@ void assignTargets(const World& world, const GameStatus& st) {
             } else {
                 setClosestTarget(u, oppUnitsByGroup[gr]);
             }
-            cerr << "[A] front target of " << u.id << " set to " << frontTarget[u.id] << endl;
+            // cerr << "[A] front target of " << u.id << " set to " << frontTarget[u.id] << endl;
             unitsByFront[gr].push_back(u.id);
             i++;
         }
@@ -150,7 +150,7 @@ void assignTargets(const World& world, const GameStatus& st) {
             myPower[gr] += min(11, u.health);
             frontTarget[id] = st.hotPoints[gr];
             setClosestTarget(u, oppUnitsByGroup[gr]);
-            cerr << "[B] front target of " << id << " set to " << frontTarget[id] << endl;
+            // cerr << "[B] front target of " << id << " set to " << frontTarget[id] << endl;
             unitsByFront[gr].push_back(id);
             freeWarriors.erase(id);
         }
@@ -163,7 +163,7 @@ void assignTargets(const World& world, const GameStatus& st) {
         unitsByFront[grId].push_back(freeId);
         frontTarget[freeId] = st.hotPoints[grId];
         setClosestTarget(world.entityMap.at(freeId), oppUnitsByGroup[grId]);
-        cerr << "[C] front target of " << freeId << " set to " << frontTarget[freeId] << endl;
+        // cerr << "[C] front target of " << freeId << " set to " << frontTarget[freeId] << endl;
         // myPower[st.borderGroup[c.x][c.y]] += 10;
     }
 
@@ -273,7 +273,7 @@ void doDamageRpt(const vector<Entity>& my, const vector<Entity>& opp,
 void doAttack(const vector<Entity>& my, const vector<Entity>& opp,
               const vector<int>& myMoves, const vector<int>& oppMoves,
               Cell myPos[1010], Cell oppPos[1010],
-              int oppHealth[1010], bool withRec=false) {
+              int oppHealth[1010], bool verbose, bool withRec=false) {
     uiti++;
     forn(i, opp.size()) { idToInd[opp[i].id] = i; iti[opp[i].id] = uiti; }
     forn(i, my.size()) {
@@ -309,14 +309,21 @@ void doAttack(const vector<Entity>& my, const vector<Entity>& opp,
 
     } else {
         int best = -inf, score;
-
+        // if (verbose) cerr << "begin check\n";
         auto f = [&]() {
             forn(q, opp.size()) ohb[q] = oppHealth[q];
             doDamageRpt(my, opp, tmpTarget, ohb);
             score = getKillScore(opp, ohb);
+            // if (verbose) cerr << "kill score in f: " << score << "\n";
             if (score > best) {
                 best = score;
-                forn(i, my.size()) myTarget[i] = tmpTarget[i];
+                forn(i, my.size()) {
+                    myTarget[i] = tmpTarget[i];
+                    // if (verbose) {
+                        // cerr << "rpt " << i << " size = " << rpt[i].size() << endl;
+                        // cerr << "set target to " << myTarget[i] << endl;
+                    // }
+                }
                 forn(i, opp.size()) resHealth[i] = ohb[i];
             }
         };
@@ -415,8 +422,8 @@ Score getScore(const vector<Entity>& my, const vector<Entity>& opp,
         upos[oppPos[i].x][oppPos[i].y] = pit;
     }
 
-    doAttack(my, opp, myMoves, oppMoves, myPos, oppPos, oppHealth);
-    doAttack(opp, my, oppMoves, myMoves, oppPos, myPos, myHealth);
+    doAttack(my, opp, myMoves, oppMoves, myPos, oppPos, oppHealth, false);
+    doAttack(opp, my, oppMoves, myMoves, oppPos, myPos, myHealth, false);
     if (verbose) {
         cerr << "\nmy"; forn(i, my.size()) cerr << "|" << myHealth[i];
         cerr << " - opp"; forn(i, opp.size()) cerr << "|" << oppHealth[i];
@@ -555,12 +562,14 @@ void bfBattle(const World& world, const GameStatus& st, const vector<Entity>& to
     forn(i, my.size()) { myHealth[i] = my[i].health; myPos[i] = my[i].position; }
     forn(i, opp.size()) { oppHealth[i] = opp[i].health; oppPos[i] = opp[i].position; }
 
-    doAttack(my, opp, myMoves, oppMoves, myPos, oppPos, oppHealth, nearBaseBattle);
+    doAttack(my, opp, myMoves, oppMoves, myPos, oppPos, oppHealth, true);
     forn(i, my.size())
         if (myTarget[i] != -1) {
+            // cerr << i << " - myTarget " << myTarget[i];
+            // cerr << ": " << my[i].id << " to " << opp[myTarget[i]].id << endl;
             attackTarget[my[i].id] = opp[myTarget[i]].id;
         }
-    doAttack(opp, my, oppMoves, myMoves, oppPos, myPos, myHealth, nearBaseBattle);
+    doAttack(opp, my, oppMoves, myMoves, oppPos, myPos, myHealth, false);
     vector<Entity> nmy, nopp;
     forn(i, my.size())
         if (myHealth[i] > 0) {
