@@ -561,7 +561,7 @@ void bfBattle(const World& world, const GameStatus& st, const vector<Entity>& to
         if (myTarget[i] != -1) {
             attackTarget[my[i].id] = opp[myTarget[i]].id;
         }
-    if (my.size() >= 32 || opp.size() >= 32) {
+    if (my.size() >= 24 || opp.size() >= 24) {
         forn(i, my.size())
             frontMoves[my[i].id] = 4;
         return;
