@@ -146,7 +146,7 @@ vector<Cell> getPathTo(const World& world, const Cell& from, const Cell& to) {
             int nf = cur.f + stepCost;
             if (cur.d < D) {
                 if (busyForAStar[nc.x][nc.y][cur.d + 1] == astick) nf += 19;
-                if (foreverStuck[nc.x][nc.y] == astick) nf += 77;
+                // if (foreverStuck[nc.x][nc.y] == astick) nf += 77;
                 if (moveUsed[nc.x][nc.y][cur.d + 1][w ^ 2] == astick) nf += 19;
             }
             if (nc.inside()) {
@@ -194,7 +194,7 @@ pair<vector<Cell>, int> getPathToMany(const World& world, const Cell& from, int 
             Cell nc = cur.c ^ w;
             int nf = cur.f + 1;
             if (cur.d < D) {
-                if (busyForAStar[nc.x][nc.y][cur.d + 1] == astick || foreverStuck[nc.x][nc.y] == astick) nf += 91;
+                if (busyForAStar[nc.x][nc.y][cur.d + 1] == astick/* || foreverStuck[nc.x][nc.y] == astick*/) nf += 91;
                 if (moveUsed[nc.x][nc.y][cur.d + 1][w ^ 2] == astick) nf += 91;
             }
             if (nc.inside()) {
