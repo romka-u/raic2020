@@ -85,7 +85,7 @@ public:
 
         sort(actions.begin(), actions.end());
 
-        unordered_set<int> usedUnits, usedResources, hiding;
+        unordered_set<int> usedUnits, usedResources;
         vector<pair<pair<int, int>, pair<Cell, Cell>>> fmoves;
 
         auto setMove = [&fmoves](int unitId, const Cell& from, const Cell& to) {
@@ -142,8 +142,7 @@ public:
                     info.msg[unitId] << "Moves to " << pos;
                     break;
                 case A_HIDE_MOVE:
-                    hiding.insert(unitId);
-                    setMove(unitId, upos, pos);
+                    moves[unitId].moveAction = std::make_shared<MoveAction>(pos, true, false);
                     moved = true;
                     info.msg[unitId] << "Hide to " << pos;
                     // cerr << unitId << " Hide to " << pos << " ";
