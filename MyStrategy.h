@@ -19,6 +19,14 @@ public:
     MyStrategy() { totalElapsed = prevGathered = 0; }
     ~MyStrategy() {}
 
+    bool weWin(const World& world) const {
+        if (world.oppEntities.size() > 4) return false;
+        for (const auto& e : world.oppEntities)
+            if (e.entityType != EntityType::HOUSE && e.entityType != EntityType::BUILDER_UNIT)
+                return false;
+        return true;
+    }
+
     Action getAction(const PlayerView& playerView, DebugInterface* debugInterface) {
         unsigned startTime = elapsed();
         cerr << "T" << playerView.currentTick << ":";
@@ -60,9 +68,20 @@ public:
         // return Action();
 
         vector<MyAction> actions;
-        addTrainActions(world, actions, gameStatus, resourcesLeft);
-        addWorkersActions(world, actions, gameStatus, resourcesLeft);
-        addWarActions(world, actions, gameStatus);
+        if (weWin(world)) {
+            if (world.myWarriors.size() + world.myWorkers.size() < horse.size()) {
+                addTrainActions(world, actions, gameStatus, resourcesLeft);
+                addWorkersActions(world, actions, gameStatus, resourcesLeft);
+                for (const auto& w : world.myWarriors)
+                    actions.emplace_back(w.id, A_MOVE, Cell(63, 63), -1, Score(777));
+            } else {
+                addHorseActions(world, actions, gameStatus);
+            }
+        } else {
+            addTrainActions(world, actions, gameStatus, resourcesLeft);
+            addWorkersActions(world, actions, gameStatus, resourcesLeft);
+            addWarActions(world, actions, gameStatus);
+        }
 
         sort(actions.begin(), actions.end());
 
