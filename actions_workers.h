@@ -116,25 +116,36 @@ int cellsNear(const World& world, const Cell& c, int sz) {
     return res;
 }
 
+vector<int> wd;
+
 int addBuildRanged(const World& world, vector<MyAction>& actions, const GameStatus& st, bool checkBorder) {
     if (st.needRanged != 1) return -1;
 
     int bestScore = -inf, bestId = -1;
     Cell bestPos;
     const int sz = props.at(EntityType::RANGED_BASE).size;
-    unordered_map<Cell, bool> checkedPos;
+    unordered_set<Cell> checkedPos;
     uwit++;
     const int wasReachable = workerCellsReachableUWPrefilled(world);
 
+    Entity ranged;
+    ranged.size = sz;
     for (const auto& wrk : world.myWorkers) {
         if (usedWorkers.find(wrk.id) != usedWorkers.end()) continue;
         
         for (Cell newPos : nearCells(wrk.position - Cell(sz - 1, sz - 1), sz)) {
-            if (checkedPos.find(newPos) == checkedPos.end()) {
-                checkedPos[newPos] = canBuild(world, newPos, sz, wasReachable);
-            }
-            if (checkedPos[newPos] && safeToBuild(world, newPos, sz, 15)) {
+            if (!checkedPos.insert(newPos).second) continue;
+            if (canBuild(world, newPos, sz, wasReachable) && safeToBuild(world, newPos, sz, 15)) {
                 int score = newPos.x + newPos.y - cellsNear(world, newPos, sz) * 4;
+                ranged.position = newPos;
+                wd.clear();
+                for (const auto& wrk : world.myWorkers) {
+                    wd.push_back(dist(wrk.position, ranged));
+                }
+                sort(wd.begin(), wd.end());
+                int lim = min(5, int(wd.size()));
+                forn(i, lim) score -= 4 * wd[i];
+
                 if (score > bestScore) {
                     bestScore = score;
                     bestPos = newPos;
@@ -212,10 +223,12 @@ int addBuildHouse(const World& world, vector<MyAction>& actions, const GameStatu
         if (housesInProgress > 0) return -1;
     }
     const int sz = props.at(EntityType::HOUSE).size;
-    unordered_map<Cell, bool> checkedPos;
+    unordered_set<Cell> checkedPos;
     uwit++;
     const int wasReachable = workerCellsReachableUWPrefilled(world);
 
+    Entity house;
+    house.size = sz;
     const int MAX_FL = world.finals ? 200 : 145;
     for (const auto& wrk : world.myWorkers) {
         if (st.foodLimit >= st.foodUsed + 10 || st.foodLimit >= MAX_FL || st.needRanged == 1)
@@ -223,13 +236,19 @@ int addBuildHouse(const World& world, vector<MyAction>& actions, const GameStatu
         if (usedWorkers.find(wrk.id) != usedWorkers.end()) continue;
 
         for (Cell newPos : nearCells(wrk.position - Cell(sz - 1, sz - 1), sz)) {
-            if (checkedPos.find(newPos) == checkedPos.end()) {
-                checkedPos[newPos] = canBuild(world, newPos, sz, wasReachable);
-            }
-            if (checkedPos[newPos] && safeToBuild(world, newPos, sz, 10)) {
-                // if (newPos.x + newPos.y == 3 && !world.hasNonMovable({0, 0})) continue;
-                int score = (newPos.x == 0) * 1000 + (newPos.y == 0) * 1000 - newPos.x - newPos.y;
-                if (newPos.x > 0 && newPos.y > 0) score -= cellsNear(world, newPos, sz) * 5;
+            if (!checkedPos.insert(newPos).second) continue;
+            if (canBuild(world, newPos, sz, wasReachable) && safeToBuild(world, newPos, sz, 15)) {
+                int score = (newPos.x == 0) * 10 + (newPos.y == 0) * 10 - newPos.x - newPos.y;
+                if (newPos.x > 0 && newPos.y > 0) score -= cellsNear(world, newPos, sz) * 4;
+                house.position = newPos;
+                wd.clear();
+                for (const auto& wrk : world.myWorkers) {
+                    wd.push_back(dist(wrk.position, house));
+                }
+                sort(wd.begin(), wd.end());
+                int lim = min(5, int(wd.size()));
+                forn(i, lim) score -= 4 * wd[i];
+
                 if (score > bestScore) {
                     bestScore = score;
                     bestPos = newPos;
