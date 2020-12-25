@@ -259,7 +259,6 @@ void addRepairActions(const World& world, vector<MyAction>& actions, const GameS
     unordered_map<int, int> repairers;
 
     for (const auto& [pr, id] : wrkList) {
-        if (pr > 1e5) break;
         if (usedWorkers.find(id) != usedWorkers.end()) continue;
         const auto& wrk = world.entityMap.at(id);
 
@@ -268,7 +267,7 @@ void addRepairActions(const World& world, vector<MyAction>& actions, const GameS
             const Cell nc = wrk.position ^ w;
             if (nc.inside() && world.eMap[nc.x][nc.y] > 0) {
                 const Entity& cand = world.entityMap.at(world.eMap[nc.x][nc.y]);
-                if (cand.health == 5) {
+                if (cand.playerId == world.myId && cand.health == 5) {
                     actions.emplace_back(id, A_REPAIR, NOWHERE, cand.id, Score(240, 0));
                     updateAStar(world, {wrk.position});
                     usedWorkers.insert(id);
@@ -278,7 +277,7 @@ void addRepairActions(const World& world, vector<MyAction>& actions, const GameS
             }            
         }
 
-        if (repairing) continue;
+        if (repairing || pr > 1e5) continue;
 
         pair<vector<Cell>, int> pathToRep = getPathToMany(world, wrk.position, dRep);
         const Entity& repTarget = world.entityMap.at(world.getIdAt(pathToRep.first.back()));
