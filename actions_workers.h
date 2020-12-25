@@ -49,6 +49,17 @@ bool workersAreOk(const World& world, const Cell& c, int sz, int wasReachable) {
     return curReachable >= wasReachable - sz * sz - 2;
 }
 
+bool canBuildSimple(const World& world, const Cell& c, int sz) {
+    if (!c.inside()) return false;
+    Cell cc = c + Cell(sz - 1, sz - 1);
+    if (!cc.inside()) return false;
+    forn(dx, sz) forn(dy, sz) {
+        if (!world.isEmpty(c + Cell(dx, dy)))
+            return false;
+    }
+    return true;
+}
+
 bool canBuild(const World& world, const Cell& c, int sz, int wasReachable) {
     if (!c.inside()) return false;
     Cell cc = c + Cell(sz - 1, sz - 1);
@@ -131,6 +142,7 @@ int addBuildRanged(const World& world, vector<MyAction>& actions, const GameStat
     Entity ranged;
     ranged.size = sz;
     for (const auto& wrk : world.myWorkers) {
+        if (wrk.position.x + wrk.position.y > 80) continue;
         if (usedWorkers.find(wrk.id) != usedWorkers.end()) continue;
         
         for (Cell newPos : nearCells(wrk.position - Cell(sz - 1, sz - 1), sz)) {
@@ -167,7 +179,7 @@ int addBuildTurret(const World& world, vector<MyAction>& actions, const GameStat
 
     int bestScore = -inf, bestId = -1;
     Cell bestPos;
-    const int sz = props.at(EntityType::RANGED_BASE).size;
+    const int sz = props.at(EntityType::TURRET).size;
     unordered_map<Cell, bool> checkedPos;
     uwit++;
     const int wasReachable = workerCellsReachableUWPrefilled(world);
@@ -185,7 +197,6 @@ int addBuildTurret(const World& world, vector<MyAction>& actions, const GameStat
         }
         if (!nearRes) continue;
 
-        const int sz = props.at(EntityType::TURRET).size;
         for (Cell newPos : nearCells(wrk.position - Cell(sz - 1, sz - 1), sz)) {
             if (checkedPos.find(newPos) == checkedPos.end()) {
                 checkedPos[newPos] = canBuild(world, newPos, sz, wasReachable);
@@ -234,6 +245,7 @@ int addBuildHouse(const World& world, vector<MyAction>& actions, const GameStatu
         if (st.foodLimit >= st.foodUsed + 10 || st.foodLimit >= MAX_FL || st.needRanged == 1)
             break;
         if (usedWorkers.find(wrk.id) != usedWorkers.end()) continue;
+        if (wrk.position.x + wrk.position.y > 80) continue;
 
         for (Cell newPos : nearCells(wrk.position - Cell(sz - 1, sz - 1), sz)) {
             if (!checkedPos.insert(newPos).second) continue;
@@ -270,6 +282,7 @@ void addRepairActions(const World& world, vector<MyAction>& actions, const GameS
     bool anyToRepair = false;
     vector<pii> wrkList;
     for (const auto& wrk : world.myWorkers) {
+        if (usedWorkers.find(wrk.id) != usedWorkers.end()) continue;
         int pr = dRep[wrk.position.x][wrk.position.y];
         wrkList.emplace_back(pr, wrk.id);
     }
@@ -278,7 +291,6 @@ void addRepairActions(const World& world, vector<MyAction>& actions, const GameS
     unordered_map<int, int> repairers;
 
     for (const auto& [pr, id] : wrkList) {
-        if (usedWorkers.find(id) != usedWorkers.end()) continue;
         const auto& wrk = world.entityMap.at(id);
 
         bool repairing = false;
@@ -308,6 +320,8 @@ void addRepairActions(const World& world, vector<MyAction>& actions, const GameS
         int ticksWithoutMe = currentWorkers > 0 ? (healthToRepair + currentWorkers - 1) / currentWorkers : inf;
         // cerr << "id " << id << ", with me " << ticksWithMe << ", w/o me " << ticksWithoutMe << ", path " << pathToRep.second << ", cw " << currentWorkers << endl;
         if (pathToRep.second == 1 && currentWorkers < healthToRepair)
+            ticksWithoutMe = inf;
+        if (TURRETS_CHEESE && repTarget.entityType == EntityType::TURRET)
             ticksWithoutMe = inf;
 
         if (pathToRep.second < 19 && ticksWithMe < ticksWithoutMe) {
@@ -378,6 +392,8 @@ void addHideActions(const World& world, vector<MyAction>& actions, const GameSta
 
 void addBuildActions(const World& world, vector<MyAction>& actions, const GameStatus& st, int& resources) {
     const int rbc = props.at(EntityType::RANGED_BASE).cost;
+    if (st.ts.state == TS_PLANNED) resources -= props.at(EntityType::TURRET).cost;
+
     if (resources >= rbc) {
         int wrkId = addBuildRanged(world, actions, st, resources < rbc * 1.64);
         if (wrkId != -1)
@@ -459,8 +475,46 @@ void addTurretsActions(const World& world, vector<MyAction>& actions, const Game
     }
 }
 
+void addTurretCheeseActions(const World& world, vector<MyAction>& actions, const GameStatus& st) {
+    int bestId = -1, bestScore = -inf;
+    Cell bestPos;
+    const int sz = props.at(EntityType::TURRET).size;
+    for (int wi : st.ts.repairers) {
+        const auto& wrk = world.entityMap.at(wi);
+        usedWorkers.insert(wrk.id);
+        for (const auto& oe : world.oppEntities) {
+            if (dist(wrk.position, oe) <= 3) {
+                for (Cell newPos : nearCells(wrk.position - Cell(sz - 1, sz - 1), sz)) {
+                    if (canBuildSimple(world, newPos, sz)) {
+                        int score = newPos.x + newPos.y;
+                        if (score > bestScore) {
+                            bestId = wrk.id;
+                            bestScore = score;
+                            bestPos = newPos;
+                        }
+                    }
+                }
+                break;
+            }
+        }
+    }
+
+    if (bestId != -1) {
+        actions.emplace_back(bestId, A_BUILD, bestPos, EntityType::TURRET, Score(1001, 0));
+        for (int wi : st.ts.repairers)
+            if (wi != bestId)
+                actions.emplace_back(wi, A_MOVE, bestPos, bestId, Score(777, 19));
+    } else {
+        for (int wi : st.ts.repairers)
+            actions.emplace_back(wi, A_MOVE, Cell(79, 79), -1, Score(777, 19));
+    }
+}
+
 void addWorkersActions(const World& world, vector<MyAction>& actions, const GameStatus& st, int& resources) {
     usedWorkers.clear();
+    if (st.ts.state == TS_PLANNED) {
+        addTurretCheeseActions(world, actions, st);
+    }
     addRepairActions(world, actions, st);
     addHideActions(world, actions, st);
     addBuildActions(world, actions, st, resources);

@@ -72,7 +72,7 @@ public:
         // return Action();
 
         vector<MyAction> actions;
-        if (world.finals && weWin(world, playerView)) {
+        if (world.finals && weWin(world, playerView) && (gameStatus.ts.state == TS_FAILED || !TURRETS_CHEESE)) {
             if (world.myWarriors.size() + world.myWorkers.size() < horseRaw.size()) {
                 addTrainActions(world, actions, gameStatus, resourcesLeft);
                 addWorkersActions(world, actions, gameStatus, resourcesLeft);
@@ -188,6 +188,7 @@ public:
 
         sort(fmoves.begin(), fmoves.end());
 
+        gameStatus.ts.failedToFindPath = false;
         for (const auto& [fi, se] : fmoves) {
             const int unitId = fi.second;
             const auto [from, to] = se;
@@ -207,6 +208,13 @@ public:
                 pathDebug[unitId].length = -1;
                 #endif
                 Cell target = path.size() >= 2 ? path[1] : to;
+
+                if (world.hasNonMovable(target)) { 
+                    for (int wi : gameStatus.ts.repairers)
+                        if (unitId == wi) {
+                            gameStatus.ts.failedToFindPath = true;
+                        }
+                }
 
                 moves[unitId].moveAction = std::make_shared<MoveAction>(target, true, false);
                 info.msg[unitId] << ", A* next: " << target;

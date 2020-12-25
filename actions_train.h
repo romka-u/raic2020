@@ -76,6 +76,11 @@ void addTrainActions(const World& world, vector<MyAction>& actions, const GameSt
     if (st.foodUsed >= st.foodLimit - gap) return;
     resBfs(world);
 
+    if (st.ts.state == TS_PLANNED) {
+        if (world.oppEntities.size() > 1)
+            resources -= props.at(EntityType::TURRET).cost;
+    }
+
     int cld = inf;
     Cell closestEnemy(70, 70);
     for (const auto& oe : world.oppEntities) {

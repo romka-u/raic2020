@@ -14,6 +14,7 @@ bool hasEnemyInRange(const Entity& e, const vector<Entity>& allEntities) {
 void addWarActions(const World& world, vector<MyAction>& actions, const GameStatus& st) {
     // workers
     for (const auto& wrk : world.myWorkers) {
+        if (st.ts.state == TS_BUILDING) break;
         for (const auto& ou : world.oppEntities) {
             if (dist(wrk.position, ou) == 1) {
                 actions.emplace_back(wrk.id, A_ATTACK, ou.position, ou.id, Score(150, -ou.health * 1e6 + ou.id));

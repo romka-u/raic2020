@@ -4,21 +4,20 @@
 #include "world.h"
 #include "astar.h"
 
-const int KTS = 2;
 
 const int TS_NOT_BUILD = 0;
 const int TS_PLANNED = 1;
-const int TS_BUILT = 2;
+const int TS_BUILDING = 2;
 const int TS_FAILED = 3;
 
 struct TurretStatus {
     int state;
-    Cell target;
-    int turretId;
+    bool failedToFindPath;
     vector<int> repairers;
 
     TurretStatus() {
         state = TS_NOT_BUILD;
+        failedToFindPath = false;
     }
 };
 
@@ -29,7 +28,7 @@ struct GameStatus {
     bool underAttack;
     vector<int> resToGather;
     int foodUsed, foodLimit;
-    TurretStatus ts[KTS];
+    TurretStatus ts;
     int initialTurretId;
     bool workersLeftToFixTurrets;
     vector<Entity> buildingAttackers;
@@ -147,124 +146,90 @@ struct GameStatus {
     }
 
     void updateTurretsState(const World& world) {
-        if (foodLimit >= 30 && TURRETS_CHEESE) {
-            if (ts[0].state == TS_NOT_BUILD) {
-                ts[0].target = Cell{10, 79 - 10};
-                unordered_set<int> usedW;
-
-                vector<Cell> path = getPathTo(world, HOME, {7, 75});
-                bool ok = true;
-                cerr << "path.size(): " << path.size() << endl;
-                for (const Cell& c : path) {
-                    if (30 <= c.x && c.x < 50 && 30 <= c.y && c.y < 50) {
-                        ok = false;
-                        break;
-                    }
-                    cerr << " " << c;
+        if (ts.failedToFindPath) {
+            bool haveAnyTurret = false;
+            for (const auto& b : world.myBuildings)
+                if (b.entityType == EntityType::TURRET) {
+                    haveAnyTurret = true;
+                    break;
                 }
-                cerr << endl;
-                if (path.size() < 10 || !ok) {
-                    ts[0].state = TS_FAILED;
-                    ts[1].state = TS_FAILED;
-                } else {
-                    ts[0].target = Cell{10, 79 - 10};
-                    forn(j, 2) {
-                        int bw = -1;
-                        int cld = inf;
-                        for (const Entity& w : world.myWorkers) {
-                            if (usedW.find(w.id) == usedW.end()) {
-                                const int cd = dist(ts[0].target, w.position);
-                                if (cd < cld) {
-                                    cld = cd;
-                                    bw = w.id;
-                                }
-                            }
-                        }
-                        ts[0].repairers.push_back(bw);
-                        usedW.insert(bw);
-                    }
-                    ts[0].state = TS_PLANNED;
-                    ts[1].target = Cell{79 - 10, 10};
-                    forn(j, 2) {
-                        int bw = -1;
-                        int cld = inf;
-                        for (const Entity& w : world.myWorkers) {
-                            if (usedW.find(w.id) == usedW.end()) {
-                                const int cd = dist(ts[1].target, w.position);
-                                if (cd < cld) {
-                                    cld = cd;
-                                    bw = w.id;
-                                }
-                            }
-                        }
-                        ts[1].repairers.push_back(bw);
-                        usedW.insert(bw);
-                    }
-                    ts[1].state = TS_PLANNED;
-                    cerr << "assigned cheese:";
-                    for (int w : ts[0].repairers) cerr << " " << w;
-                    cerr << " and";
-                    for (int w : ts[1].repairers) cerr << " " << w;
-                    cerr << endl;
-
-                    for (const auto& t : world.myBuildings)
-                        if (t.entityType == EntityType::TURRET)
-                            initialTurretId = t.id;
-                }
+            if (!haveAnyTurret) {
+                ts.state = TS_FAILED;
+                ts.repairers.clear();
+                return;
             }
         }
 
-        forn(i, KTS) {
-            if (!TURRETS_CHEESE) break;
-            if (ts[i].state == TS_PLANNED) {
-                for (int wi : ts[i].repairers) {
-                    if (world.entityMap.count(wi)) {
-                        const auto& w = world.entityMap.at(wi);
+        if (needRanged > 0) {
+            ts.state = TS_FAILED;
+            ts.repairers.clear();
+            return;
+        }
 
-                        bool hasTurretNear = false;
-                        for (const auto& t : world.myBuildings)
-                            if (t.entityType == EntityType::TURRET && dist(w.position, t.position) <= 4 && t.id != initialTurretId) {
-                                ts[i].state = TS_BUILT;
-                                ts[i].turretId = t.id;
-                                cerr << "turret " << i << " is built\n";
+        if (foodLimit >= 10 && TURRETS_CHEESE && world.finals) {
+            if (ts.state == TS_NOT_BUILD) {
+                int dBase[82][82];
+                memset(dBase, 0, sizeof(dBase));
+                uit++;
+                vector<Cell> q;
+                q.emplace_back(79, 79);
+                goBfs(world, q, dBase);
+                unordered_set<int> usedW;
+                forn(it, 4) {
+                    int cld = inf, ci = -1;
+                    for (const auto& w : world.myWorkers)
+                        if (usedW.find(w.id) == usedW.end()) {
+                            int cd = dBase[w.position.x][w.position.y];
+                            if (cd == 0) {
+                                ts.state = TS_FAILED;
                                 break;
                             }
-                    } else {
-                        ts[i].state = TS_FAILED;
-                    }
-                }
-            } else {
-                int nn = 0;
-                for (int j = 0; j < ts[i].repairers.size(); j++)
-                    if (world.entityMap.count(ts[i].repairers[j]))
-                        ts[i].repairers[nn++] = ts[i].repairers[j];
-                ts[i].repairers.resize(nn);
-            }
-
-            if (ts[i].state == TS_BUILT) {
-                if (world.entityMap.count(ts[i].turretId)) {
-                    while (ts[i].repairers.size() < 2) {
-                        const int w1 = ts[i].repairers.empty() ? -1 : ts[i].repairers.back();
-                        const Cell& pos1 = world.entityMap.at(w1).position;
-                        int cld = inf;
-                        int cw = -1;
-                        for (int wi : world.workers[world.myId])
-                            if (wi != w1) {
-                                const int cd = dist(world.entityMap.at(wi).position, pos1);
-                                if (cd < cld) {
-                                    cld = cd;
-                                    cw = wi;
-                                }
+                            if (cd < cld) {
+                                cld = cd;
+                                ci = w.id;
                             }
-                        if (cw == -1) break;
-                        ts[i].repairers.push_back(cw);
-                        cerr << "add " << cw << " to list of turret " << i << " repairers\n";
-                    }
-                } else {
-                    ts[i].state = TS_FAILED;
+                        }
+                    if (ts.state == TS_FAILED) break;
+                    usedW.insert(ci);
+                    ts.repairers.push_back(ci);
+                }
+                if (ts.state != TS_FAILED) {
+                    ts.state = TS_PLANNED;
                 }
             }
         }
+
+        int nn = 0;
+        forn(i, ts.repairers.size()) {
+            if (world.entityMap.count(ts.repairers[i])) {
+                ts.repairers[nn++] = ts.repairers[i];
+            }
+        }
+        ts.repairers.resize(nn);
+
+        if (ts.state == TS_PLANNED) {
+            for (const auto& b : world.myBuildings)
+                if (b.entityType == EntityType::TURRET && !b.active) {
+                    ts.state = TS_BUILDING;
+                }
+        }
+
+        if (ts.state == TS_BUILDING) {
+            ts.state = TS_PLANNED;
+            for (const auto& b : world.myBuildings)
+                if (b.entityType == EntityType::TURRET && !b.active) {
+                    ts.state = TS_BUILDING;
+                }
+        }
+
+        for (const auto& oe : world.oppEntities)
+            if (oe.entityType == EntityType::RANGED_UNIT || oe.entityType == EntityType::MELEE_UNIT)
+                ts.state = TS_FAILED;
+
+        if (ts.state == TS_FAILED) {
+            ts.repairers.clear();
+        }
+        cerr << "ts.state = " << ts.state << endl;
     }
 
     bool calcBorderPoints(const World& world, vector<Cell> borderPoints[5]) {
@@ -534,7 +499,7 @@ struct GameStatus {
             if (world.finals) {
                 const int oppId = 3 - world.myId;
                 const int oppResources = playerView.players[oppId - 1].resource;
-                if (oppResources < prevOppResources - 300 || world.myWorkers.size() >= 42 || world.tick > 357) {
+                if (oppResources < prevOppResources - 300 || world.myWorkers.size() >= 55 || world.tick > 357) {
                     needRanged = 1;
                 }
                 prevOppResources = oppResources;
