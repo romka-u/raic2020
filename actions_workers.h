@@ -302,11 +302,15 @@ void addRepairActions(const World& world, vector<MyAction>& actions, const GameS
         const Entity& repTarget = world.entityMap.at(world.getIdAt(pathToRep.first.back()));
         int healthToRepair = repTarget.maxHealth - repTarget.health;
         int currentWorkers = repairers[repTarget.id];
-        int htrwme = healthToRepair - currentWorkers * pathToRep.second;
+        int htrwme = healthToRepair - currentWorkers * (pathToRep.second - 1);
         if (htrwme < 0) htrwme = 0;
-        int ticksWithMe = htrwme / (currentWorkers + 1);
+        int ticksWithMe = pathToRep.second - 1 + (htrwme + currentWorkers) / (currentWorkers + 1);
+        int ticksWithoutMe = currentWorkers > 0 ? (healthToRepair + currentWorkers - 1) / currentWorkers : inf;
+        // cerr << "id " << id << ", with me " << ticksWithMe << ", w/o me " << ticksWithoutMe << ", path " << pathToRep.second << ", cw " << currentWorkers << endl;
+        if (pathToRep.second == 1 && currentWorkers < healthToRepair)
+            ticksWithoutMe = inf;
 
-        if (pathToRep.second < 19 && ticksWithMe >= (pathToRep.second + 1) / 2) {
+        if (pathToRep.second < 19 && ticksWithMe < ticksWithoutMe) {
             int targetId = repTarget.id;
             repairers[repTarget.id]++;
             if (pathToRep.first.size() <= 2) {
@@ -330,7 +334,7 @@ void addHideActions(const World& world, vector<MyAction>& actions, const GameSta
         if (usedWorkers.find(wrk.id) != usedWorkers.end()) continue;
 
         Cell threat(-1, -1);
-        for (const auto& oe : world.oppEntities) {
+        for (const auto& oe : st.enemiesCloseToWorkers) {
             if (oe.entityType == EntityType::MELEE_UNIT || oe.entityType == EntityType::RANGED_UNIT)
                 if (dist(wrk.position, oe.position) <= oe.attackRange + 2) {
                     threat = oe.position;

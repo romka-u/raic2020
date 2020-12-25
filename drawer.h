@@ -158,6 +158,14 @@ void drawAttackTargets(const Targets& targets) {
     }
 }
 
+void drawCloseToWorkers(const vector<Entity>& entities) {
+    v.p.setPen(QPen(QColor(192, 64, 0), 16));
+    v.p.setBrush(transparentBrush);
+    for (const auto& e : entities) {
+        v.p.drawEllipse((e.position.x + 0.5) * SZ - SZ, (e.position.y + 0.5) * SZ - SZ, 2 * SZ, 2 * SZ);
+    }
+}
+
 void drawRepairTargets(const Targets& targets) {
     v.p.setPen(QPen(QColor(0, 192, 0), SZ/3));
     for (const auto& p : targets) {
@@ -165,7 +173,6 @@ void drawRepairTargets(const Targets& targets) {
                      (p.second.x + 0.5) * SZ, (p.second.y + 0.5) * SZ);
     }
 }
-
 
 void drawTargetsLines(const Targets& targets) {
     v.p.setPen(QPen(QColor(222, 222, 222, 222), 8));
@@ -352,6 +359,7 @@ void draw() {
     if (drawTargets) drawTargetsLines(info.targets);
     drawAttackTargets(info.attackTargets);
     drawRepairTargets(info.repairTargets);
+    drawCloseToWorkers(info.status.enemiesCloseToWorkers);
     if (drawInfMap) drawInfMapOverlay(info.entities, eMap);
     if (drawFrontMoves) drawFrontMovesLines(info.entities, info.frontMoves);
     if (drawBorderGroups) drawBorderGroupsInfo(info.entities, info.status);

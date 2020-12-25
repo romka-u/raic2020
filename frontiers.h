@@ -342,7 +342,7 @@ void doAttack(const vector<Entity>& my, const vector<Entity>& opp,
             forn(j, rpt[i].size()) {
                 rpt[i][j].first.x = oppHealth[rpt[i][j].second] * 100;
             }
-        
+
         forn(i, my.size())
             sort(rpt[i].begin(), rpt[i].end(),
                  [](const pair<Cell, int>& a, const pair<Cell, int>& b)
@@ -801,32 +801,77 @@ void assignFinalsTargets(const World& world, const GameStatus& st) {
     vector<TargetCand> cand;
     needBuildArmy = false;
     frontTarget.clear();
+    unordered_set<int> usedMy;
+    unordered_map<int, int> usedOpp;
 
-    vector<pair<Cell, int>> cside;
+    vector<Entity> cside;
     for (const auto& w : world.myWarriors) {
         int cld = inf;
         for (const auto& oe : world.oppEntities) {
+            if (usedOpp[oe.id] == 2) continue;
             if (w.position.y > 64 && oe.position.y < 64) continue;
             if (w.position.x > 64 && oe.position.x < 64) continue;
             const int cd = dist(w.position, oe);
             if (cd < cld) cld = cd;
             cand.emplace_back(cd, w.id, oe.id);
         }
-        if (cld > 10) cside.emplace_back(w.position, w.id);
+        if (cld > 8) cside.emplace_back(w);
     }
+    
+    for (const auto& oe : st.enemiesCloseToWorkers) {
+        forn(it, 2) {
+            int cld = inf, ci = -1;
+            for (const auto& w : cside) {
+                if (usedMy.count(w.id)) continue;
+                const int cd = dist(w.position, oe);
+                if (cd < cld) {
+                    cld = cd;
+                    ci = w.id;
+                }
+            }
+            if (ci != -1) {
+                // cerr << "assign " << ci << " for " << oe.id << "@" << oe.position << endl;
+                usedOpp[oe.id]++;
+                usedMy.insert(ci);
+                frontTarget[ci] = oe.position;
+            }
+        }
+    }
+
+    for (const auto& oi : st.closeToBaseIds) {
+        const auto& oe = world.entityMap.at(oi);
+        if (usedOpp[oe.id] == 2) continue;
+        forn(it, 2) {
+            int cld = inf, ci = -1;
+            for (const auto& w : cside) {
+                if (usedMy.count(w.id)) continue;
+                const int cd = dist(w.position, oe);
+                if (cd < cld) {
+                    cld = cd;
+                    ci = w.id;
+                }
+            }
+            if (ci != -1) {
+                // cerr << "assign " << ci << " for " << oe.id << "@" << oe.position << endl;
+                usedOpp[oe.id]++;
+                usedMy.insert(ci);
+                frontTarget[ci] = oe.position;
+            }
+        }
+    }
+
     sort(cand.begin(), cand.end());
     sort(cside.begin(), cside.end(),
-         [](const pair<Cell, int>& a, const pair<Cell, int>& b)
-         { return a.first.x - a.first.y < b.first.x - b.first.y; });
+         [](const Entity& a, const Entity& b)
+         { return a.position.x - a.position.y < b.position.x - b.position.y; });
     unordered_set<int> uside;
+
     const int K = 3;
     forn(i, cside.size()) {
         if (i < K || i >= cside.size() - K)
-            uside.insert(cside[i].second);
+            if (usedMy.find(cside[i].id) == usedMy.end())
+                uside.insert(cside[i].id);
     }
-
-    unordered_set<int> usedMy;
-    unordered_map<int, int> usedOpp;
 
     for (const auto& c : cand) {
         int myId = c.myId;

@@ -132,7 +132,7 @@ vector<Cell> getPathTo(const World& world, const Cell& from, const Cell& to) {
 
             if (world.hasNonMovable(cc)) {
                 if (world.hasResourceAt(cc)) {
-                    stepCost = 5;
+                    stepCost = 4;
                 } else {
                     continue;
                 }

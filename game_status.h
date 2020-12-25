@@ -34,6 +34,7 @@ struct GameStatus {
     bool workersLeftToFixTurrets;
     vector<Entity> buildingAttackers;
     unordered_set<int> closeToBaseIds;
+    vector<Entity> enemiesCloseToWorkers;
     unordered_set<int> turretsInDanger;
     unordered_map<int, Cell> unitsToCell;
     unordered_map<int, vector<int>> utg[5];
@@ -65,11 +66,27 @@ struct GameStatus {
         underAttack = false;
         buildingAttackers.clear();
         closeToBaseIds.clear();
+        enemiesCloseToWorkers.clear();
         for (int p = 1; p <= 4; p++) {
             if (p == world.myId) continue;
+            for (int bi : world.buildings[p]) {
+                const auto& b = world.entityMap.at(bi);
+                if (b.entityType == EntityType::TURRET && b.active)
+                    for (const Entity& wrk : world.myWorkers)
+                        if (dist(wrk.position, b) <= b.attackRange) {
+                            enemiesCloseToWorkers.push_back(b);
+                            break;
+                        }
+            }
             for (int wi : world.warriors[p]) {
                 const auto& w = world.entityMap.at(wi);
                 bool pushedCB = false, pushedBA = false;
+                if (w.entityType == EntityType::RANGED_UNIT || w.entityType == MELEE_UNIT)
+                    for (const Entity& wrk : world.myWorkers)
+                        if (dist(wrk.position, w.position) <= w.attackRange + 2) {
+                            enemiesCloseToWorkers.push_back(w);
+                            break;
+                        }
                 for (const Entity& b : world.myBuildings) {
                     if (dist(w.position, b) <= w.attackRange && !pushedBA) {
                         underAttack = true;
@@ -91,6 +108,9 @@ struct GameStatus {
                 }
             }
         }
+        sort(enemiesCloseToWorkers.begin(), enemiesCloseToWorkers.end(),
+             [](const Entity& a, const Entity& b)
+             { return a.position.x * a.position.x + a.position.y * a.position.y < b.position.x * b.position.x + b.position.y * b.position.y; });
     }
 
     void updateResToGather(const World& world) {

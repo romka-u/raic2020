@@ -51,7 +51,7 @@ void getBestRangedTrain(const World& world, const GameStatus& st, const Cell& cl
     buildingId = -1;
     int bestScore = -inf;
     for (const Entity& bu : world.myBuildings) {
-        if (bu.entityType == EntityType::RANGED_BASE) {
+        if (bu.entityType == EntityType::RANGED_BASE && bu.active) {
             for (Cell bornPlace : nearCells(bu.position, bu.size)) {
                 if (bornPlace.inside() && world.isEmpty(bornPlace)) {
                     int score = -dist(bornPlace, closestEnemy);
