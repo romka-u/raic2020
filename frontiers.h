@@ -784,19 +784,36 @@ void assignFinalsTargets(const World& world, const GameStatus& st) {
     vector<TargetCand> cand;
     needBuildArmy = false;
     frontTarget.clear();
-    for (const auto& w : world.myWarriors)
+
+    vector<pair<Cell, int>> cside;
+    for (const auto& w : world.myWarriors) {
+        int cld = inf;
         for (const auto& oe : world.oppEntities) {
             if (w.position.y > 64 && oe.position.y < 64) continue;
             if (w.position.x > 64 && oe.position.x < 64) continue;
-            cand.emplace_back(dist(w.position, oe), w.id, oe.id);
+            const int cd = dist(w.position, oe);
+            if (cd < cld) cld = cd;
+            cand.emplace_back(cd, w.id, oe.id);
         }
+        if (cld > 10) cside.emplace_back(w.position, w.id);
+    }
     sort(cand.begin(), cand.end());
+    sort(cside.begin(), cside.end(),
+         [](const pair<Cell, int>& a, const pair<Cell, int>& b)
+         { return a.first.x - a.first.y < b.first.x - b.first.y; });
+    unordered_set<int> uside;
+    const int K = 3;
+    forn(i, cside.size()) {
+        if (i < K || i >= cside.size() - K)
+            uside.insert(cside[i].second);
+    }
 
     unordered_set<int> usedMy;
     unordered_map<int, int> usedOpp;
 
     for (const auto& c : cand) {
         int myId = c.myId;
+        if (uside.count(myId)) continue;
         int oppId = c.oppId;
         if (usedMy.find(myId) == usedMy.end()) {
             int& uo = usedOpp[oppId];
