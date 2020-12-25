@@ -317,13 +317,7 @@ void doAttack(const vector<Entity>& my, const vector<Entity>& opp,
             // if (verbose) cerr << "kill score in f: " << score << "\n";
             if (score > best) {
                 best = score;
-                forn(i, my.size()) {
-                    myTarget[i] = tmpTarget[i];
-                    // if (verbose) {
-                        // cerr << "rpt " << i << " size = " << rpt[i].size() << endl;
-                        // cerr << "set target to " << myTarget[i] << endl;
-                    // }
-                }
+                forn(i, my.size()) myTarget[i] = tmpTarget[i];
                 forn(i, opp.size()) resHealth[i] = ohb[i];
             }
         };
@@ -565,10 +559,14 @@ void bfBattle(const World& world, const GameStatus& st, const vector<Entity>& to
     doAttack(my, opp, myMoves, oppMoves, myPos, oppPos, oppHealth, true);
     forn(i, my.size())
         if (myTarget[i] != -1) {
-            // cerr << i << " - myTarget " << myTarget[i];
-            // cerr << ": " << my[i].id << " to " << opp[myTarget[i]].id << endl;
             attackTarget[my[i].id] = opp[myTarget[i]].id;
         }
+    if (my.size() >= 32 || opp.size() >= 32) {
+        forn(i, my.size())
+            frontMoves[my[i].id] = 4;
+        return;
+    }
+
     doAttack(opp, my, oppMoves, myMoves, oppPos, myPos, myHealth, false);
     vector<Entity> nmy, nopp;
     forn(i, my.size())
@@ -662,7 +660,8 @@ void bfBattle(const World& world, const GameStatus& st, const vector<Entity>& to
     #endif
 
     Score b1, b2;
-    forn(it, 5) {
+    const int iters = max(2, 14 - int(oppMovesVariants.size() * opp.size()) / 10);
+    forn(it, iters) {
         b1 = optimizeMovesVec(world, my, opp, myMoves, oppMovesVariants, myCanMove, nearBaseBattle);
     }
 
@@ -673,7 +672,7 @@ void bfBattle(const World& world, const GameStatus& st, const vector<Entity>& to
     forn(i, my.size()) cerr << " " << my[i].id << my[i].position << "->" << myMovesBack[i];
     cerr << endl;
     #endif
-    forn(it, 5) {
+    forn(it, iters) {
         b2 = optimizeMovesVec(world, my, opp, myMovesBack, oppMovesVariants, myCanMove, nearBaseBattle);
     }
 
@@ -710,7 +709,7 @@ void bfBattle(const World& world, const GameStatus& st, const vector<Entity>& to
                 myMovesBack[e] = 4;
             }
         }
-        forn(it, 4) {
+        forn(it, iters) {
             b2 = optimizeMovesVec(world, my, opp, myMovesBack, oppMovesVariants, myCanMove, nearBaseBattle);
         }
         #ifdef BF
@@ -819,7 +818,7 @@ void assignFinalsTargets(const World& world, const GameStatus& st) {
         }
         if (cld > 8) cside.emplace_back(w);
     }
-    
+
     for (const auto& oe : st.enemiesCloseToWorkers) {
         forn(it, 2) {
             int cld = inf, ci = -1;
