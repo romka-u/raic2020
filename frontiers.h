@@ -305,60 +305,56 @@ void doAttack(const vector<Entity>& my, const vector<Entity>& opp,
         }
     }
 
-    if (withRec) {
+    int best = -inf, score;
+    // if (verbose) cerr << "begin check\n";
+    auto f = [&]() {
+        forn(q, opp.size()) ohb[q] = oppHealth[q];
+        doDamageRpt(my, opp, tmpTarget, ohb);
+        score = getKillScore(opp, ohb);
+        // if (verbose) cerr << "kill score in f: " << score << "\n";
+        if (score > best) {
+            best = score;
+            forn(i, my.size()) myTarget[i] = tmpTarget[i];
+            forn(i, opp.size()) resHealth[i] = ohb[i];
+        }
+    };
 
-    } else {
-        int best = -inf, score;
-        // if (verbose) cerr << "begin check\n";
-        auto f = [&]() {
-            forn(q, opp.size()) ohb[q] = oppHealth[q];
-            doDamageRpt(my, opp, tmpTarget, ohb);
-            score = getKillScore(opp, ohb);
-            // if (verbose) cerr << "kill score in f: " << score << "\n";
-            if (score > best) {
-                best = score;
-                forn(i, my.size()) myTarget[i] = tmpTarget[i];
-                forn(i, opp.size()) resHealth[i] = ohb[i];
-            }
-        };
+    forn(i, my.size())
+        sort(rpt[i].begin(), rpt[i].end(),
+             [](const pair<Cell, int>& a, const pair<Cell, int>& b)
+             { return a.first < b.first; });
+    f();
 
-        forn(i, my.size())
-            sort(rpt[i].begin(), rpt[i].end(),
-                 [](const pair<Cell, int>& a, const pair<Cell, int>& b)
-                 { return a.first < b.first; });
-        f();
+    forn(i, my.size())
+        reverse(rpt[i].begin(), rpt[i].end());
+    f();
 
-        forn(i, my.size())
-            reverse(rpt[i].begin(), rpt[i].end());
-        f();
+    forn(i, my.size())
+        forn(j, rpt[i].size()) {
+            rpt[i][j].first.x = oppHealth[rpt[i][j].second] * 100;
+        }
 
-        forn(i, my.size())
-            forn(j, rpt[i].size()) {
-                rpt[i][j].first.x = oppHealth[rpt[i][j].second] * 100;
-            }
+    forn(i, my.size())
+        sort(rpt[i].begin(), rpt[i].end(),
+             [](const pair<Cell, int>& a, const pair<Cell, int>& b)
+             { return a.first < b.first; });
+    f();
+    forn(i, my.size())
+        reverse(rpt[i].begin(), rpt[i].end());
+    f();
 
-        forn(i, my.size())
-            sort(rpt[i].begin(), rpt[i].end(),
-                 [](const pair<Cell, int>& a, const pair<Cell, int>& b)
-                 { return a.first < b.first; });
-        f();
-        forn(i, my.size())
-            reverse(rpt[i].begin(), rpt[i].end());
-        f();
+    forn(i, my.size())
+        forn(j, rpt[i].size()) {
+            rpt[i][j].first.x = possibleTargets[opp[rpt[i][j].second].id].size();
+        }
 
-        forn(i, my.size())
-            forn(j, rpt[i].size()) {
-                rpt[i][j].first.x = possibleTargets[opp[rpt[i][j].second].id].size();
-            }
+    forn(i, my.size())
+        sort(rpt[i].begin(), rpt[i].end(),
+                [](const pair<Cell, int>& a, const pair<Cell, int>& b)
+                { return b.first < a.first; });
+    f();
 
-        forn(i, my.size())
-            sort(rpt[i].begin(), rpt[i].end(),
-                 [](const pair<Cell, int>& a, const pair<Cell, int>& b)
-                 { return b.first < a.first; });
-        f();
-
-        forn(i, opp.size()) oppHealth[i] = resHealth[i];
-    }
+    forn(i, opp.size()) oppHealth[i] = resHealth[i];
 }
 
 int getPosScore(const vector<Entity>& my, Cell myPos[1010]) {
@@ -563,7 +559,7 @@ void bfBattle(const World& world, const GameStatus& st, const vector<Entity>& to
         }
     if (my.size() >= 24 || opp.size() >= 24) {
         forn(i, my.size())
-            frontMoves[my[i].id] = 4;
+            frontMoves[my[i].id] = 2;
         return;
     }
 

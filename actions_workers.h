@@ -26,7 +26,7 @@ int workerCellsReachableUWPrefilled(const World& world) {
     }
     maxx += 4;
     maxy += 4;
-    
+
     while (qb < q.size()) {
         const Cell cur = q[qb++];
         forn(w, 4) {
@@ -144,7 +144,7 @@ int addBuildRanged(const World& world, vector<MyAction>& actions, const GameStat
     for (const auto& wrk : world.myWorkers) {
         if (wrk.position.x + wrk.position.y > 80) continue;
         if (usedWorkers.find(wrk.id) != usedWorkers.end()) continue;
-        
+
         for (Cell newPos : nearCells(wrk.position - Cell(sz - 1, sz - 1), sz)) {
             if (!checkedPos.insert(newPos).second) continue;
             if (canBuild(world, newPos, sz, wasReachable) && safeToBuild(world, newPos, sz, 15)) {
@@ -305,7 +305,7 @@ void addRepairActions(const World& world, vector<MyAction>& actions, const GameS
                     repairing = true;
                     break;
                 }
-            }            
+            }
         }
 
         if (repairing || pr > 1e5) continue;
@@ -427,10 +427,6 @@ void addGatherActions(const World& world, vector<MyAction>& actions, const GameS
         pair<vector<Cell>, int> pathToGo = getPathToMany(world, wrk.position, dRes);
         int targetId = world.getIdAt(pathToGo.first.back());
 
-        if (pathToGo.second > 88) {
-            continue;
-        }
-
         if (pathToGo.first.size() <= 2) {
             actions.emplace_back(id, A_GATHER, NOWHERE, targetId, Score(120, 0));
         } else {
@@ -510,12 +506,93 @@ void addTurretCheeseActions(const World& world, vector<MyAction>& actions, const
     }
 }
 
+void addFreeSpaceActions(const World& world, vector<MyAction>& actions, const GameStatus& st) {
+    int dBase[82][82], dWrk[82][82];
+    memset(dBase, 0, sizeof(dBase));
+    memset(dWrk, 0, sizeof(dWrk));
+    uit++;
+    vector<Cell> q;
+    q.emplace_back(77, 77);
+    goBfs(world, q, dBase);
+
+    uit++;
+    for (const auto& wrk : world.myWorkers)
+        um[wrk.position.x][wrk.position.y] = uit;
+
+    q.clear();
+    q.emplace_back(77, 77);
+    goBfs(world, q, dWrk);
+
+    bool isAllZeros = false;
+    for (const auto& wrk : world.myWorkers) {
+        if (usedWorkers.count(wrk.id)) continue;
+        bool ok = false, any = false, hasRes = false;
+        forn(w, 4) {
+            const Cell nc = wrk.position ^ w;
+            if (nc.inside()) {
+                if (!world.hasNonMovable(nc)) {
+                    any = true;
+                    if (um[nc.x][nc.y] == uit) {
+                        ok = true;
+                        break;
+                    }
+                } else {
+                    const Entity& e = world.entityMap.at(-world.eMap[nc.x][nc.y]);
+                    if (e.playerId == -1) {
+                        hasRes = true;
+                    }
+                }
+            }
+        }
+        if (any && !ok && !hasRes) {
+            isAllZeros = true;
+            break;
+        }
+    }
+
+    vector<pii> cand;
+    for (const auto& wrk : world.myWorkers) {
+        if (!isAllZeros) break;
+        if (usedWorkers.count(wrk.id)) continue;
+        bool hasZero = false, hasNonZero = false, hasRes = false;
+        forn(w, 4) {
+            const Cell nc = wrk.position ^ w;
+            if (nc.inside()) {
+                if (!world.hasNonMovable(nc)) {
+                    if (dBase[nc.x][nc.y] > 0) {
+                        if (um[nc.x][nc.y] != uit) { hasZero = true; /*cerr << wrk.id << " zero: " << nc << endl;*/ }
+                        if (dWrk[nc.x][nc.y] != 0) { hasNonZero = true; /*cerr << wrk.id << " non zero: " << nc << endl;*/ }
+                    }
+                } else {
+                    const Entity& e = world.entityMap.at(-world.eMap[nc.x][nc.y]);
+                    if (e.playerId == -1) {
+                        hasRes = true;
+                    }
+                }
+            }
+        }
+
+        if (hasZero && hasNonZero && hasRes) {
+            cand.emplace_back(dBase[wrk.position.x][wrk.position.y], wrk.id);
+        }
+    }
+
+    sort(cand.begin(), cand.end());
+
+    forn(i, 2) {
+        if (i >= cand.size()) break;
+        usedWorkers.insert(cand[i].second);
+        actions.emplace_back(cand[i].second, A_FREE_MOVE, Cell(77, 77), -1, Score(54321, 19));
+    }
+}
+
 void addWorkersActions(const World& world, vector<MyAction>& actions, const GameStatus& st, int& resources) {
     usedWorkers.clear();
     if (st.ts.state == TS_PLANNED) {
         addTurretCheeseActions(world, actions, st);
     }
     addRepairActions(world, actions, st);
+    // addFreeSpaceActions(world, actions, st);
     addHideActions(world, actions, st);
     addBuildActions(world, actions, st, resources);
     addGatherActions(world, actions, st);

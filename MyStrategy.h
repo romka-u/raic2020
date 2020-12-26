@@ -175,6 +175,11 @@ public:
                     info.msg[unitId] << "Move to " << pos << " to repair " << oid;
                     moved = true;
                     break;
+                case A_FREE_MOVE:
+                    setMove(unitId, upos, pos);
+                    moved = true;
+                    info.msg[unitId] << "Frees space, goes to " << pos;
+                    break;
                 default:
                     assert(false);
             }

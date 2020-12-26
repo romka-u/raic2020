@@ -14,6 +14,7 @@ const int A_TRAIN = 6;
 const int A_GATHER = 7;
 const int A_GATHER_MOVE = 8;
 const int A_HIDE_MOVE = 9;
+const int A_FREE_MOVE = 10;
 
 struct MyAction {
     int unitId;
