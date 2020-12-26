@@ -59,16 +59,17 @@ void addWarActions(const World& world, vector<MyAction>& actions, const GameStat
             if (target == w.position && w.entityType == EntityType::RANGED_UNIT) {
                 int cld = inf;
                 Entity cl;
-                for (const auto& r : world.resources) {
-                    const int cd = dist(w.position, r.position);
-                    if (cd < cld) {
-                        cld = cd;
-                        cl = r;
+                forn(e, 4) {
+                    const Cell nc = w.position ^ e;
+                    if (nc.inside() && world.eMap[nc.x][nc.y] < 0) {
+                        const int rid = -world.eMap[nc.x][nc.y];
+                        const Entity& r = world.entityMap.at(rid);
+                        if (r.entityType == EntityType::RESOURCE) {
+                            actions.emplace_back(w.id, A_ATTACK, nc, rid, Score(123, 0));
+                            attackingResource = true;
+                            break;
+                        }
                     }
-                }
-                if (cld <= 2) {
-                    actions.emplace_back(w.id, A_ATTACK, cl.position, cl.id, Score(123, 0));
-                    attackingResource = true;
                 }
             }
         }

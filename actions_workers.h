@@ -283,7 +283,8 @@ void addRepairActions(const World& world, vector<MyAction>& actions, const GameS
     vector<pii> wrkList;
     for (const auto& wrk : world.myWorkers) {
         if (usedWorkers.find(wrk.id) != usedWorkers.end()) continue;
-        int pr = dRep[wrk.position.x][wrk.position.y];
+        const int pr = dRep[wrk.position.x][wrk.position.y];
+        if (pr > 32) continue;
         wrkList.emplace_back(pr, wrk.id);
     }
 
@@ -309,6 +310,7 @@ void addRepairActions(const World& world, vector<MyAction>& actions, const GameS
         }
 
         if (repairing || pr > 1e5) continue;
+        // cerr << "id " << id << " pr " << pr << endl;
 
         pair<vector<Cell>, int> pathToRep = getPathToMany(world, wrk.position, dRep);
         const Entity& repTarget = world.entityMap.at(world.getIdAt(pathToRep.first.back()));
@@ -417,6 +419,7 @@ void addGatherActions(const World& world, vector<MyAction>& actions, const GameS
     for (const auto& wrk : world.myWorkers) {
         if (usedWorkers.find(wrk.id) != usedWorkers.end()) continue;
         int pr = dRes[wrk.position.x][wrk.position.y];
+        if (pr > 1e5) continue;
         wrkList.emplace_back(pr, wrk.id);
     }
 
@@ -591,10 +594,21 @@ void addWorkersActions(const World& world, vector<MyAction>& actions, const Game
     if (st.ts.state == TS_PLANNED) {
         addTurretCheeseActions(world, actions, st);
     }
+    // cerr << "workers: " << world.myWorkers.size() << ", oppEntities: " << world.oppEntities.size() << ", resources: " << world.resources.size() << endl;
+    // unsigned tt = elapsed();
     addRepairActions(world, actions, st);
+    // cerr << "=W= repair actions: " << (elapsed() - tt) << "ms.\n";
     // addFreeSpaceActions(world, actions, st);
+    // tt = elapsed();
     addHideActions(world, actions, st);
+    // cerr << "=W= hide actions: " << (elapsed() - tt) << "ms.\n";
+    // tt = elapsed();
     addBuildActions(world, actions, st, resources);
+    // cerr << "=W= build actions: " << (elapsed() - tt) << "ms.\n";
+    // tt = elapsed();
     addGatherActions(world, actions, st);
+    // cerr << "=W= gather actions: " << (elapsed() - tt) << "ms.\n";
+    // tt = elapsed();
     addTurretsActions(world, actions, st);
+    // cerr << "=W= turrets actions: " << (elapsed() - tt) << "ms.\n";
 }

@@ -218,6 +218,7 @@ struct World {
                 }
             }
             for (const auto& [id, e] : entityMap) {
+                if (e.playerId == myId) continue;
                 if (!props.at(e.entityType).canMove) {
                     bool seeing = false;
                     for (const auto& me : my)

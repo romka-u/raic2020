@@ -35,7 +35,7 @@ public:
         unsigned startTime = elapsed();
         cerr << "T" << playerView.currentTick << ":";
         #ifndef DEBUG
-        if (totalElapsed > 37373) return Action();
+        if (totalElapsed > 373737) return Action();
         #endif
         maxDrawTick = playerView.currentTick;
         if (props.empty()) props = playerView.entityProperties;
@@ -45,14 +45,20 @@ public:
         int myId = playerView.myId;
         std::unordered_map<int, EntityAction> moves;
         clearAStar();
+        unsigned tt = elapsed();
         gameStatus.update(world, playerView);
+        // cerr << "gameStatus.update: " << (elapsed() - tt) << "ms.\n";
         updateD(world, gameStatus.resToGather);
         if (world.finals) {
+            tt = elapsed();
             assignFinalsTargets(world, gameStatus);   
+            cerr << "finals targets: " << (elapsed() - tt) << "ms.\n";
         } else {
             assignTargets(world, gameStatus);
         }
+        tt = elapsed();
         assignFrontMoves(world, gameStatus);
+        cerr << "front moves: " << (elapsed() - tt) << "ms.\n";
 
         TickDrawInfo& info = tickInfo[playerView.currentTick];
         #ifdef DEBUG
@@ -82,9 +88,15 @@ public:
                 addHorseActions(world, actions, gameStatus);
             }
         } else {
+            tt = elapsed();
             addTrainActions(world, actions, gameStatus, resourcesLeft);
+            cerr << "train actions: " << (elapsed() - tt) << "ms.\n";
+            tt = elapsed();
             addWorkersActions(world, actions, gameStatus, resourcesLeft);
+            cerr << "workers actions: " << (elapsed() - tt) << "ms.\n";
+            tt = elapsed();
             addWarActions(world, actions, gameStatus);
+            cerr << "war actions: " << (elapsed() - tt) << "ms.\n";
         }
 
         sort(actions.begin(), actions.end());
@@ -108,7 +120,8 @@ public:
         for (const auto& e : playerView.entities) {
             healthLeft[e.id] = e.health;
         }
-
+    
+        tt = elapsed();
         for (const MyAction& action : actions) {
             auto [unitId, actionType, pos, oid, score] = action;
             const auto& upos = world.entityMap[unitId].position;
@@ -232,13 +245,15 @@ public:
             }
             updateAStar(world, path);            
         }
+        cerr << "perform actions & paths: " << (elapsed() - tt) << "ms.\n";
 
         #ifdef DEBUG
         info.pathDebug = pathDebug;
         #endif
 
-        totalElapsed += elapsed() - startTime;
-        cerr << " " << totalElapsed << endl;
+        int timePerTick = elapsed() - startTime;
+        totalElapsed += timePerTick;
+        cerr << "> total: " << totalElapsed << " (" << timePerTick << " ms)\n";
 
         return Action(moves);
     }
