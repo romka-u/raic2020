@@ -146,7 +146,7 @@ struct GameStatus {
     }
 
     void updateTurretsState(const World& world) {
-        if (ts.failedToFindPath) {
+        /*if (ts.failedToFindPath) {
             bool haveAnyTurret = false;
             for (const auto& b : world.myBuildings)
                 if (b.entityType == EntityType::TURRET) {
@@ -154,28 +154,30 @@ struct GameStatus {
                     break;
                 }
             if (!haveAnyTurret) {
+                cerr << "fail not have any\n";
                 ts.state = TS_FAILED;
                 ts.repairers.clear();
                 return;
             }
-        }
+        }*/
 
         if (needRanged > 0) {
+            // cerr << "fail need ranged\n";
             ts.state = TS_FAILED;
             ts.repairers.clear();
             return;
         }
 
-        if (foodLimit >= 10 && TURRETS_CHEESE && world.finals) {
+        if (foodLimit >= 30 && TURRETS_CHEESE && world.finals) {
             if (ts.state == TS_NOT_BUILD) {
                 int dBase[82][82];
                 memset(dBase, 0, sizeof(dBase));
                 uit++;
                 vector<Cell> q;
-                q.emplace_back(77, 77);
+                q.emplace_back(42, 42);
                 goBfs(world, q, dBase);
                 unordered_set<int> usedW;
-                forn(it, 4) {
+                forn(it, 8) {
                     int cld = inf, ci = -1;
                     for (const auto& w : world.myWorkers)
                         if (usedW.find(w.id) == usedW.end()) {
@@ -208,7 +210,7 @@ struct GameStatus {
         }
         ts.repairers.resize(nn);
 
-        if (ts.state == TS_PLANNED) {
+        /*if (ts.state == TS_PLANNED) {
             for (const auto& b : world.myBuildings)
                 if (b.entityType == EntityType::TURRET && !b.active) {
                     ts.state = TS_BUILDING;
@@ -221,7 +223,7 @@ struct GameStatus {
                 if (b.entityType == EntityType::TURRET && !b.active) {
                     ts.state = TS_BUILDING;
                 }
-        }
+        }*/
 
         for (const auto& oe : world.oppEntities)
             if (oe.entityType == EntityType::RANGED_UNIT || oe.entityType == EntityType::MELEE_UNIT)
@@ -230,7 +232,7 @@ struct GameStatus {
         if (ts.state == TS_FAILED) {
             ts.repairers.clear();
         }
-        // cerr << "ts.state = " << ts.state << endl;
+        cerr << "ts.state = " << ts.state << endl;
     }
 
     bool calcBorderPoints(const World& world, vector<Cell> borderPoints[5]) {

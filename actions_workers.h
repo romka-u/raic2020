@@ -394,7 +394,7 @@ void addHideActions(const World& world, vector<MyAction>& actions, const GameSta
 
 void addBuildActions(const World& world, vector<MyAction>& actions, const GameStatus& st, int& resources) {
     const int rbc = props.at(EntityType::RANGED_BASE).cost;
-    if (st.ts.state == TS_PLANNED) resources -= props.at(EntityType::TURRET).cost;
+    if (st.ts.state == TS_PLANNED) resources -= props.at(EntityType::RANGED_BASE).cost;
 
     if (resources >= rbc) {
         int wrkId = addBuildRanged(world, actions, st, resources < rbc * 1.64);
@@ -618,38 +618,37 @@ void addTurretsActions(const World& world, vector<MyAction>& actions, const Game
     }
 }
 
-void addTurretCheeseActions(const World& world, vector<MyAction>& actions, const GameStatus& st) {
+void addCheeseActions(const World& world, vector<MyAction>& actions, const GameStatus& st) {
     int bestId = -1, bestScore = -inf;
     Cell bestPos;
-    const int sz = props.at(EntityType::TURRET).size;
+    const int sz = props.at(EntityType::RANGED_BASE).size;
     for (int wi : st.ts.repairers) {
         const auto& wrk = world.entityMap.at(wi);
         usedWorkers.insert(wrk.id);
-        for (const auto& oe : world.oppEntities) {
-            if (dist(wrk.position, oe) <= 3) {
-                for (Cell newPos : nearCells(wrk.position - Cell(sz - 1, sz - 1), sz)) {
-                    if (canBuildSimple(world, newPos, sz)) {
-                        int score = newPos.x + newPos.y;
-                        if (score > bestScore) {
-                            bestId = wrk.id;
-                            bestScore = score;
-                            bestPos = newPos;
-                        }
+        if (wrk.position.x + wrk.position.y > 77) {
+            for (Cell newPos : nearCells(wrk.position - Cell(sz - 1, sz - 1), sz)) {
+                if (canBuildSimple(world, newPos, sz)) {
+                    int score = newPos.x + newPos.y;
+                    if (score > bestScore) {
+                        bestId = wrk.id;
+                        bestScore = score;
+                        bestPos = newPos;
                     }
                 }
-                break;
             }
         }
     }
 
     if (bestId != -1) {
-        actions.emplace_back(bestId, A_BUILD, bestPos, EntityType::TURRET, Score(1001, 0));
+        actions.emplace_back(bestId, A_BUILD, bestPos, EntityType::RANGED_BASE, Score(1001, 0));
         for (int wi : st.ts.repairers)
             if (wi != bestId)
                 actions.emplace_back(wi, A_MOVE, bestPos, bestId, Score(777, 19));
     } else {
+        Cell target(79, 79);
+        if (world.oppEntities.size() > 1) target = Cell(3, 3);
         for (int wi : st.ts.repairers)
-            actions.emplace_back(wi, A_MOVE, Cell(79, 79), -1, Score(777, 19));
+            actions.emplace_back(wi, A_MOVE, target, -1, Score(777, 19));
     }
 }
 
@@ -733,7 +732,7 @@ bool checkFreeSpaceActions(const World& world, vector<MyAction>& actions, const 
 void addWorkersActions(const World& world, vector<MyAction>& actions, const GameStatus& st, int& resources) {
     usedWorkers.clear();
     if (st.ts.state == TS_PLANNED) {
-        addTurretCheeseActions(world, actions, st);
+        addCheeseActions(world, actions, st);
     }
     // cerr << "workers: " << world.myWorkers.size() << ", oppEntities: " << world.oppEntities.size() << ", resources: " << world.resources.size() << endl;
     // unsigned tt = elapsed();
