@@ -414,6 +414,150 @@ void addBuildActions(const World& world, vector<MyAction>& actions, const GameSt
     }
 }
 
+vector<Cell> getCellsNearRes(const World& world, const GameStatus& st) {
+    unordered_set<Cell> cells;
+    for (int ri : st.resToGather) {
+        const auto& r = world.entityMap.at(ri);
+        forn(w, 4) {
+            const Cell nc = r.position ^ w;
+            if (nc.inside() && !world.hasNonMovable(nc))
+                cells.insert(nc);
+        }
+    }
+    return vector<Cell>(cells.begin(), cells.end());
+}
+
+int dw[82][82];
+const int MAXD = 42;
+
+void bfsWorker(const World& world, const Cell& p) {
+    size_t qb = 0;
+    static vector<Cell> q;
+    q.clear();
+    q.push_back(p);
+    dw[p.x][p.y] = 0;
+    uit++;
+    um[p.x][p.y] = uit;
+
+    while (qb < q.size()) {
+        const Cell cur = q[qb++];
+        if (dw[cur.x][cur.y] == MAXD) break;
+        forn(w, 4) {
+            const Cell nc = cur ^ w;
+            if (nc.inside() && um[nc.x][nc.y] != uit && !world.hasNonMovable(nc)) {
+                um[nc.x][nc.y] = uit;
+                q.push_back(nc);
+                dw[nc.x][nc.y] = dw[cur.x][cur.y] + 1;
+            }
+        }
+    }
+}
+
+vector<vector<pii>> gw;
+vector<int> ukw;
+int ukwit;
+vector<int> mt;
+
+bool kuhn(int v, int lim) {
+    if (ukw[v] == ukwit) return false;
+    ukw[v] = ukwit;
+    for (const auto& [w, to] : gw[v]) {
+        if (w > lim) break;
+        if (mt[to] == -1 || kuhn(mt[to], lim)) {
+            mt[to] = v;
+            return true;
+        }
+    }
+    return false;
+}
+
+int getPairs(int N, int M, int lim) {
+    mt.assign(M, -1);
+
+    int res = 0;
+    static vector<int> p, nv;
+    p.clear();
+    forn(i, N) if (!gw[i].empty()) p.push_back(i);
+
+    forn(L, lim + 1) {
+        nv.clear();
+        for (int v : p) {
+            ukwit++;
+            if (kuhn(v, L)) {
+                res++;
+            } else {
+                nv.push_back(v);
+            }
+        }
+        if (nv.empty() || res == M) break;
+        p = nv;
+    }
+
+    return res;
+}
+
+void addKuhnGatherActions(const World& world, vector<MyAction>& actions, const GameStatus& st) {
+    vector<Cell> cellsNearRes = getCellsNearRes(world, st);
+    const int myWS = world.myWorkers.size();
+    const int CN = cellsNearRes.size();
+    gw.assign(myWS, vector<pii>());
+
+    int maxD = 0;
+    forn(i, myWS) {
+        const auto& wrk = world.myWorkers[i];
+        if (usedWorkers.count(wrk.id)) continue;
+        bfsWorker(world, wrk.position);
+        forn(j, CN) {
+            const auto& c = cellsNearRes[j];
+            int d = dw[c.x][c.y];
+            if (um[c.x][c.y] != uit) {
+                d = MAXD + dist(wrk.position, c);
+            }
+            gw[i].emplace_back(d, j);
+            maxD = max(maxD, d);
+        }
+        sort(gw[i].begin(), gw[i].end());
+    }
+
+    ukw.assign(myWS, 0);
+    int maxPairs = getPairs(myWS, CN, maxD);
+    /*int L = 0, R = maxD;
+    while (R - L > 1) {
+        int M = (L + R) >> 1;
+        if (getPairs(myWS, CN, M) < maxPairs) {
+            L = M;
+        } else {
+            R = M;
+        }
+    }
+    if (L == 0 && getPairs(myWS, CN, L) == maxPairs) R = L;
+
+    getPairs(myWS, CN, R);*/
+    
+    forn(j, CN) {
+        if (mt[j] != -1) {
+            const Cell& target = cellsNearRes[j];
+            const Entity& wrk = world.myWorkers[mt[j]];
+            if (wrk.position == target) {
+                forn(w, 4) {
+                    const Cell nc = wrk.position ^ w;
+                    if (nc.inside() && world.eMap[nc.x][nc.y] < 0) {
+                        const auto& r = world.entityMap.at(-world.eMap[nc.x][nc.y]);
+                        if (r.entityType == EntityType::RESOURCE) {
+                            actions.emplace_back(wrk.id, A_GATHER, NOWHERE, r.id, Score(120, 0));
+                            usedWorkers.insert(wrk.id);
+                            break;
+                        }
+                    }
+                }
+            } else {
+                actions.emplace_back(wrk.id, A_MOVE, target, -1, Score(101, 0));
+                usedWorkers.insert(wrk.id);
+            }
+        }
+    }
+}
+
 void addGatherActions(const World& world, vector<MyAction>& actions, const GameStatus& st) {
     vector<pii> wrkList;
     for (const auto& wrk : world.myWorkers) {
@@ -509,7 +653,7 @@ void addTurretCheeseActions(const World& world, vector<MyAction>& actions, const
     }
 }
 
-void addFreeSpaceActions(const World& world, vector<MyAction>& actions, const GameStatus& st) {
+bool checkFreeSpaceActions(const World& world, vector<MyAction>& actions, const GameStatus& st) {
     int dBase[82][82], dWrk[82][82];
     memset(dBase, 0, sizeof(dBase));
     memset(dWrk, 0, sizeof(dWrk));
@@ -553,7 +697,8 @@ void addFreeSpaceActions(const World& world, vector<MyAction>& actions, const Ga
         }
     }
 
-    vector<pii> cand;
+    // vector<pii> cand;
+    bool haveProblem = false;
     for (const auto& wrk : world.myWorkers) {
         if (!isAllZeros) break;
         if (usedWorkers.count(wrk.id)) continue;
@@ -576,17 +721,13 @@ void addFreeSpaceActions(const World& world, vector<MyAction>& actions, const Ga
         }
 
         if (hasZero && hasNonZero && hasRes) {
-            cand.emplace_back(dBase[wrk.position.x][wrk.position.y], wrk.id);
+            // cand.emplace_back(dBase[wrk.position.x][wrk.position.y], wrk.id);
+            haveProblem = true;
+            break;
         }
     }
 
-    sort(cand.begin(), cand.end());
-
-    forn(i, 2) {
-        if (i >= cand.size()) break;
-        usedWorkers.insert(cand[i].second);
-        actions.emplace_back(cand[i].second, A_FREE_MOVE, Cell(77, 77), -1, Score(54321, 19));
-    }
+    return haveProblem;
 }
 
 void addWorkersActions(const World& world, vector<MyAction>& actions, const GameStatus& st, int& resources) {
@@ -598,7 +739,7 @@ void addWorkersActions(const World& world, vector<MyAction>& actions, const Game
     // unsigned tt = elapsed();
     addRepairActions(world, actions, st);
     // cerr << "=W= repair actions: " << (elapsed() - tt) << "ms.\n";
-    // addFreeSpaceActions(world, actions, st);
+    
     // tt = elapsed();
     addHideActions(world, actions, st);
     // cerr << "=W= hide actions: " << (elapsed() - tt) << "ms.\n";
@@ -606,7 +747,10 @@ void addWorkersActions(const World& world, vector<MyAction>& actions, const Game
     addBuildActions(world, actions, st, resources);
     // cerr << "=W= build actions: " << (elapsed() - tt) << "ms.\n";
     // tt = elapsed();
-    addGatherActions(world, actions, st);
+    // if (st.needRanged != 2 && checkFreeSpaceActions(world, actions, st))
+    //     addKuhnGatherActions(world, actions, st);
+    // else 
+        addGatherActions(world, actions, st);
     // cerr << "=W= gather actions: " << (elapsed() - tt) << "ms.\n";
     // tt = elapsed();
     addTurretsActions(world, actions, st);
