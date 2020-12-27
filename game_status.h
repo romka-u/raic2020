@@ -182,12 +182,7 @@ struct GameStatus {
                     for (const auto& w : world.myWorkers)
                         if (usedW.find(w.id) == usedW.end()) {
                             int cd = dBase[w.position.x][w.position.y];
-                            if (cd == 0) {
-                                // cerr << "fail because cd = 0\n";
-                                ts.state = TS_FAILED;
-                                break;
-                            }
-                            if (cd < cld) {
+                            if (cd > 0 && cd < cld) {
                                 cld = cd;
                                 ci = w.id;
                             }
@@ -232,7 +227,7 @@ struct GameStatus {
         if (ts.state == TS_FAILED) {
             ts.repairers.clear();
         }
-        // cerr << "ts.state = " << ts.state << endl;
+        cerr << "ts.state = " << ts.state << endl;
     }
 
     bool calcBorderPoints(const World& world, vector<Cell> borderPoints[5]) {

@@ -222,6 +222,7 @@ int addBuildTurret(const World& world, vector<MyAction>& actions, const GameStat
 int addBuildHouse(const World& world, vector<MyAction>& actions, const GameStatus& st, bool checkBorder) {
     int bestScore = -inf, bestId = -1;
     Cell bestPos;
+    if (st.ts.state == TS_PLANNED) return -1;
 
     int housesInProgress = 0;
     for (const auto& b : world.myBuildings)
@@ -533,7 +534,7 @@ void addKuhnGatherActions(const World& world, vector<MyAction>& actions, const G
     if (L == 0 && getPairs(myWS, CN, L) == maxPairs) R = L;
 
     getPairs(myWS, CN, R);*/
-    
+
     forn(j, CN) {
         if (mt[j] != -1) {
             const Cell& target = cellsNearRes[j];
@@ -682,7 +683,7 @@ void addKuhnLastGatherActions(const World& world, vector<MyAction>& actions, con
     if (L == 0 && getPairs(myWS, CN, L) == maxPairs) R = L;
 
     getPairs(myWS, CN, R);*/
-    
+
     forn(j, CN) {
         if (mt[j] != -1) {
             const Cell& target = cellsNearRes[j];
@@ -771,15 +772,88 @@ void addTurretsActions(const World& world, vector<MyAction>& actions, const Game
     }
 }
 
+void addAntiCheeseActions(const World& world, vector<MyAction>& actions, const GameStatus& st) {
+    if (!world.myWarriors.empty()) return;
+
+    vector<pair<int, pii>> cand;
+    for (const auto& wrk : world.myWorkers) {
+        for (const auto& oe : world.oppEntities)
+            if (oe.id < 1e8) {
+                const int cd = dist(wrk.position, oe);
+                if (cd <= 19)
+                    cand.emplace_back(cd + 100 * oe.size, make_pair(wrk.id, oe.id));
+            }
+    }
+    sort(cand.begin(), cand.end());
+    unordered_map<int, int> usedOpp;
+
+    vector<pair<int, pair<int, Cell>>> moves;
+    // unordered_set<int> attacking;
+    for (const auto& [_, p] : cand) {
+        const auto& [wi, oi] = p;
+        if (usedWorkers.count(wi)) continue;
+        const auto& oe = world.entityMap.at(oi);
+        const int needWorkers = 2 * oe.size;
+        if (usedOpp[oi] >= needWorkers) continue;
+        usedOpp[oi]++;
+        usedWorkers.insert(wi);
+        const auto& wrk = world.entityMap.at(wi);
+        // cerr << "> Anticheese " << wrk.position << "->" << oe.position << endl;
+        const int cd = dist(wrk.position, oe);
+        if (cd == 1) {
+            actions.emplace_back(wi, A_ATTACK, oe.position, oi, Score(1234567, 0));
+            // attacking.insert(oi);
+        } else {
+            moves.emplace_back(cd, make_pair(wi, oe.position));
+        }
+    }
+
+    const Entity* rangedInProgress = nullptr;
+    for (const auto& b : world.myBuildings)
+        if (b.entityType == EntityType::RANGED_BASE && !b.active) {
+            rangedInProgress = &b;
+            break;
+        }
+
+    if (!rangedInProgress) {
+        for (const auto& [_, p] : moves) {
+            actions.emplace_back(p.first, A_MOVE, p.second, -1, Score(1234567, 0));
+        }
+    } else {
+        sort(moves.rbegin(), moves.rend());
+        int cntAttackers = 0;
+        for (const auto& oe : world.oppEntities)
+            if (dist(oe, *rangedInProgress) <= oe.attackRange) {
+                cntAttackers++;
+            }
+        if (cntAttackers >= moves.size()) {
+            cntAttackers = max(1, (int)moves.size() - 1);
+        }
+        forn(i, moves.size()) {
+            const int wi = moves[i].second.first;
+            const auto& wrk = world.entityMap.at(wi);
+            if (i < cntAttackers) {
+                if (dist(wrk.position, *rangedInProgress) == 1) {
+                    actions.emplace_back(wi, A_REPAIR, rangedInProgress->position, rangedInProgress->id, Score(1234567, 0));
+                } else {
+                    actions.emplace_back(wi, A_MOVE, rangedInProgress->position, -1, Score(1234567, 0));
+                }
+            } else {
+                actions.emplace_back(wi, A_MOVE, moves[i].second.second, -1, Score(1234567, 0));
+            }
+        }
+    }
+}
+
 void addCheeseActions(const World& world, vector<MyAction>& actions, const GameStatus& st, int& resources) {
     int bestId = -1, bestScore = -inf;
     Cell bestPos;
     const int sz = props.at(EntityType::RANGED_BASE).size;
     for (int wi : st.ts.repairers) {
         const auto& wrk = world.entityMap.at(wi);
-        usedWorkers.insert(wrk.id);
+        if (!usedWorkers.insert(wrk.id).second) continue;
         if (resources < props.at(EntityType::RANGED_BASE).cost) continue;
-        if (wrk.position.x + wrk.position.y >= 64)
+        if (wrk.position.x + wrk.position.y >= 77)
             for (Cell newPos : nearCells(wrk.position - Cell(sz - 1, sz - 1), sz)) {
                 if (canBuildSimple(world, newPos, sz)) {
                     int score = newPos.x + newPos.y;
@@ -800,7 +874,7 @@ void addCheeseActions(const World& world, vector<MyAction>& actions, const GameS
                 actions.emplace_back(wi, A_MOVE, bestPos, bestId, Score(777, 19));
     } else {
         Cell target(79, 79);
-        if (world.oppEntities.size() > 1) target = Cell(3, 3);
+        // if (world.oppEntities.size() > 1) target = Cell(3, 3);
         for (int wi : st.ts.repairers)
             actions.emplace_back(wi, A_MOVE, target, -1, Score(777, 19));
     }
@@ -885,6 +959,7 @@ bool checkFreeSpaceActions(const World& world, vector<MyAction>& actions, const 
 
 void addWorkersActions(const World& world, vector<MyAction>& actions, const GameStatus& st, int& resources) {
     usedWorkers.clear();
+    addAntiCheeseActions(world, actions, st);
     if (st.ts.state == TS_PLANNED) {
         addCheeseActions(world, actions, st, resources);
     }
@@ -892,7 +967,7 @@ void addWorkersActions(const World& world, vector<MyAction>& actions, const Game
     // unsigned tt = elapsed();
     addRepairActions(world, actions, st);
     // cerr << "=W= repair actions: " << (elapsed() - tt) << "ms.\n";
-    
+
     // tt = elapsed();
     addHideActions(world, actions, st);
     // cerr << "=W= hide actions: " << (elapsed() - tt) << "ms.\n";
@@ -902,7 +977,7 @@ void addWorkersActions(const World& world, vector<MyAction>& actions, const Game
     // tt = elapsed();
     if (world.tick < 444)
         addKuhnLastGatherActions(world, actions, st);
-    else 
+    else
         addGatherActions(world, actions, st);
     // cerr << "=W= gather actions: " << (elapsed() - tt) << "ms.\n";
     // tt = elapsed();

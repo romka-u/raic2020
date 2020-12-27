@@ -227,7 +227,9 @@ public:
                             break;
                         }
                 }
-                path = getPathTo(world, from, to, isRep ? 8 : 4);
+                // cerr << "path " << from << "->" << to << ", isRep = " << isRep << endl;
+                path = getPathTo(world, from, to, isRep ? 19 : 4);
+                // for (const auto& c : path) cerr << " " << c; cerr << endl;
 
                 #ifdef DEBUG
                 pathDebug[unitId].path = path;
