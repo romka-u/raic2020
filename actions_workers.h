@@ -778,6 +778,7 @@ void addAntiCheeseActions(const World& world, vector<MyAction>& actions, const G
 
     vector<pair<int, pii>> cand;
     for (const auto& wrk : world.myWorkers) {
+        if (usedWorkers.count(wrk.id)) continue;
         for (const auto& oe : world.oppEntities)
             if (oe.id < 1e8) {
                 const int cd = dist(wrk.position, oe);
@@ -960,10 +961,10 @@ bool checkFreeSpaceActions(const World& world, vector<MyAction>& actions, const 
 
 void addWorkersActions(const World& world, vector<MyAction>& actions, const GameStatus& st, int& resources) {
     usedWorkers.clear();
-    addAntiCheeseActions(world, actions, st);
     if (st.ts.state == TS_PLANNED) {
         addCheeseActions(world, actions, st, resources);
     }
+    addAntiCheeseActions(world, actions, st);
     // cerr << "workers: " << world.myWorkers.size() << ", oppEntities: " << world.oppEntities.size() << ", resources: " << world.resources.size() << endl;
     // unsigned tt = elapsed();
     addRepairActions(world, actions, st);
