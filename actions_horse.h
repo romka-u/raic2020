@@ -184,7 +184,7 @@ const vector<Cell> horseRaw = {
 unordered_map<int, Cell> horseTargets;
 
 void addHorseActions(const World& world, vector<MyAction>& actions, const GameStatus& st) {
-    if (world.tick % 32 == 0) horseTargets.clear();
+    if (world.tick % 42 == 0) horseTargets.clear();
     if (horseTargets.empty()) {
         const Cell offset(45, 79);
         vector<pair<int, int>> participants;

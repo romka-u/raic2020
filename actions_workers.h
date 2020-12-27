@@ -285,7 +285,7 @@ void addRepairActions(const World& world, vector<MyAction>& actions, const GameS
     for (const auto& wrk : world.myWorkers) {
         if (usedWorkers.find(wrk.id) != usedWorkers.end()) continue;
         const int pr = dRep[wrk.position.x][wrk.position.y];
-        if (pr > 32) continue;
+        if (pr > 64) continue;
         wrkList.emplace_back(pr, wrk.id);
     }
 

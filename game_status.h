@@ -146,21 +146,6 @@ struct GameStatus {
     }
 
     void updateTurretsState(const World& world) {
-        /*if (ts.failedToFindPath) {
-            bool haveAnyTurret = false;
-            for (const auto& b : world.myBuildings)
-                if (b.entityType == EntityType::TURRET) {
-                    haveAnyTurret = true;
-                    break;
-                }
-            if (!haveAnyTurret) {
-                cerr << "fail not have any\n";
-                ts.state = TS_FAILED;
-                ts.repairers.clear();
-                return;
-            }
-        }*/
-
         if (needRanged > 0) {
             // cerr << "fail need ranged\n";
             ts.state = TS_FAILED;
@@ -168,7 +153,7 @@ struct GameStatus {
             return;
         }
 
-        if (foodLimit >= 30 && TURRETS_CHEESE && world.finals) {
+        if (foodLimit >= 25 && TURRETS_CHEESE && world.finals) {
             if (ts.state == TS_NOT_BUILD) {
                 int dBase[82][82];
                 memset(dBase, 0, sizeof(dBase));
@@ -177,7 +162,7 @@ struct GameStatus {
                 q.emplace_back(42, 42);
                 goBfs(world, q, dBase);
                 unordered_set<int> usedW;
-                forn(it, 8) {
+                forn(it, 9) {
                     int cld = inf, ci = -1;
                     for (const auto& w : world.myWorkers)
                         if (usedW.find(w.id) == usedW.end()) {
@@ -482,7 +467,6 @@ struct GameStatus {
         updateUnderAttack(world);
         updateResToGather(world);
         updateFoodLimit(world);
-        updateTurretsState(world);
         if (!world.finals)
             updateHotPoints(world);
 
@@ -507,5 +491,7 @@ struct GameStatus {
                 }
             }
         }
+
+        updateTurretsState(world);
     }
 };
