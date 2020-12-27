@@ -33,6 +33,7 @@ Cell p[88][88];
 int uit;
 int busyForAStar[80][80][D + 1];
 int foreverStuck[80][80];
+int busyKuhn[80][80];
 int moveUsed[80][80][D + 1][4];
 int dRes[82][82], dRep[82][82], dTur[82][82], enemyZone[82][82];
 int astick;
@@ -163,6 +164,7 @@ vector<Cell> getPathTo(const World& world, const Cell& from, const Cell& to, int
                 // if (foreverStuck[nc.x][nc.y] == astick) nf += 77;
                 if (moveUsed[nc.x][nc.y][cur.d + 1][w ^ 2] == astick) nf += 19;
             }
+            if (busyKuhn[nc.x][nc.y] == astick) nf += 50;
             if (nc.inside()) {
                 queue.push(QItem{nf, hManh(nc, to), cur.d + 1, hMax(nc, to), nc, cur.c});
             }

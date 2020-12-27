@@ -558,6 +558,159 @@ void addKuhnGatherActions(const World& world, vector<MyAction>& actions, const G
     }
 }
 
+struct KC {
+    int d, i, j;
+    KC(int a, int b, int c): d(a), i(b), j(c) {}
+};
+
+bool operator<(const KC& a, const KC& b) {
+    return a.d < b.d;
+}
+
+int awit, anyw[82][82], awind[82][82], toKuhn[1234], usedCells[7777];
+
+void addKuhnLastGatherActions(const World& world, vector<MyAction>& actions, const GameStatus& st) {
+    vector<Cell> cellsNearRes = getCellsNearRes(world, st);
+    const int myWS = world.myWorkers.size();
+    const int CN = cellsNearRes.size();
+    gw.assign(myWS, vector<pii>());
+
+    for (const auto& wrk : world.myWorkers)
+        busyKuhn[wrk.position.x][wrk.position.y] = astick;
+
+    int maxD = 0;
+    vector<KC> cand;
+    awit++;
+    forn(i, myWS) {
+        const auto& wrk = world.myWorkers[i];
+        if (usedWorkers.count(wrk.id)) continue;
+        anyw[wrk.position.x][wrk.position.y] = awit;
+        awind[wrk.position.x][wrk.position.y] = i;
+        bfsWorker(world, wrk.position);
+        forn(j, CN) {
+            const auto& c = cellsNearRes[j];
+            int d = dw[c.x][c.y];
+            if (um[c.x][c.y] != uit) {
+                d = MAXD + dist(wrk.position, c);
+            }
+            gw[i].emplace_back(d, j);
+            maxD = max(maxD, d);
+            cand.push_back(KC(d, i, j));
+        }
+        sort(gw[i].begin(), gw[i].end());
+    }
+
+    sort(cand.begin(), cand.end());
+    vector<KC> defined;
+
+    for (const KC& kc : cand) {
+        const auto& wrk = world.myWorkers[kc.i];
+        if (usedWorkers.count(wrk.id)) continue;
+        if (usedCells[kc.j] == awit) continue;
+        const Cell& target = cellsNearRes[kc.j];
+        // cerr << "look@" << wrk.position << "->" << target << endl;
+        vector<Cell> path = getPathTo(world, wrk.position, target, 100);
+        bool regroup = false;
+        for (int i = 1; i < path.size(); i++) {
+            if (i > 1 && !regroup) break;
+            const Cell& c = path[i];
+            if (anyw[c.x][c.y] == awit) {
+                if (!regroup) {
+                    toKuhn[kc.i] = awit;
+                    regroup = true;
+                }
+                toKuhn[awind[c.x][c.y]] = awit;
+                // cerr << "regroup with " << world.myWorkers[awind[c.x][c.y]].position << endl;
+            }
+        }
+        defined.push_back(kc);
+        usedCells[kc.j] = awit;
+        usedWorkers.insert(wrk.id);
+    }
+
+    for (const KC& kc : defined) {
+        if (toKuhn[kc.i] != awit) {
+            const auto& wrk = world.myWorkers[kc.i];
+            const Cell& target = cellsNearRes[kc.j];
+            if (wrk.position == target) {
+                forn(w, 4) {
+                    const Cell nc = wrk.position ^ w;
+                    if (nc.inside() && world.eMap[nc.x][nc.y] < 0) {
+                        const auto& r = world.entityMap.at(-world.eMap[nc.x][nc.y]);
+                        if (r.entityType == EntityType::RESOURCE) {
+                            actions.emplace_back(wrk.id, A_GATHER, NOWHERE, r.id, Score(120, 0));
+                            updateAStar(world, {wrk.position});
+                            break;
+                        }
+                    }
+                }
+            } else {
+                actions.emplace_back(wrk.id, A_MOVE, target, -1, Score(101, 0));
+            }
+        } else {
+            // cerr << "cancel defined for " << world.myWorkers[kc.i].position << endl;
+            usedWorkers.erase(world.myWorkers[kc.i].id);
+            usedCells[kc.j] = awit - 1;
+        }
+    }
+
+    forn(i, myWS) {
+        if (toKuhn[i] != awit) {
+            gw[i].clear();
+            continue;
+        }
+        int nn = 0;
+        forn(j, gw[i].size()) {
+            if (usedCells[gw[i][j].second] != awit) {
+                gw[i][nn++] = gw[i][j];
+            }
+        }
+        gw[i].resize(nn);
+    }
+
+    ukw.assign(myWS, 0);
+    int maxPairs = getPairs(myWS, CN, maxD);
+    /*int L = 0, R = maxD;
+    while (R - L > 1) {
+        int M = (L + R) >> 1;
+        if (getPairs(myWS, CN, M) < maxPairs) {
+            L = M;
+        } else {
+            R = M;
+        }
+    }
+    if (L == 0 && getPairs(myWS, CN, L) == maxPairs) R = L;
+
+    getPairs(myWS, CN, R);*/
+    
+    forn(j, CN) {
+        if (mt[j] != -1) {
+            const Cell& target = cellsNearRes[j];
+            const Entity& wrk = world.myWorkers[mt[j]];
+            // cerr << "kuhn assign " << wrk.position << "->" << target << endl;
+            if (wrk.position == target) {
+                forn(w, 4) {
+                    const Cell nc = wrk.position ^ w;
+                    if (nc.inside() && world.eMap[nc.x][nc.y] < 0) {
+                        const auto& r = world.entityMap.at(-world.eMap[nc.x][nc.y]);
+                        if (r.entityType == EntityType::RESOURCE) {
+                            actions.emplace_back(wrk.id, A_GATHER, NOWHERE, r.id, Score(120, 0));
+                            usedWorkers.insert(wrk.id);
+                            break;
+                        }
+                    }
+                }
+            } else {
+                actions.emplace_back(wrk.id, A_MOVE, target, -1, Score(101, 0));
+                usedWorkers.insert(wrk.id);
+            }
+        }
+    }
+
+    for (const auto& wrk : world.myWorkers)
+        busyKuhn[wrk.position.x][wrk.position.y] = astick - 1;
+}
+
 void addGatherActions(const World& world, vector<MyAction>& actions, const GameStatus& st) {
     vector<pii> wrkList;
     for (const auto& wrk : world.myWorkers) {
@@ -618,28 +771,28 @@ void addTurretsActions(const World& world, vector<MyAction>& actions, const Game
     }
 }
 
-void addCheeseActions(const World& world, vector<MyAction>& actions, const GameStatus& st) {
+void addCheeseActions(const World& world, vector<MyAction>& actions, const GameStatus& st, int& resources) {
     int bestId = -1, bestScore = -inf;
     Cell bestPos;
     const int sz = props.at(EntityType::RANGED_BASE).size;
+    if (resources < props.at(EntityType::RANGED_BASE).cost) return;
     for (int wi : st.ts.repairers) {
         const auto& wrk = world.entityMap.at(wi);
         usedWorkers.insert(wrk.id);
-        if (wrk.position.x + wrk.position.y > 77) {
-            for (Cell newPos : nearCells(wrk.position - Cell(sz - 1, sz - 1), sz)) {
-                if (canBuildSimple(world, newPos, sz)) {
-                    int score = newPos.x + newPos.y;
-                    if (score > bestScore) {
-                        bestId = wrk.id;
-                        bestScore = score;
-                        bestPos = newPos;
-                    }
+        for (Cell newPos : nearCells(wrk.position - Cell(sz - 1, sz - 1), sz)) {
+            if (canBuildSimple(world, newPos, sz)) {
+                int score = newPos.x + newPos.y;
+                if (score > bestScore) {
+                    bestId = wrk.id;
+                    bestScore = score;
+                    bestPos = newPos;
                 }
             }
         }
     }
 
     if (bestId != -1) {
+        resources -= props.at(EntityType::RANGED_BASE).cost;
         actions.emplace_back(bestId, A_BUILD, bestPos, EntityType::RANGED_BASE, Score(1001, 0));
         for (int wi : st.ts.repairers)
             if (wi != bestId)
@@ -732,7 +885,7 @@ bool checkFreeSpaceActions(const World& world, vector<MyAction>& actions, const 
 void addWorkersActions(const World& world, vector<MyAction>& actions, const GameStatus& st, int& resources) {
     usedWorkers.clear();
     if (st.ts.state == TS_PLANNED) {
-        addCheeseActions(world, actions, st);
+        addCheeseActions(world, actions, st, resources);
     }
     // cerr << "workers: " << world.myWorkers.size() << ", oppEntities: " << world.oppEntities.size() << ", resources: " << world.resources.size() << endl;
     // unsigned tt = elapsed();
@@ -746,9 +899,9 @@ void addWorkersActions(const World& world, vector<MyAction>& actions, const Game
     addBuildActions(world, actions, st, resources);
     // cerr << "=W= build actions: " << (elapsed() - tt) << "ms.\n";
     // tt = elapsed();
-    // if (st.needRanged != 2 && checkFreeSpaceActions(world, actions, st))
-    //     addKuhnGatherActions(world, actions, st);
-    // else 
+    if (world.tick < 444)
+        addKuhnLastGatherActions(world, actions, st);
+    else 
         addGatherActions(world, actions, st);
     // cerr << "=W= gather actions: " << (elapsed() - tt) << "ms.\n";
     // tt = elapsed();
