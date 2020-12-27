@@ -775,20 +775,21 @@ void addCheeseActions(const World& world, vector<MyAction>& actions, const GameS
     int bestId = -1, bestScore = -inf;
     Cell bestPos;
     const int sz = props.at(EntityType::RANGED_BASE).size;
-    if (resources < props.at(EntityType::RANGED_BASE).cost) return;
     for (int wi : st.ts.repairers) {
         const auto& wrk = world.entityMap.at(wi);
         usedWorkers.insert(wrk.id);
-        for (Cell newPos : nearCells(wrk.position - Cell(sz - 1, sz - 1), sz)) {
-            if (canBuildSimple(world, newPos, sz)) {
-                int score = newPos.x + newPos.y;
-                if (score > bestScore) {
-                    bestId = wrk.id;
-                    bestScore = score;
-                    bestPos = newPos;
+        if (resources < props.at(EntityType::RANGED_BASE).cost) continue;
+        if (wrk.position.x + wrk.position.y >= 64)
+            for (Cell newPos : nearCells(wrk.position - Cell(sz - 1, sz - 1), sz)) {
+                if (canBuildSimple(world, newPos, sz)) {
+                    int score = newPos.x + newPos.y;
+                    if (score > bestScore) {
+                        bestId = wrk.id;
+                        bestScore = score;
+                        bestPos = newPos;
+                    }
                 }
             }
-        }
     }
 
     if (bestId != -1) {

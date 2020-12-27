@@ -232,7 +232,7 @@ struct GameStatus {
         if (ts.state == TS_FAILED) {
             ts.repairers.clear();
         }
-        cerr << "ts.state = " << ts.state << endl;
+        // cerr << "ts.state = " << ts.state << endl;
     }
 
     bool calcBorderPoints(const World& world, vector<Cell> borderPoints[5]) {
