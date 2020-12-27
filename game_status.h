@@ -177,7 +177,7 @@ struct GameStatus {
                 q.emplace_back(42, 42);
                 goBfs(world, q, dBase);
                 unordered_set<int> usedW;
-                forn(it, 10) {
+                forn(it, 8) {
                     int cld = inf, ci = -1;
                     for (const auto& w : world.myWorkers)
                         if (usedW.find(w.id) == usedW.end()) {
