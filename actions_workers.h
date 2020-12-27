@@ -222,12 +222,13 @@ int addBuildTurret(const World& world, vector<MyAction>& actions, const GameStat
 int addBuildHouse(const World& world, vector<MyAction>& actions, const GameStatus& st, bool checkBorder) {
     int bestScore = -inf, bestId = -1;
     Cell bestPos;
-    if (st.ts.state == TS_PLANNED) return -1;
 
     int housesInProgress = 0;
     for (const auto& b : world.myBuildings)
         if (b.entityType == EntityType::HOUSE && !b.active)
             housesInProgress++;
+
+    if (st.ts.state == TS_PLANNED || (st.foodLimit == 20 && housesInProgress == 1 && world.finals && TURRETS_CHEESE)) return -1;
 
     if (world.finals) {
         if (housesInProgress > 1) return -1;
